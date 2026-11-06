@@ -17,6 +17,7 @@ import {
 } from "../core/session-history.js";
 import { spawnedTasks } from "../tools/subagent-shared.js";
 import { parseTodos } from "../tools/todo-write.js";
+import { ultracodeNoticeState } from "../core/ultracode.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { animatedPreview, downscaleForPreview, IMAGE_MEDIA_TYPES } from "../utils/image.js";
 import { readFileBounded } from "../tools/operations.js";
@@ -328,6 +329,7 @@ export function handleHistoryRoutes(
       // One checklist row per user turn, placed at its first todo_write and
       // holding the latest list, the same as the live row.
       let turnTodos: HistoryEntryForWire | null = null;
+      let ultracodeOn = false;
       // Turns/markers recorded before any build message (anchor 0) render at
       // the top.
       flushKen(0);
@@ -338,6 +340,9 @@ export function handleHistoryRoutes(
         messages,
         async (msg, count) => {
           nonSystemCount = count;
+          // Hidden Ultracode notices say whether the next prompts ran with it.
+          const ultracodeNotice = ultracodeNoticeState(msg);
+          if (ultracodeNotice !== null) ultracodeOn = ultracodeNotice;
           const visibility = getHistoryMessageVisibility(msg);
           if (visibility === "hidden") return;
 
@@ -459,6 +464,9 @@ export function handleHistoryRoutes(
                   : {}),
                 ...(hint?.kenSent === true ? { kenSent: true } : {}),
                 ...(Array.isArray(hint?.enhancements) ? { enhancements: hint.enhancements } : {}),
+                ...(ultracodeOn && !msg.provenance && !hook && !compacted
+                  ? { ultracode: true }
+                  : {}),
               });
               // Live showed the video-capability warning right after the bubble.
               if (restored.videoWarning) {

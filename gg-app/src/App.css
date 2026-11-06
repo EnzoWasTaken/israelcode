@@ -11522,6 +11522,36 @@ select {
   border: 0;
 }
 
+/* ── Ultracode phase strip: plan → build → review → combine for one turn ── */
+.ultracode-phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-2) 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.ultracode-phase {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.ultracode-phase[data-status="active"] {
+  color: var(--text);
+}
+.ultracode-phase[data-status="active"] .todo-mark {
+  color: var(--primary);
+}
+.ultracode-phase[data-status="done"] .todo-mark {
+  color: var(--success);
+}
+.ultracode-phase-label {
+  font-weight: 600;
+}
+
 /* ── "ultracode" typed in the draft: one line above the input ── */
 .ultracode-hint {
   display: flex;

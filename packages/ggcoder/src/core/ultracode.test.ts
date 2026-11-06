@@ -34,3 +34,16 @@ describe("ultracode", () => {
     expect(lastUltracodeState([on, user, off])).toBe(false);
   });
 });
+
+describe("ultracodeNoticeState", () => {
+  it("reads only Ultracode notices", async () => {
+    const { ultracodeNoticeState } = await import("./ultracode.js");
+    expect(ultracodeNoticeState(buildUltracodeMessage(true, []))).toBe(true);
+    expect(ultracodeNoticeState(buildUltracodeMessage(false, []))).toBe(false);
+    expect(ultracodeNoticeState({ role: "user", content: "Ultracode please" })).toBeNull();
+  });
+
+  it("asks for a reviewer child named review…", () => {
+    expect(buildUltracodeMessage(true, ["spawn_agent"]).content).toContain('beginning "review"');
+  });
+});

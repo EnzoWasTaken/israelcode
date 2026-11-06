@@ -88,6 +88,8 @@ import { useAgentEvents, type RunEnd } from "./useAgentEvents";
 import { LiveToolPanel, type LiveToolEntry } from "./LiveToolPanel";
 import { TodoPill } from "./TodoList";
 import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
+import { ultracodePhases, ultracodeTurns, type UltracodePhase } from "./ultracode-phases";
+import { UltracodePhases } from "./UltracodePhases";
 import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
 import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
 import {
@@ -1283,6 +1285,7 @@ function App(): React.ReactElement {
                 ...(h.enhancements && h.enhancements.length > 0
                   ? { enhancements: h.enhancements }
                   : {}),
+                ...(h.ultracode ? { ultracode: true } : {}),
               };
             }),
           ),
@@ -1928,6 +1931,16 @@ function App(): React.ReactElement {
     () => withoutSupersedingMessage(queuedMessages, supersedingText),
     [queuedMessages, supersedingText],
   );
+  // Ultracode turns' phase strips; the last turn is live while the run goes.
+  const ultracodePhaseMap = useMemo(() => {
+    const out = new Map<number, UltracodePhase[]>();
+    const turns = [...ultracodeTurns(items)];
+    turns.forEach(([userId, turn], i) => {
+      const phases = ultracodePhases(turn, running && i === turns.length - 1);
+      if (phases) out.set(userId, phases);
+    });
+    return out;
+  }, [items, running]);
   // The running turn's checklist, pinned above the deck so it stays in view.
   const liveTodos = useMemo(() => {
     if (!running) return undefined;
@@ -2534,6 +2547,7 @@ function App(): React.ReactElement {
       attachments: attachmentChips(attachments),
       files: mentionedPaths.length > 0 ? mentionedPaths : undefined,
       enhancements: sentEnhancements,
+      ultracode: ultracodeAvailable && (ultracodeArmed || state?.ultracode) ? true : undefined,
     });
     // Warn the user when a video attachment is sent to a model without native
     // video analysis — the agent can still use ffmpeg to extract frames/audio,
@@ -3061,6 +3075,8 @@ function App(): React.ReactElement {
                   <PromptSendProvider value={sendKenRecommendedPrompt}>
                     <LiveTextContext.Provider value={liveText}>
                       {visibleItems.flatMap((it) => {
+                        const phases =
+                          it.kind === "user" ? ultracodePhaseMap.get(it.id) : undefined;
                         const row = (
                           <TranscriptRow
                             key={it.id}
@@ -3114,8 +3130,13 @@ function App(): React.ReactElement {
                                 aria-hidden="true"
                               />,
                               row,
+                              ...(phases
+                                ? [<UltracodePhases key={`uc-${it.id}`} phases={phases} />]
+                                : []),
                             ]
-                          : [row];
+                          : phases
+                            ? [row, <UltracodePhases key={`uc-${it.id}`} phases={phases} />]
+                            : [row];
                       })}
                     </LiveTextContext.Provider>
                   </PromptSendProvider>

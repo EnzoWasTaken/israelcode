@@ -30,6 +30,8 @@ export type Item =
       // True while this message is still waiting in the mid-run steering queue.
       // Rendered dimmed; cleared once the agent has consumed it.
       queued?: boolean;
+      // Sent with Ultracode on: the turn shows its phase strip.
+      ultracode?: boolean;
       // Set for one animation beat as `queued` clears, so the bubble can morph
       // into a normal one (dim → solid, "queued" pill collapsing away) instead of
       // snapping. Cleared by a timer in useAgentEvents once the motion is done.

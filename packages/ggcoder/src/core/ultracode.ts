@@ -19,13 +19,19 @@ export function hasUltracodeKeyword(text: string): boolean {
 const NOTICE_ON = "Ultracode is now ON.";
 const NOTICE_OFF = "Ultracode is now OFF.";
 
+/** On/off when this message is an Ultracode notice, else null. */
+export function ultracodeNoticeState(m: Message | undefined): boolean | null {
+  if (m?.role !== "user" || typeof m.content !== "string") return null;
+  if (m.content.startsWith(NOTICE_ON)) return true;
+  if (m.content.startsWith(NOTICE_OFF)) return false;
+  return null;
+}
+
 /** What the newest Ultracode notice in a history said (none = off). */
 export function lastUltracodeState(messages: readonly Message[]): boolean {
   for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m?.role !== "user" || typeof m.content !== "string") continue;
-    if (m.content.startsWith(NOTICE_ON)) return true;
-    if (m.content.startsWith(NOTICE_OFF)) return false;
+    const state = ultracodeNoticeState(messages[i]);
+    if (state !== null) return state;
   }
   return false;
 }
@@ -41,7 +47,7 @@ export function buildUltracodeMessage(on: boolean, toolNames: readonly string[])
           ? `2. Start one child per independent scope with \`spawn_agent\` (${ACTIVE_LIMIT} per call, up to ${ULTRACODE_ACTIVE_LIMIT} running at once); give each a complete brief, its files, and how to verify.`
           : "2. Work through the phases one at a time, keeping each scope self-contained.",
         has("spawn_agent")
-          ? "3. Verify adversarially: once the work lands, start a separate read-only reviewer child to try to break it (tests, edge cases, the diff), and fix what it finds."
+          ? '3. Verify adversarially: once the work lands, start one read-only reviewer child with a `task_name` beginning "review" to try to break it (tests, edge cases, the diff), and fix what it finds.'
           : "3. Verify adversarially: re-read the diff as a skeptical reviewer, run the checks, and fix what you find.",
         "4. Synthesize: run the project's checks yourself and report one combined result.",
         "Small or single-step requests stay direct; do not fan out for them.",

@@ -1261,6 +1261,8 @@ export interface HistoryEntry {
   /** Tool-produced images rendered inline (same as live `images` items),
    *  reconstructed from ImageContent blocks in persisted tool results. */
   toolImages?: Array<{ src: string; path?: string }>;
+  /** A user message sent with Ultracode on. */
+  ultracode?: boolean;
   /** The turn's checklist: its latest `todo_write` list. */
   todos?: TodoItem[];
   /** Sub-agent delegation group (same as live `subagent_group` items). */
