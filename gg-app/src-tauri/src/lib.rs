@@ -187,6 +187,7 @@ pub fn run() {
             commands::agent::agent_ken_prompt,
             commands::agent::agent_ken_cancel,
             commands::agent::agent_autopilot_set,
+            commands::agent::agent_ultracode_set,
             commands::agent::agent_shell_run,
             commands::agent::agent_shell_cancel,
             commands::agent::agent_shell_trust,

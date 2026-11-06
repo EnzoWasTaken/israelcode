@@ -8,12 +8,13 @@ import {
   extractTurnToolCalls,
   isMechanicalOnlyTurn,
 } from "../core/autopilot-gate.js";
+import { hasUltracodeKeyword } from "../core/ultracode.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { log } from "../core/logger.js";
 import { readBody, json } from "./http.js";
 import { MAX_PROMPT_BODY_BYTES } from "../utils/http-body.js";
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
-import { saveAutopilot } from "./app-settings.js";
+import { loadUltracodeDefault, saveAutopilot, saveUltracodeDefault } from "./app-settings.js";
 import { lastAssistantText, buildKenContext } from "./ken-context.js";
 import { keepAwake } from "./keep-awake.js";
 import type { SessionRouteContext } from "./route-context.js";
@@ -128,6 +129,8 @@ export function handlePromptRoutes(
     // it. A bare release would let an early-returning request (bad JSON, or a
     // prompt that queued) clear a claim another request is still holding.
     let claimedStart = false;
+    // This run switched Ultracode on for one prompt; switch it back afterwards.
+    let promptUltracode = false;
     void readBody(req, res, MAX_PROMPT_BODY_BYTES)
       .then(async (raw) => {
         if (raw === null) return;
@@ -139,6 +142,7 @@ export function handlePromptRoutes(
               enhancements?: unknown[];
               scheduled?: boolean;
               planRevision?: boolean;
+              ultracode?: boolean;
             }
           | undefined;
         try {
@@ -150,6 +154,7 @@ export function handlePromptRoutes(
               enhancements?: unknown[];
               scheduled?: boolean;
               planRevision?: boolean;
+              ultracode?: boolean;
             };
           };
           text = body.text ?? "";
@@ -285,6 +290,16 @@ export function handlePromptRoutes(
           async () => {
             // The review box's Feedback: revise read-only, like Ken's feedback.
             if (meta?.planRevision === true) await ctx.reenterPlanModeForRevision();
+            // "ultracode" typed in the prompt: Ultracode for this run only.
+            if (
+              meta?.ultracode === true &&
+              hasUltracodeKeyword(text) &&
+              ctx.mode === "code" &&
+              !ctx.goal
+            ) {
+              promptUltracode = !ctx.session.isUltracode();
+              ctx.session.setUltracode(true);
+            }
             if (attachments.length > 0) {
               // Persist each attachment under .gg/uploads so files are inspectable
               // by the agent's tools, then prompt with the media as native blocks.
@@ -339,7 +354,9 @@ export function handlePromptRoutes(
         // run to steer into — run it now as a fresh turn so it never strands.
         await ctx.runStrandedQueue();
       })
-      .finally(() => {
+      .finally(async () => {
+        // Back to the user's own setting (their latest toggle, not this prompt's).
+        if (promptUltracode) ctx.session.setUltracode(await loadUltracodeDefault());
         if (claimedStart) {
           ctx.scheduledRunActive = false;
           ctx.runClaim.release();
@@ -447,6 +464,30 @@ export function handlePromptRoutes(
       log("INFO", "app-sidecar", "autopilot toggled", { enabled: String(enabled) });
       ctx.broadcast("autopilot", { autopilot: enabled });
       json(res, 200, { autopilot: enabled });
+    });
+    return true;
+  }
+
+  if (method === "POST" && url === "/ultracode") {
+    if (ctx.mode !== "code" || ctx.goal) {
+      json(res, 404, { error: "Ultracode is only available in Israel Code's coding sessions." });
+      return true;
+    }
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let enabled: boolean;
+      try {
+        enabled = Boolean((JSON.parse(raw) as { enabled?: boolean }).enabled);
+      } catch {
+        json(res, 400, { error: "invalid JSON body" });
+        return;
+      }
+      // Takes effect with the next message (the notice rides in before it).
+      ctx.session.setUltracode(enabled);
+      await saveUltracodeDefault(enabled);
+      log("INFO", "app-sidecar", "ultracode toggled", { enabled: String(enabled) });
+      ctx.broadcast("ultracode", { ultracode: enabled });
+      json(res, 200, { ultracode: enabled });
     });
     return true;
   }

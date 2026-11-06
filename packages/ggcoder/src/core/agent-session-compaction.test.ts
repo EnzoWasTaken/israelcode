@@ -1806,6 +1806,45 @@ describe("AgentSession plan state and dispose", () => {
     expect(notices[1]).toContain("<approved_plan>");
   });
 
+  it("tells the model about Ultracode by appended notices, never a prompt rebuild", async () => {
+    shouldCompactMock.mockReturnValue(false);
+    agentLoopMock.mockImplementation(async function* () {
+      yield { type: "agent_done" };
+    });
+    const { AgentSession } = await import("./agent-session.js");
+    const session = new AgentSession({
+      provider: "anthropic",
+      model: "claude-test",
+      cwd: tmpProject,
+      transient: true,
+    });
+    await session.initialize();
+    const internals = session as unknown as { messages: Message[] };
+    await session.prompt("hello");
+    const before = internals.messages[0]?.content;
+
+    session.setUltracode(true);
+    await session.prompt("big job");
+    await session.prompt("more"); // already told: no second notice
+    session.setUltracode(false);
+    await session.prompt("small fix");
+    const history = [...internals.messages];
+    await session.dispose();
+
+    expect(history[0]?.content).toBe(before);
+    const notices = history.filter(
+      (m) => typeof m.content === "string" && m.content.startsWith("Ultracode is now"),
+    );
+    expect(notices.map((m) => (m.content as string).split(".")[0])).toEqual([
+      "Ultracode is now ON",
+      "Ultracode is now OFF",
+    ]);
+    expect(notices[0]?.provenance?.visibility).toBe("hidden");
+    // Each notice lands right before the message it applies to.
+    const next = history[history.indexOf(notices[0]!) + 1];
+    expect(next?.content).toBe("big job");
+  });
+
   it("caps dispose's wait for a hanging post-turn compaction and aborts it", async () => {
     const { AgentSession, DISPOSE_COMPACTION_WAIT_MS } = await import("./agent-session.js");
     const session = new AgentSession({

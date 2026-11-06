@@ -164,6 +164,8 @@ export function DeckMenu({
   autopilot,
   autopilotReviewing,
   onAutopilotChange,
+  ultracode = false,
+  onUltracodeChange,
   onNewSession,
   onOpenNotes,
   onOpenMemories,
@@ -188,6 +190,8 @@ export function DeckMenu({
   autopilot: boolean;
   autopilotReviewing: boolean;
   onAutopilotChange: (next: boolean) => void;
+  ultracode?: boolean;
+  onUltracodeChange?: (next: boolean) => void;
   onNewSession: () => void;
   onOpenNotes: () => void;
   onOpenMemories: () => void;
@@ -241,6 +245,19 @@ export function DeckMenu({
         >
           Autopilot
           <span className="led" data-state={autopilot ? "on" : undefined} aria-hidden="true" />
+        </button>
+      )}
+      {code && onUltracodeChange && (
+        <button
+          type="button"
+          className="key"
+          role="switch"
+          aria-checked={ultracode}
+          title="Ultracode: big jobs are split into phases, run by parallel agents and checked by a reviewer. Applies from your next message."
+          onClick={() => onUltracodeChange(!ultracode)}
+        >
+          Ultracode
+          <span className="led" data-state={ultracode ? "on" : undefined} aria-hidden="true" />
         </button>
       )}
       {code && (

@@ -26,6 +26,7 @@ import {
   sendPrompt,
   sendKenPrompt,
   setAutopilot,
+  setUltracode,
   cancel,
   newSession,
   selectProject,
@@ -86,6 +87,7 @@ import { useAutopilot } from "./useAutopilot";
 import { useAgentEvents, type RunEnd } from "./useAgentEvents";
 import { LiveToolPanel, type LiveToolEntry } from "./LiveToolPanel";
 import { TodoPill } from "./TodoList";
+import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
 import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
 import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
 import {
@@ -252,6 +254,14 @@ function shufflePlaceholderFrame(target: string, frame: number): string {
 // `/schedule` lives in the webview, not the sidecar's command registry: it
 // registers a recurring timer instead of prompting the agent. Declared here so
 // the palette can still discover it alongside the real slash commands.
+// Handled in the webview too: it flips the session's Ultracode setting.
+const ULTRACODE_COMMAND: SlashCommand = {
+  name: "ultracode",
+  aliases: [],
+  description: "Turn Ultracode on or off — parallel agents for big jobs — [on|off]",
+  source: "built-in",
+};
+
 const SCHEDULE_COMMAND: SlashCommand = {
   name: "schedule",
   aliases: ["sched"],
@@ -355,6 +365,7 @@ function App(): React.ReactElement {
   // once its slide-out animation finishes.
   const [kenPowerBanner, setKenPowerBanner] = useState<"on" | "off" | null>(null);
   const [running, setRunning] = useState(false);
+  const [ultracodeDismissed, setUltracodeDismissed] = useState(false);
   // Last composer keystroke (0 = none since this chat opened). The first
   // keystroke after opening or a >4 min idle pause prewarms the prompt cache.
   const lastKeystrokeAtRef = useRef(0);
@@ -1499,9 +1510,12 @@ function App(): React.ReactElement {
   // `/schedule` is handled entirely in the webview (it registers a timer rather
   // than prompting the agent), so the sidecar's registry never lists it. Inject
   // it here or it would be undiscoverable — typing `/sch` would show nothing.
-  const menuCommands = [SCHEDULE_COMMAND, ...commands].filter(
-    (c) => !COMMIT_NAMES.includes(c.name),
-  );
+  const ultracodeAvailable = workspaceMode === "code" && !state?.goal;
+  const menuCommands = [
+    SCHEDULE_COMMAND,
+    ...(ultracodeAvailable ? [ULTRACODE_COMMAND] : []),
+    ...commands,
+  ].filter((c) => !COMMIT_NAMES.includes(c.name));
   const slashMatches =
     slashQuery !== null
       ? menuCommands.filter(
@@ -1532,6 +1546,24 @@ function App(): React.ReactElement {
   // Never open while `@Ken` is active — that token addresses Ken, not a file.
   // `!cmd`: the input runs a command instead of messaging the agent.
   const shellMode = workspaceMode === "code" && shellCommandFromInput(input) !== null;
+  const ultracodeKeyword =
+    ultracodeAvailable &&
+    !shellMode &&
+    !input.trimStart().startsWith("/") &&
+    hasUltracodeKeyword(input);
+  const ultracodeArmed = ultracodeKeyword && !ultracodeDismissed;
+  // A dismissal lasts while the word stays in the draft; typing it anew re-arms.
+  useEffect(() => {
+    if (!ultracodeKeyword) setUltracodeDismissed(false);
+  }, [ultracodeKeyword]);
+
+  function changeUltracode(next: boolean): void {
+    setState((s) => (s ? { ...s, ultracode: next } : s));
+    setUltracode(next).catch(() => {
+      setState((s) => (s ? { ...s, ultracode: !next } : s));
+      toast("Couldn't change Ultracode. Try again.", "error");
+    });
+  }
   // Entering `!` loads the picker's commands (history counts change per run).
   useEffect(() => {
     if (!shellMode) return;
@@ -2360,6 +2392,26 @@ function App(): React.ReactElement {
       return;
     }
 
+    // `/ultracode [on|off]` changes the session setting instead of prompting.
+    const ultracodeCommand = ultracodeAvailable ? parseUltracodeCommand(trimmed) : null;
+    if (ultracodeCommand) {
+      const next =
+        ultracodeCommand === "toggle" ? !(state?.ultracode ?? false) : ultracodeCommand === "on";
+      changeUltracode(next);
+      pushItem({
+        kind: "user",
+        id: nextId(),
+        text: trimmed,
+        command: true,
+        label: next ? "Ultracode on" : "Ultracode off",
+      });
+      recordHistory(trimmed);
+      stickToBottomRef.current = true;
+      setInput("");
+      setSlashIndex(0);
+      return;
+    }
+
     // `@Ken <prompt>` (case-insensitive, optional colon) routes to Ken Kai, the
     // read-only mentor agent — NOT GG Coder. Ken runs concurrently with any
     // build run; his reply streams into a magenta bubble via ken_* events.
@@ -2500,11 +2552,13 @@ function App(): React.ReactElement {
     setMentionedPaths([]);
     setEnhancement(null);
     endStreamingText();
-    void sendPrompt(
-      prompt,
-      wire,
-      sentEnhancements ? { enhancements: sentEnhancements } : undefined,
-    ).catch((e: unknown) => restoreFailedSend(failed, e));
+    const meta: PromptMeta = {
+      ...(sentEnhancements ? { enhancements: sentEnhancements } : {}),
+      ...(ultracodeArmed ? { ultracode: true } : {}),
+    };
+    void sendPrompt(prompt, wire, Object.keys(meta).length > 0 ? meta : undefined).catch(
+      (e: unknown) => restoreFailedSend(failed, e),
+    );
   }
 
   // ── Plan review actions (mirror the ggcoder CLI plan overlay) ──
@@ -3256,6 +3310,8 @@ function App(): React.ReactElement {
                   running={running}
                   autopilot={state?.autopilot ?? false}
                   autopilotReviewing={autopilotReviewing}
+                  ultracode={state?.ultracode ?? false}
+                  onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
                   onAutopilotChange={(next) => {
                     setState((s) => (s ? { ...s, autopilot: next } : s));
                     void setAutopilot(next);
@@ -3318,6 +3374,8 @@ function App(): React.ReactElement {
                   isFileDragOver={isFileDragOver}
                   scheduleInvalid={scheduleInvalid}
                   scheduleDraft={scheduleDraft}
+                  ultracodeArmed={ultracodeArmed}
+                  onDismissUltracode={() => setUltracodeDismissed(true)}
                   running={running}
                   kenRunning={kenRunning}
                   autopilotReviewing={autopilotReviewing}

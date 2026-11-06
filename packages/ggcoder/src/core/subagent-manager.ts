@@ -111,6 +111,8 @@ export interface SubAgentManagerOptions {
    *  counts under that model, not the parent's. Only ever
    *  reduces concurrency below the global ACTIVE_LIMIT. */
   getMaxPerModel?: () => number | undefined;
+  /** Children allowed at once; defaults to ACTIVE_LIMIT (Ultracode raises it). */
+  getActiveLimit?: () => number;
   /** This manager's own sub-agent depth (0 = top-level session). Defaults to
    *  GG_SUBAGENT_DEPTH; injectable for tests. */
   subAgentDepth?: number;
@@ -442,8 +444,8 @@ export class SubAgentManager {
     if ([...this.workers.values()].some((worker) => worker.task_name === taskName)) {
       throw new Error(`An agent named "${taskName}" already exists`);
     }
-    if (this.activeCount() >= ACTIVE_LIMIT)
-      throw new Error(`At most ${ACTIVE_LIMIT} agents may run at once`);
+    if (this.activeCount() >= this.activeLimit())
+      throw new Error(`At most ${this.activeLimit()} agents may run at once`);
 
     this.reapExcessIdle();
     const pick = this.options.getChildModel?.();
@@ -587,8 +589,8 @@ export class SubAgentManager {
     if (worker.state === "running" || worker.state === "starting") {
       throw new Error(`Agent ${agentId} already has an active turn`);
     }
-    if (this.activeCount() >= ACTIVE_LIMIT)
-      throw new Error(`At most ${ACTIVE_LIMIT} agents may run at once`);
+    if (this.activeCount() >= this.activeLimit())
+      throw new Error(`At most ${this.activeLimit()} agents may run at once`);
     if (worker.model) this.assertModelCapacity(worker.model);
     clearTimeout(worker.idleTimer);
     worker.taskOutput = "";
@@ -1207,6 +1209,10 @@ export class SubAgentManager {
     );
     worker.idleTimer.unref?.();
     this.reapExcessIdle();
+  }
+
+  private activeLimit(): number {
+    return Math.max(1, this.options.getActiveLimit?.() ?? ACTIVE_LIMIT);
   }
 
   private reapExcessIdle(): void {

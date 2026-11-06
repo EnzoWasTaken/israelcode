@@ -60,6 +60,8 @@ export interface AppSettings {
   hiddenProjects?: string[];
   /** Projects (normalized cwds) where the user's own `!` commands run without asking. */
   shellTrusted?: string[];
+  /** Ultracode on by default in new coding sessions (the last toggle wins). */
+  ultracode?: boolean;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -106,6 +108,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       projectRoots: stringArray(raw.projectRoots),
       hiddenProjects: stringArray(raw.hiddenProjects),
       shellTrusted: stringArray(raw.shellTrusted),
+      ultracode: raw.ultracode === true ? true : undefined,
     };
   } catch {
     return { projectsRoot: defaultProjectsRoot() };
@@ -184,6 +187,19 @@ export async function saveAutopilot(cwd: string, enabled: boolean): Promise<void
   const key = projectModelKey(cwd);
   await updateAppSettings((s) => {
     s.autopilot = { ...(s.autopilot ?? {}), [key]: enabled };
+  });
+}
+
+/** Whether new coding sessions start with Ultracode on (default off). */
+export async function loadUltracodeDefault(): Promise<boolean> {
+  return (await loadAppSettings()).ultracode === true;
+}
+
+/** Remember the last Ultracode toggle as the default for new sessions. */
+export async function saveUltracodeDefault(enabled: boolean): Promise<void> {
+  await updateAppSettings((s) => {
+    if (enabled) s.ultracode = true;
+    else delete s.ultracode;
   });
 }
 

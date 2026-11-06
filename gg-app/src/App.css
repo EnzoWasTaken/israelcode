@@ -11498,6 +11498,38 @@ select {
   border: 0;
 }
 
+/* ── "ultracode" typed in the draft: one line above the input ── */
+.ultracode-hint {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.ultracode-word {
+  font-weight: 600;
+  color: var(--primary);
+}
+.ultracode-dismiss {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+.ultracode-dismiss:hover {
+  color: var(--text);
+}
+.ultracode-dismiss:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
 /* ── /schedule argument hint (reuses .slash-menu chrome + anchor) ── */
 .schedule-hint {
   display: flex;

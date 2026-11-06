@@ -220,6 +220,8 @@ export interface AgentState {
   /** Autopilot (auto-review) toggle for this window's project. Per-window,
    *  persisted server-side; absent on frames from older sidecars. */
   autopilot?: boolean;
+  /** Ultracode (orchestrate with parallel children) for this coding session. */
+  ultracode?: boolean;
   /** Provider of the model Ken (mentor + autopilot) uses next turn. */
   kenProvider?: string;
   /** The model Ken uses next turn — his pin when set, else GG Coder's model.
@@ -1020,6 +1022,8 @@ export interface PromptMeta {
   /** Plan feedback from the review box: the sidecar revises the plan back in
    *  read-only plan mode instead of with full write access. */
   planRevision?: boolean;
+  /** "ultracode" typed in this prompt: Ultracode for this run only. */
+  ultracode?: boolean;
 }
 
 export async function sendPrompt(
@@ -1147,6 +1151,19 @@ export async function setAutopilot(enabled: boolean): Promise<boolean> {
   } catch (e) {
     await logError(`agent_autopilot_set failed: ${String(e)}`);
     return enabled;
+  }
+}
+
+/** Toggle Ultracode for this window's coding session (also the new-session
+ *  default). Returns the value the sidecar now holds. */
+export async function setUltracode(enabled: boolean): Promise<boolean> {
+  try {
+    await waitForReady();
+    const res = await invoke<{ ultracode?: boolean }>("agent_ultracode_set", { enabled });
+    return res.ultracode ?? enabled;
+  } catch (e) {
+    await logError(`agent_ultracode_set failed: ${String(e)}`);
+    throw e;
   }
 }
 

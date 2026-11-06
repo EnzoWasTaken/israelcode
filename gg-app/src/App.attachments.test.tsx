@@ -416,3 +416,31 @@ describe("composer attachments", () => {
     );
   });
 });
+
+describe("ultracode keyword", () => {
+  it("sends a prompt naming ultracode with Ultracode for that prompt", async () => {
+    const { input, sends } = await setup();
+    fireEvent.change(input, { target: { value: "ultracode: split the parser" } });
+    expect(await screen.findByText("This prompt runs with Ultracode")).toBeDefined();
+    fireEvent.click(screen.getByTitle("Send"));
+    await waitFor(() =>
+      expect(sends).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "ultracode: split the parser",
+          meta: expect.objectContaining({ ultracode: true }),
+        }),
+      ),
+    );
+  });
+
+  it("drops it for this draft after Alt+W", async () => {
+    const { input, sends } = await setup();
+    fireEvent.change(input, { target: { value: "ultracode: split the parser" } });
+    await screen.findByText("This prompt runs with Ultracode");
+    fireEvent.keyDown(input, { key: "∑", code: "KeyW", altKey: true });
+    await waitFor(() => expect(screen.queryByText("This prompt runs with Ultracode")).toBeNull());
+    fireEvent.click(screen.getByTitle("Send"));
+    await waitFor(() => expect(sends).toHaveBeenCalled());
+    expect(sends.mock.calls[0]?.[0]).toMatchObject({ meta: null });
+  });
+});

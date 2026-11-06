@@ -37,6 +37,9 @@ export interface ComposerProps {
   isFileDragOver: boolean;
   scheduleInvalid: boolean;
   scheduleDraft: boolean;
+  /** "ultracode" is in the draft and not dismissed: this prompt runs with Ultracode. */
+  ultracodeArmed?: boolean;
+  onDismissUltracode?: () => void;
   running: boolean;
   kenRunning: boolean;
   autopilotReviewing: boolean;
@@ -122,6 +125,8 @@ export function Composer({
   composerRef,
   isFileDragOver,
   scheduleInvalid,
+  ultracodeArmed = false,
+  onDismissUltracode,
   scheduleDraft,
   running,
   kenRunning,
@@ -188,6 +193,15 @@ export function Composer({
       <WorkingBeam active={running || kenRunning || autopilotReviewing} />
       {scheduleDraft && (
         <ScheduleHint input={input} caret={caret} onPickInterval={fillScheduleInterval} />
+      )}
+      {ultracodeArmed && (
+        <div className="ultracode-hint" role="status">
+          <span className="ultracode-word">ultracode</span>
+          <span>This prompt runs with Ultracode</span>
+          <button type="button" className="ultracode-dismiss" onClick={onDismissUltracode}>
+            Dismiss <kbd>Alt+W</kbd>
+          </button>
+        </div>
       )}
       <FloatingSurface>
         {!scheduleDraft && slashOpen && (
@@ -339,6 +353,12 @@ export function Composer({
               // swallow keys so Enter can't submit the un-enhanced draft.
               if (enhanceAnim) {
                 e.preventDefault();
+                return;
+              }
+              // Alt+W: send this draft without Ultracode even though it says "ultracode".
+              if (ultracodeArmed && e.altKey && e.code === "KeyW") {
+                e.preventDefault();
+                onDismissUltracode?.();
                 return;
               }
               if (shellMenu && (e.key === "ArrowDown" || e.key === "ArrowUp")) {

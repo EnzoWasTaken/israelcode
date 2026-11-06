@@ -45,7 +45,11 @@ function renderTitleBar(
   );
 }
 
-function renderMenu(workspaceMode: WorkspaceMode, isGoal = false): void {
+function renderMenu(
+  workspaceMode: WorkspaceMode,
+  isGoal = false,
+  onUltracodeChange?: (next: boolean) => void,
+): void {
   render(
     <DeckMenu
       workspaceMode={workspaceMode}
@@ -54,6 +58,8 @@ function renderMenu(workspaceMode: WorkspaceMode, isGoal = false): void {
       autopilot={false}
       autopilotReviewing={false}
       onAutopilotChange={vi.fn()}
+      ultracode={false}
+      onUltracodeChange={onUltracodeChange}
       onNewSession={vi.fn()}
       onOpenNotes={vi.fn()}
       onOpenMemories={vi.fn()}
@@ -175,6 +181,15 @@ describe("DeckMenu", () => {
     expect(screen.getByRole("switch", { name: "Autopilot" }).getAttribute("aria-checked")).toBe(
       "false",
     );
+  });
+
+  it("toggles Ultracode from the coding deck", () => {
+    const onUltracodeChange = vi.fn();
+    renderMenu("code", false, onUltracodeChange);
+    const key = screen.getByRole("switch", { name: "Ultracode" });
+    expect(key.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(key);
+    expect(onUltracodeChange).toHaveBeenCalledWith(true);
   });
 
   it("offers Brain and New chat in a chat window, and no project tools", () => {

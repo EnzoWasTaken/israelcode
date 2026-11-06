@@ -915,6 +915,26 @@ pub(crate) async fn agent_autopilot_set(
     sidecar_json(res).await
 }
 
+/// Proxy: toggle Ultracode for THIS window's coding session; the choice is also
+/// kept as the default for new sessions. Returns `{ ultracode }`.
+#[tauri::command]
+pub(crate) async fn agent_ultracode_set(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    enabled: bool,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/ultracode", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "enabled": enabled }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
 /// Proxy: run a command the user typed as `!cmd` in this window's project.
 /// `confirmed` is true only after the user approved this exact command; the
 /// sidecar refuses unconfirmed runs unless the project is trusted.

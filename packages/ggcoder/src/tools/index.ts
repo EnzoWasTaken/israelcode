@@ -106,6 +106,7 @@ export interface CreateToolsOptions {
   getBaseUrl?: () => string | undefined;
   /** Optional per-model subagent concurrency cap (subagentMaxPerModel). */
   getMaxPerModel?: () => number | undefined;
+  getActiveLimit?: () => number;
   onSubAgentState?: (snapshot: SubAgentSnapshot) => void;
   /** Persistent child workers omit every subagent tool to enforce one-level fan-out. */
   disableSubagents?: boolean;
@@ -359,6 +360,7 @@ export async function createTools(
       getCacheKey: opts.getCacheKey,
       getBaseUrl: opts.getBaseUrl,
       getMaxPerModel: () => opts.getMaxPerModel?.(),
+      getActiveLimit: opts.getActiveLimit,
       onState: opts.onSubAgentState,
       notifications: opts.notifications,
     });

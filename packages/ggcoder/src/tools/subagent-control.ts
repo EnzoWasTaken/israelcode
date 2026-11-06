@@ -137,7 +137,7 @@ export function createSubAgentControlTools(
       if (restriction) return restriction;
       // Each spawn runs its limit and duplicate-name checks and registers its
       // worker before its first await, so starting them together cannot
-      // exceed ACTIVE_LIMIT or the per-model cap.
+      // exceed the active limit or the per-model cap.
       const settled = await Promise.allSettled(
         args.tasks.map((t) =>
           t.checks || t.cwd || t.context_files

@@ -46,6 +46,7 @@ function manager(
     cwd?: string;
     sessionRootDir?: string;
     maxPerModel?: number;
+    activeLimit?: number;
     subAgentDepth?: number;
     notifications?: AgentNotificationQueue;
     adoptionPollMs?: number;
@@ -71,6 +72,7 @@ function manager(
     getThinkingLevel: options.getThinkingLevel,
     getCacheKey: () => "parent-cache",
     getMaxPerModel: () => options.maxPerModel,
+    getActiveLimit: options.activeLimit ? () => options.activeLimit! : undefined,
     subAgentDepth: options.subAgentDepth ?? 0,
     workerEntry,
     idleTimeoutMs: options.idleTimeoutMs,
@@ -540,6 +542,14 @@ describe("SubAgentManager", () => {
     // A different resolved model is unaffected by the luna cap.
     const other = await instance.spawn("parent-model", "slow", "sheller");
     expect(other.model).toBe("gpt-6.1-sol");
+  });
+
+  it("enforces the active limit it is given (Ultracode raises it)", async () => {
+    const instance = manager({ activeLimit: 1 });
+    await instance.spawn("first", "slow");
+    await expect(instance.spawn("second", "slow")).rejects.toThrow(
+      "At most 1 agents may run at once",
+    );
   });
 
   it("names the available agents when asked for one that does not exist", async () => {

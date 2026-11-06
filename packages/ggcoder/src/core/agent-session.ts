@@ -112,6 +112,7 @@ import type { DebugManager } from "../tools/debug.js";
 import { buildProcessCompletionFollowUp, mergeCompletionGateFollowUps } from "./process-gate.js";
 import { PLAN_SUBMISSION_NUDGE, shouldNudgePlanSubmission } from "./plan-submission-gate.js";
 import {
+  ACTIVE_LIMIT,
   buildSubAgentCompletionFollowUp,
   type ChildModelPick,
   type SubAgentManager,
@@ -181,6 +182,7 @@ import {
   withJudgeTimeout,
 } from "./semantic-loop-check.js";
 import { buildEnvDeltaMessage, buildLanguageUpdateMessage } from "./env-delta.js";
+import { buildUltracodeMessage, lastUltracodeState, ULTRACODE_ACTIVE_LIMIT } from "./ultracode.js";
 import { buildUserShellContextText } from "./user-shell-context.js";
 import { buildPlanStateMessage, samePlanState, type PlanPromptState } from "./plan-delta.js";
 import { listProjectFiles, type ProjectFileList } from "./project-files.js";
@@ -839,6 +841,7 @@ export class AgentSession {
   private seenPlanState: PlanPromptState = { planMode: false, approvedPlanPath: undefined };
   /** Plan notice waiting for the next request, with the state it describes. */
   private pendingPlanNotice: { message: Message; state: PlanPromptState } | null = null;
+  private ultracode = false;
   /** Latest plan notice appended — re-announced if compaction drops it. */
   private lastPlanNotice: Message | null = null;
   /**
@@ -1085,6 +1088,7 @@ export class AgentSession {
       getBaseUrl: () => this.baseUrl,
       getCacheKey: () => this.getPromptCacheKey(),
       getMaxPerModel: () => this.settingsManager.get("subagentMaxPerModel"),
+      getActiveLimit: () => (this.ultracode ? ULTRACODE_ACTIVE_LIMIT : ACTIVE_LIMIT),
       getChildModel: this.opts.getChildModel,
       // A persistent child is already the single allowed fan-out level. Blocking
       // `subagent` here created a timeout sandwich: the nested call could consume
@@ -4079,6 +4083,28 @@ export class AgentSession {
    * about the mode change on its next turn. No-op when a custom system prompt
    * is in force (the host owns the prompt then).
    */
+  /** Ultracode on/off. The model hears about it through one appended notice. */
+  setUltracode(active: boolean): void {
+    this.ultracode = active;
+  }
+
+  isUltracode(): boolean {
+    return this.ultracode;
+  }
+
+  /**
+   * The Ultracode notice to append, if the model's picture is out of date. Read
+   * from the history itself, so a new, loaded or compacted session that lost
+   * the last notice hears it again.
+   */
+  private takeUltracodeNotice(): Message | null {
+    if (this.ultracode === lastUltracodeState(this.messages)) return null;
+    return buildUltracodeMessage(this.ultracode, [
+      ...this.tools.map((t) => t.name),
+      ...this.deferredBuiltinToolNames,
+    ]);
+  }
+
   async setPlanMode(active: boolean): Promise<void> {
     this.planModeRef.current = active;
     // Plan mode always ends with `exit_plan`; a deferred one must be callable
@@ -4329,6 +4355,13 @@ export class AgentSession {
    * update is saved in order with the rest of the conversation.
    */
   private async announceNewLanguages(): Promise<void> {
+    const ultracodeNotice = this.takeUltracodeNotice();
+    if (ultracodeNotice) {
+      this.messages.push(ultracodeNotice);
+      await this.persistMessage(ultracodeNotice);
+      this.lastPersistedIndex = this.messages.length;
+      log("INFO", "session", "Appended Ultracode notice", { on: String(this.ultracode) });
+    }
     const planNotice = this.takePlanNotice();
     if (planNotice) {
       this.messages.push(planNotice);

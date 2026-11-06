@@ -140,6 +140,7 @@ import {
   loadProjectModelPrefs,
   loadKenModelPref,
   loadAutopilot,
+  loadUltracodeDefault,
 } from "./app-sidecar/app-settings.js";
 import { KEN_ALLOWED_TOOLS } from "./app-sidecar/ken-context.js";
 import { type ProgressManager, createProgressManager } from "./app-sidecar/progress-manager.js";
@@ -1185,6 +1186,8 @@ async function createSession(
     });
   }
   await session.initialize();
+  // Only the coding agent orchestrates; chat, Motion and Goals ignore Ultracode.
+  if (mode === "code" && !goal) session.setUltracode(await loadUltracodeDefault());
   // This window just moved into a worktree (Git panel branch picker): tell the
   // agent where it now works before its next turn.
   const moveNote = resumeSessionPath ? pendingMoveNotes.get(resumeSessionPath) : undefined;
