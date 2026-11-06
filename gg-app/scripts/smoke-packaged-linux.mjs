@@ -131,7 +131,7 @@ export function discoverChangedDeb(before, after) {
  * together. Tauri resolves resources on Linux as `<exe dir>/../lib/<productName>`,
  * so the sidecar must sit exactly there for the app to find it.
  */
-export function discoverPackagedLayout(extractRoot, productName, binaryName = "gg-app") {
+export function discoverPackagedLayout(extractRoot, productName, binaryName = "israel-code") {
   const binDir = join(extractRoot, "usr", "bin");
   const executable = join(binDir, binaryName);
   const node = join(binDir, "ggnode");
@@ -290,7 +290,7 @@ function printDiagnostics(profileRoot, appLog) {
 async function main() {
   if (process.platform !== "linux") fail("packaged launch smoke only supports Linux");
   if (!process.env.DISPLAY) fail("no X display: run under `xvfb-run -a`");
-  const { productName } = JSON.parse(
+  const { productName, mainBinaryName } = JSON.parse(
     readFileSync(join(appDir, "src-tauri", "tauri.conf.json"), "utf8"),
   );
   const smokeRoot = mkdtempSync(join(tmpdir(), "gg-app-packaged-smoke-"));
@@ -325,7 +325,7 @@ async function main() {
     enterStage("unpacking .deb");
     mkdirSync(extractRoot, { recursive: true });
     execFileSync("dpkg-deb", ["-x", deb, extractRoot], { stdio: "inherit" });
-    const layout = discoverPackagedLayout(extractRoot, productName);
+    const layout = discoverPackagedLayout(extractRoot, productName, mainBinaryName);
     console.log(`PACKAGE: ${relative(appDir, deb)} -> ${layout.installDir}`);
 
     enterStage("launching packaged app");

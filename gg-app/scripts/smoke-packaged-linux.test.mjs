@@ -63,7 +63,7 @@ describe("packaged Linux smoke artifact discovery", () => {
 describe("packaged Linux smoke layout", () => {
   function unpack(root, { node = true, sidecar = true } = {}) {
     mkdirSync(join(root, "usr", "bin"), { recursive: true });
-    writeFileSync(join(root, "usr", "bin", "gg-app"), "");
+    writeFileSync(join(root, "usr", "bin", "israel-code"), "");
     if (node) writeFileSync(join(root, "usr", "bin", "ggnode"), "");
     const resources = join(root, "usr", "lib", "Israel Code", "sidecar");
     mkdirSync(resources, { recursive: true });
@@ -75,7 +75,7 @@ describe("packaged Linux smoke layout", () => {
     unpack(root);
     const real = realpathSync(root);
     expect(discoverPackagedLayout(root, "Israel Code")).toEqual({
-      executable: join(real, "usr", "bin", "gg-app"),
+      executable: join(real, "usr", "bin", "israel-code"),
       installDir: join(real, "usr", "bin"),
       node: join(real, "usr", "bin", "ggnode"),
       sidecar: join(real, "usr", "lib", "Israel Code", "sidecar", "app-sidecar.mjs"),
