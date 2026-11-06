@@ -12,6 +12,7 @@ import { log } from "./logger.js";
 import { withContextFiles } from "./context-files.js";
 import type { AgentNotificationQueue } from "./agent-notifications.js";
 import type { AcceptanceCheck } from "./acceptance-checks.js";
+import { GATED_TOOLS, type ApprovalDecision, type GatedTool } from "./permission-mode.js";
 import {
   clearTurnRecord,
   readTurnRecord,
@@ -113,6 +114,16 @@ export interface SubAgentManagerOptions {
   getMaxPerModel?: () => number | undefined;
   /** Children allowed at once; defaults to ACTIVE_LIMIT (Ultracode raises it). */
   getActiveLimit?: () => number;
+  /**
+   * Authorize a child's gated tool call (permission modes). When set, every
+   * child asks before write/edit/bash and the parent applies its live mode.
+   */
+  authorizeChildTool?: (
+    tool: GatedTool,
+    args: unknown,
+    signal: AbortSignal,
+    agentName: string,
+  ) => Promise<ApprovalDecision | null>;
   /** This manager's own sub-agent depth (0 = top-level session). Defaults to
    *  GG_SUBAGENT_DEPTH; injectable for tests. */
   subAgentDepth?: number;
@@ -140,6 +151,8 @@ interface WorkerRecord extends SubAgentSnapshot {
   >;
   requestSequence: number;
   stderr: string;
+  /** Approvals this child is waiting on, by id. */
+  approvals?: Map<string, AbortController>;
   idleTimer?: ReturnType<typeof setTimeout>;
   taskOutput: string;
   turnResolvers: Set<() => void>;
@@ -534,6 +547,7 @@ export class SubAgentManager {
           allowedMcpServers: selection.tools.length
             ? mcpServersForAgent([...selection.tools])
             : undefined,
+          approvalGate: this.options.authorizeChildTool ? true : undefined,
           promptCacheKey: subAgentCacheKey(
             this.options.getCacheKey?.(),
             selection.model,
@@ -895,6 +909,7 @@ export class SubAgentManager {
           allowedMcpServers: agentDef?.tools.length
             ? mcpServersForAgent(agentDef.tools)
             : undefined,
+          approvalGate: this.options.authorizeChildTool ? true : undefined,
           promptCacheKey: subAgentCacheKey(
             this.options.getCacheKey?.(),
             model,
@@ -956,6 +971,10 @@ export class SubAgentManager {
   }
 
   private handleFrame(worker: WorkerRecord, frame: Record<string, unknown>): void {
+    if (frame.type === "approval_request" || frame.type === "approval_cancel") {
+      this.handleApprovalFrame(worker, frame);
+      return;
+    }
     if (frame.type === "ack") {
       const pending = worker.requests.get(String(frame.request_id));
       if (!pending) return;
@@ -1038,6 +1057,38 @@ export class SubAgentManager {
         `${worker.acceptance ? `Acceptance checks: ${worker.acceptance}. ` : ""}` +
         `Collect its full output with wait_agent agent_ids ["${worker.agent_id}"].`,
       { terminal: true, urgent: true },
+    );
+  }
+
+  /** A child asks before a gated call; the answer goes back on its stdin. */
+  private handleApprovalFrame(worker: WorkerRecord, frame: Record<string, unknown>): void {
+    const approvalId = String(frame.approval_id ?? "");
+    if (!approvalId) return;
+    worker.approvals ??= new Map();
+    if (frame.type === "approval_cancel") {
+      worker.approvals.get(approvalId)?.abort();
+      worker.approvals.delete(approvalId);
+      return;
+    }
+    const tool = String(frame.tool) as GatedTool;
+    const reply = (decision: ApprovalDecision | null): void => {
+      worker.approvals?.delete(approvalId);
+      const stdin = worker.process.stdin;
+      if (!stdin?.writable) return;
+      stdin.write(
+        `${JSON.stringify({ request_id: approvalId, command: "approval_response", decision })}
+`,
+      );
+    };
+    const authorize = this.options.authorizeChildTool;
+    if (!authorize || !(GATED_TOOLS as readonly string[]).includes(tool)) {
+      reply(null);
+      return;
+    }
+    const controller = new AbortController();
+    worker.approvals.set(approvalId, controller);
+    authorize(tool, frame.args, controller.signal, worker.task_name).then(reply, () =>
+      reply({ decision: "deny", note: "The approval request failed." }),
     );
   }
 

@@ -21,7 +21,13 @@ import {
 } from "@kenkaiiii/gg-core";
 
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
-import { loadUltracodeDefault, saveAutopilot, saveUltracodeDefault } from "./app-settings.js";
+import {
+  loadUltracodeDefault,
+  saveAutopilot,
+  savePermissionModeDefault,
+  saveUltracodeDefault,
+} from "./app-settings.js";
+import { isPermissionMode } from "../core/permission-mode.js";
 import { lastAssistantText, buildKenContext } from "./ken-context.js";
 import { keepAwake } from "./keep-awake.js";
 import type { SessionRouteContext } from "./route-context.js";
@@ -518,6 +524,76 @@ export function handlePromptRoutes(
       } finally {
         if (lastShown) ctx.broadcast("transcribe_progress", { done: true });
       }
+    });
+    return true;
+  }
+
+  if (method === "POST" && url === "/permission-mode") {
+    if (ctx.mode !== "code" || ctx.goal) {
+      json(res, 404, { error: "Permission modes are only available in coding sessions." });
+      return true;
+    }
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let mode: unknown;
+      try {
+        mode = (JSON.parse(raw) as { mode?: unknown }).mode;
+      } catch {
+        json(res, 400, { error: "invalid JSON body" });
+        return;
+      }
+      if (mode !== "plan" && !isPermissionMode(mode)) {
+        json(res, 400, { error: "unknown permission mode" });
+        return;
+      }
+      // Plan is the existing read-only plan mode, switched only between runs.
+      const planNow = ctx.session.getPlanMode();
+      if ((mode === "plan") !== planNow) {
+        if (ctx.running || ctx.runClaim.active) {
+          json(res, 409, { error: "Plan mode can be switched once the agent stops." });
+          return;
+        }
+        await ctx.session.setPlanMode(mode === "plan");
+        ctx.broadcast("plan_mode", { active: mode === "plan" });
+      }
+      if (mode !== "plan") {
+        ctx.session.setPermissionMode(mode);
+        await savePermissionModeDefault(mode);
+      }
+      log("INFO", "app-sidecar", "permission mode set", { mode });
+      ctx.broadcast("permission_mode", { permissionMode: ctx.session.getPermissionMode() });
+      json(res, 200, {
+        permissionMode: ctx.session.getPermissionMode(),
+        planMode: mode === "plan",
+      });
+    });
+    return true;
+  }
+
+  if (method === "POST" && url === "/approval") {
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let id: string;
+      let decision: "allow" | "always" | "deny";
+      let note: string | undefined;
+      try {
+        const body = JSON.parse(raw) as { id?: unknown; decision?: unknown; note?: unknown };
+        if (typeof body.id !== "string") throw new Error("id");
+        if (body.decision !== "allow" && body.decision !== "always" && body.decision !== "deny")
+          throw new Error("decision");
+        id = body.id;
+        decision = body.decision;
+        note = typeof body.note === "string" ? body.note.slice(0, 2000) : undefined;
+      } catch {
+        json(res, 400, { error: "invalid approval" });
+        return;
+      }
+      const ok = await ctx.approvals.answer(id, { decision, note });
+      json(
+        res,
+        ok ? 200 : 404,
+        ok ? { ok: true } : { error: "That request is no longer waiting." },
+      );
     });
     return true;
   }

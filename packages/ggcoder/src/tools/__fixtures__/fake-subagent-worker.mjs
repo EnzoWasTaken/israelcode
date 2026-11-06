@@ -8,6 +8,8 @@ let heldTask;
 let contextTurns = 0;
 // Acceptance checks the parent sent with the current turn.
 let turnChecks = [];
+// Whether the parent asked this child to clear gated calls with it first.
+let approvalGate = false;
 
 const emit = (frame) => process.stdout.write(`${JSON.stringify(frame)}\n`);
 const ack = (frame, extra = {}) =>
@@ -31,7 +33,12 @@ const complete = (status = "completed", output = `turn-${contextTurns}`) => {
 
 createInterface({ input: process.stdin }).on("line", (line) => {
   const frame = JSON.parse(line);
+  if (frame.command === "approval_response") {
+    complete("completed", `approval:${frame.decision?.decision ?? "none"}|gate:${approvalGate}`);
+    return;
+  }
   if (frame.command === "initialize") {
+    approvalGate = frame.options?.approvalGate === true;
     // Named agents arrive as `agentPrompt` (composed with the standard prompt
     // scaffolding); `systemPrompt` remains the full-replacement path.
     const prompt = frame.options?.agentPrompt ?? frame.options?.systemPrompt;
@@ -75,6 +82,16 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     });
     // A timer only approximates "still running": process startup on a loaded
     // runner can outlast it. A "hold" turn runs until the test releases it.
+    // An "approve" turn asks the parent before a state-changing command.
+    if (/approve/.test(frame.task)) {
+      emit({
+        type: "approval_request",
+        approval_id: "approval-1",
+        tool: "bash",
+        args: { command: "rm -rf build" },
+      });
+      return;
+    }
     if (/hold/.test(frame.task)) {
       heldTask = frame.task;
       return;

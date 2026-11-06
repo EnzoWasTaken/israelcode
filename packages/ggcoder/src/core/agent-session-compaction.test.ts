@@ -1806,6 +1806,50 @@ describe("AgentSession plan state and dispose", () => {
     expect(notices[1]).toContain("<approved_plan>");
   });
 
+  it("holds gated calls for approval under Ask and tells the model the mode", async () => {
+    shouldCompactMock.mockReturnValue(false);
+    agentLoopMock.mockImplementation(async function* () {
+      yield { type: "agent_done" };
+    });
+    const requestApproval = vi.fn(async () => ({ decision: "deny" as const, note: "not now" }));
+    const { AgentSession } = await import("./agent-session.js");
+    const session = new AgentSession({
+      provider: "anthropic",
+      model: "claude-test",
+      cwd: tmpProject,
+      transient: true,
+      requestApproval,
+    });
+    await session.initialize();
+    const internals = session as unknown as {
+      messages: Message[];
+      tools: Array<{ name: string; execute(args: unknown, ctx: unknown): Promise<unknown> }>;
+    };
+    const ctx = { signal: new AbortController().signal, toolCallId: "t" };
+    const bash = internals.tools.find((t) => t.name === "bash")!;
+
+    // Bypass (the default) never asks.
+    expect(await session.authorizeToolCall("bash", { command: "rm x" }, ctx.signal)).toBeNull();
+    session.setPermissionMode("ask");
+    const out = await bash.execute({ command: "rm -rf dist" }, ctx);
+    expect(String(out)).toContain("not now");
+    expect(requestApproval).toHaveBeenCalledWith(
+      expect.objectContaining({ tool: "bash", command: "rm -rf dist" }),
+      expect.any(AbortSignal),
+    );
+    expect(
+      await session.authorizeToolCall("bash", { command: "git status" }, ctx.signal),
+    ).toBeNull();
+
+    await session.prompt("go");
+    const notices = internals.messages.filter(
+      (m) => typeof m.content === "string" && m.content.startsWith("Permission mode is now"),
+    );
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.content).toContain("ASK");
+    await session.dispose();
+  });
+
   it("rewinds files and the conversation to just before a prompt", async () => {
     shouldCompactMock.mockReturnValue(false);
     const file = path.join(tmpProject, "a.txt");

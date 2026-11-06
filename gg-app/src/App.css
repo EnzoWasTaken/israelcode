@@ -6603,6 +6603,92 @@ select {
      the text and every bubble below it at the moment the message is sent. */
   border: 1px solid transparent;
 }
+/* ── Permission modes: the composer pill and the approval card ── */
+.permission-pill {
+  align-self: center;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.permission-pill[data-mode="ask"],
+.permission-pill[data-mode="accept-edits"] {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.permission-pill[data-mode="plan"] {
+  border-color: var(--success);
+  color: var(--text);
+}
+.permission-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.approval-card {
+  max-width: min(var(--column), 100%);
+  margin: 0 auto var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.approval-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.approval-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.approval-agent,
+.approval-count {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.approval-count {
+  margin-left: auto;
+}
+.approval-subject {
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
+}
+.approval-preview {
+  max-height: 220px;
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.approval-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+.approval-note {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
 /* Rewind on a sent message: shows beside the bubble on hover or keyboard focus. */
 .user-msg:has(> .user-rewind) {
   position: relative;

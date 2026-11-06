@@ -22,6 +22,7 @@ import {
   verifyAcceptanceChecks,
   type AcceptanceCheck,
 } from "../core/acceptance-checks.js";
+import type { ApprovalDecision, GatedTool } from "../core/permission-mode.js";
 
 const TIMEOUT_RECOVERY_PROMPT = `Your execution time limit was reached and the active operation was stopped.
 You have one final 60-second recovery turn. Do not call any tools. Immediately return the best concise answer you can from the evidence already in this conversation, in the format your task asked for. Clearly state what remains incomplete or unverified.`;
@@ -136,6 +137,8 @@ export function parseRootList(value: unknown): string[] {
 }
 
 export interface SubagentWorkerInitialize {
+  /** Ask the parent before write/edit/bash (it applies its permission mode). */
+  approvalGate?: boolean;
   provider: Provider;
   model: string;
   fallbackModel?: string;
@@ -182,6 +185,7 @@ type WorkerCommand =
       additionalRoots?: unknown;
     }
   | { request_id: string; command: "interrupt" }
+  | { request_id: string; command: "approval_response"; decision: ApprovalDecision | null }
   | { request_id: string; command: "shutdown" };
 
 type WorkerState = "uninitialized" | "idle" | "running" | "interrupted" | "closed";
@@ -221,6 +225,29 @@ export async function runSubagentWorkerMode(): Promise<void> {
 
   let session: AgentSession | undefined;
   let initializeOptions: SubagentWorkerInitialize | undefined;
+  // Gated tool calls waiting on the parent's answer, by approval id.
+  const approvals = new Map<string, (decision: ApprovalDecision | null) => void>();
+  let approvalSequence = 0;
+  const askParent = (
+    tool: GatedTool,
+    args: unknown,
+    signal: AbortSignal,
+  ): Promise<ApprovalDecision | null> =>
+    new Promise((resolve) => {
+      const approvalId = `approval-${process.pid}-${++approvalSequence}`;
+      const onAbort = () => {
+        approvals.delete(approvalId);
+        emit({ type: "approval_cancel", approval_id: approvalId });
+        resolve({ decision: "deny", note: "The turn was stopped." });
+      };
+      if (signal.aborted) return onAbort();
+      signal.addEventListener("abort", onAbort, { once: true });
+      approvals.set(approvalId, (decision) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(decision);
+      });
+      emit({ type: "approval_request", approval_id: approvalId, tool, args });
+    });
   let state: WorkerState = "uninitialized";
   let controller = new AbortController();
   let activeTurn: Promise<void> | undefined;
@@ -308,6 +335,7 @@ export async function runSubagentWorkerMode(): Promise<void> {
       sessionId: childSessionPath,
       signal: controller.signal,
       subagentWorker: true,
+      authorizeTool: options.approvalGate ? askParent : undefined,
     });
     wireEvents(next);
     await next.initialize();
@@ -462,6 +490,11 @@ export async function runSubagentWorkerMode(): Promise<void> {
     emit({ type: "ack", request_id: requestId, ok: false, error: errorMessage(error) });
 
   const handle = async (command: WorkerCommand): Promise<void> => {
+    if (command.command === "approval_response") {
+      approvals.get(command.request_id)?.(command.decision ?? null);
+      approvals.delete(command.request_id);
+      return;
+    }
     try {
       switch (command.command) {
         case "initialize": {

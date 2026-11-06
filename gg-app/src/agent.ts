@@ -222,6 +222,10 @@ export interface AgentState {
   autopilot?: boolean;
   /** Ultracode (orchestrate with parallel children) for this coding session. */
   ultracode?: boolean;
+  /** Which tool calls wait for approval (coding sessions). */
+  permissionMode?: PermissionMode;
+  /** Approval cards still waiting (a reloaded window shows them again). */
+  pendingApprovals?: PendingApproval[];
   /** Provider of the model Ken (mentor + autopilot) uses next turn. */
   kenProvider?: string;
   /** The model Ken uses next turn — his pin when set, else GG Coder's model.
@@ -1152,6 +1156,36 @@ export async function setAutopilot(enabled: boolean): Promise<boolean> {
     await logError(`agent_autopilot_set failed: ${String(e)}`);
     return enabled;
   }
+}
+
+export type PermissionMode = "bypass" | "ask" | "accept-edits";
+
+/** A tool call held for the user's approval. */
+export interface PendingApproval {
+  id: string;
+  tool: "write" | "edit" | "bash";
+  command?: string;
+  paths?: string[];
+  preview?: string;
+  agentName?: string;
+  createdAt: number;
+}
+
+/** Set the permission mode; "plan" switches the read-only plan mode. */
+export async function setPermissionMode(
+  mode: PermissionMode | "plan",
+): Promise<{ permissionMode: PermissionMode; planMode: boolean }> {
+  await waitForReady();
+  return invoke("agent_permission_mode_set", { mode });
+}
+
+export async function respondApproval(
+  id: string,
+  decision: "allow" | "always" | "deny",
+  note?: string,
+): Promise<void> {
+  await waitForReady();
+  await invoke("agent_approval_respond", { id, decision, note: note ?? null });
 }
 
 /** A point the session can rewind to: just before one typed prompt. */

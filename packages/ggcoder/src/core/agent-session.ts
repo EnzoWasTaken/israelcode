@@ -189,6 +189,18 @@ import {
 } from "./semantic-loop-check.js";
 import { buildEnvDeltaMessage, buildLanguageUpdateMessage } from "./env-delta.js";
 import { buildUltracodeMessage, lastUltracodeState, ULTRACODE_ACTIVE_LIMIT } from "./ultracode.js";
+import {
+  APPROVAL_WAIT_MS,
+  approvalNeeded,
+  buildPermissionNotice,
+  lastPermissionMode,
+  wrapWithApproval,
+  type ApprovalDecision,
+  type ApprovalRequest,
+  type GatedTool,
+  type PermissionMode,
+  type ToolAuthorizer,
+} from "./permission-mode.js";
 import { buildUserShellContextText } from "./user-shell-context.js";
 import { buildPlanStateMessage, samePlanState, type PlanPromptState } from "./plan-delta.js";
 import { listProjectFiles, type ProjectFileList } from "./project-files.js";
@@ -532,6 +544,13 @@ export interface AgentSessionOptions {
   /** Keep a rewind point per prompt (files + conversation), as the app's code sessions do. */
   checkpoints?: boolean;
   /**
+   * Ask the user before a gated tool call the permission mode holds (the app
+   * shows an approval card). Enables permission modes for this session.
+   */
+  requestApproval?: (request: ApprovalRequest, signal: AbortSignal) => Promise<ApprovalDecision>;
+  /** A complete authorizer for gated tools (a sub-agent worker asking its parent). */
+  authorizeTool?: ToolAuthorizer;
+  /**
    * Claude Code's folder for its skills and installed plugins (default
    * ~/.claude; off under vitest unless given). `false` skips it.
    */
@@ -856,6 +875,7 @@ export class AgentSession {
   /** Plan notice waiting for the next request, with the state it describes. */
   private pendingPlanNotice: { message: Message; state: PlanPromptState } | null = null;
   private ultracode = false;
+  private permissionMode: PermissionMode = "bypass";
   /** Latest plan notice appended — re-announced if compaction drops it. */
   private lastPlanNotice: Message | null = null;
   /**
@@ -1125,6 +1145,12 @@ export class AgentSession {
       getCacheKey: () => this.getPromptCacheKey(),
       getMaxPerModel: () => this.settingsManager.get("subagentMaxPerModel"),
       getActiveLimit: () => (this.ultracode ? ULTRACODE_ACTIVE_LIMIT : ACTIVE_LIMIT),
+      // Children ask the parent before gated calls: they follow its live mode.
+      authorizeChildTool: this.opts.requestApproval
+        ? (tool, args, signal, agentName) => this.authorizeToolCall(tool, args, signal, agentName)
+        : this.opts.authorizeTool
+          ? (tool, args, signal) => this.opts.authorizeTool!(tool, args, signal)
+          : undefined,
       getChildModel: this.opts.getChildModel,
       // A persistent child is already the single allowed fan-out level. Blocking
       // `subagent` here created a timeout sandwich: the nested call could consume
@@ -1162,6 +1188,13 @@ export class AgentSession {
       const wrap = this.opts.wrapTool;
       this.tools = this.tools.map((t) => wrap(t));
     }
+    // Permission modes: write/edit/bash ask first (same schemas, cache-stable).
+    const authorize: ToolAuthorizer | undefined =
+      this.opts.authorizeTool ??
+      (this.opts.requestApproval
+        ? (tool, args, signal) => this.authorizeToolCall(tool, args, signal)
+        : undefined);
+    if (authorize) this.tools = this.tools.map((t) => wrapWithApproval(t, authorize));
     // Both delegation tools carry the agent roster; when both survive the
     // allow-list, `subagent` points at `spawn_agent`'s copy instead.
     if (this.tools.some((t) => t.name === "spawn_agent")) {
@@ -4225,6 +4258,35 @@ export class AgentSession {
     return this.ultracode;
   }
 
+  /** Permission mode (needs `requestApproval`). The model hears of it by notice. */
+  setPermissionMode(mode: PermissionMode): void {
+    this.permissionMode = this.opts.requestApproval ? mode : "bypass";
+  }
+
+  getPermissionMode(): PermissionMode {
+    return this.permissionMode;
+  }
+
+  /**
+   * Decide a gated call under the current mode: null when it may run, else the
+   * user's answer. Sub-agents' calls come through here too (`agentName`).
+   */
+  async authorizeToolCall(
+    tool: GatedTool,
+    args: unknown,
+    signal: AbortSignal,
+    agentName?: string,
+  ): Promise<ApprovalDecision | null> {
+    const request = approvalNeeded(this.permissionMode, tool, args, this.cwd);
+    if (!request || !this.opts.requestApproval) return null;
+    const wait = AbortSignal.any([signal, AbortSignal.timeout(APPROVAL_WAIT_MS)]);
+    try {
+      return await this.opts.requestApproval(agentName ? { ...request, agentName } : request, wait);
+    } catch {
+      return { decision: "deny", note: signal.aborted ? "The run was stopped." : "No answer." };
+    }
+  }
+
   /**
    * The Ultracode notice to append, if the model's picture is out of date. Read
    * from the history itself, so a new, loaded or compacted session that lost
@@ -4490,6 +4552,12 @@ export class AgentSession {
    * update is saved in order with the rest of the conversation.
    */
   private async announceNewLanguages(): Promise<void> {
+    if (this.opts.requestApproval && this.permissionMode !== lastPermissionMode(this.messages)) {
+      const notice = buildPermissionNotice(this.permissionMode);
+      this.messages.push(notice);
+      await this.persistMessage(notice);
+      this.lastPersistedIndex = this.messages.length;
+    }
     const ultracodeNotice = this.takeUltracodeNotice();
     if (ultracodeNotice) {
       this.messages.push(ultracodeNotice);

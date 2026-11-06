@@ -30,6 +30,7 @@ import { theme } from "./theme";
 import { splitUltracode } from "./ultracode";
 import { insertDictation } from "./dictation";
 import { useDictation } from "./useDictation";
+import { PILL_HINT, PILL_LABEL, type PillMode } from "./permission-mode";
 import { toast } from "./toast";
 import { WorkingBeam } from "./WorkingBeam";
 import { sendKeyAction } from "./send-key";
@@ -44,6 +45,9 @@ export interface ComposerProps {
   /** "ultracode" is in the draft and not dismissed: this prompt runs with Ultracode. */
   ultracodeArmed?: boolean;
   /** Esc twice in an empty, idle composer opens Rewind. */
+  /** Permission mode pill (coding sessions); Shift+Tab cycles it. */
+  permissionPill?: PillMode;
+  onCyclePermission?: () => void;
   onRewindShortcut?: () => void;
   onDismissUltracode?: () => void;
   running: boolean;
@@ -133,6 +137,8 @@ export function Composer({
   scheduleInvalid,
   ultracodeArmed = false,
   onRewindShortcut,
+  permissionPill,
+  onCyclePermission,
   onDismissUltracode,
   scheduleDraft,
   running,
@@ -302,6 +308,18 @@ export function Composer({
         >
           <PaperclipIcon size={15} />
         </button>
+        {permissionPill && onCyclePermission && (
+          <button
+            type="button"
+            className="permission-pill"
+            data-mode={permissionPill}
+            aria-label={`Permission mode: ${PILL_LABEL[permissionPill]}. Change (Shift+Tab)`}
+            title={`${PILL_HINT[permissionPill]} (Shift+Tab to change)`}
+            onClick={onCyclePermission}
+          >
+            {PILL_LABEL[permissionPill]}
+          </button>
+        )}
         <button
           type="button"
           className="icon-circle mic-btn"
@@ -432,6 +450,11 @@ export function Composer({
               // swallow keys so Enter can't submit the un-enhanced draft.
               if (enhanceAnim) {
                 e.preventDefault();
+                return;
+              }
+              if (onCyclePermission && e.shiftKey && e.key === "Tab" && !e.ctrlKey && !e.altKey) {
+                e.preventDefault();
+                onCyclePermission();
                 return;
               }
               if (e.ctrlKey && e.shiftKey && e.code === "Space") {

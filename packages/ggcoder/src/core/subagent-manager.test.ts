@@ -9,6 +9,7 @@ import {
   buildSubAgentCompletionFollowUp,
   NESTED_DEFAULT_MAX_PER_MODEL,
   SubAgentManager,
+  type SubAgentManagerOptions,
 } from "./subagent-manager.js";
 import { SubAgentStore, type PersistedSubAgentRecord } from "./subagent-store.js";
 import { readTurnRecord, writeTurnRecord } from "./subagent-turn-record.js";
@@ -47,6 +48,7 @@ function manager(
     sessionRootDir?: string;
     maxPerModel?: number;
     activeLimit?: number;
+    authorizeChildTool?: SubAgentManagerOptions["authorizeChildTool"];
     subAgentDepth?: number;
     notifications?: AgentNotificationQueue;
     adoptionPollMs?: number;
@@ -73,6 +75,7 @@ function manager(
     getCacheKey: () => "parent-cache",
     getMaxPerModel: () => options.maxPerModel,
     getActiveLimit: options.activeLimit ? () => options.activeLimit! : undefined,
+    authorizeChildTool: options.authorizeChildTool,
     subAgentDepth: options.subAgentDepth ?? 0,
     workerEntry,
     idleTimeoutMs: options.idleTimeoutMs,
@@ -542,6 +545,20 @@ describe("SubAgentManager", () => {
     // A different resolved model is unaffected by the luna cap.
     const other = await instance.spawn("parent-model", "slow", "sheller");
     expect(other.model).toBe("gpt-6.1-sol");
+  });
+
+  it("asks the parent before a child's gated call and returns the answer", async () => {
+    const authorizeChildTool = vi.fn(async () => ({ decision: "deny" as const, note: "no" }));
+    const instance = manager({ authorizeChildTool });
+    const child = await instance.spawn("cleanup", "approve then clean", "fake");
+    const result = await instance.wait([child.agent_id], "all", 5_000);
+    expect(authorizeChildTool).toHaveBeenCalledWith(
+      "bash",
+      { command: "rm -rf build" },
+      expect.any(AbortSignal),
+      "cleanup",
+    );
+    expect(result.agents[0]?.output).toBe("approval:deny|gate:true");
   });
 
   it("enforces the active limit it is given (Ultracode raises it)", async () => {

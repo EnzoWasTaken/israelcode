@@ -4,6 +4,7 @@ import type { ContextLimits } from "../core/context-limits.js";
 import {
   SubAgentManager,
   type ChildModelPick,
+  type SubAgentManagerOptions,
   type SubAgentSnapshot,
 } from "../core/subagent-manager.js";
 import { ProcessManager } from "../core/process-manager.js";
@@ -107,6 +108,7 @@ export interface CreateToolsOptions {
   /** Optional per-model subagent concurrency cap (subagentMaxPerModel). */
   getMaxPerModel?: () => number | undefined;
   getActiveLimit?: () => number;
+  authorizeChildTool?: SubAgentManagerOptions["authorizeChildTool"];
   onSubAgentState?: (snapshot: SubAgentSnapshot) => void;
   /** Persistent child workers omit every subagent tool to enforce one-level fan-out. */
   disableSubagents?: boolean;
@@ -361,6 +363,7 @@ export async function createTools(
       getBaseUrl: opts.getBaseUrl,
       getMaxPerModel: () => opts.getMaxPerModel?.(),
       getActiveLimit: opts.getActiveLimit,
+      authorizeChildTool: opts.authorizeChildTool,
       onState: opts.onSubAgentState,
       notifications: opts.notifications,
     });

@@ -62,6 +62,10 @@ export interface AppSettings {
   shellTrusted?: string[];
   /** Ultracode on by default in new coding sessions (the last toggle wins). */
   ultracode?: boolean;
+  /** Permission mode for new coding sessions (the last choice wins; unset = bypass). */
+  permissionMode?: "ask" | "accept-edits";
+  /** Per project: commands the user chose to always allow under Ask / Accept edits. */
+  allowedCommands?: Record<string, string[]>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -109,6 +113,19 @@ export async function loadAppSettings(): Promise<AppSettings> {
       hiddenProjects: stringArray(raw.hiddenProjects),
       shellTrusted: stringArray(raw.shellTrusted),
       ultracode: raw.ultracode === true ? true : undefined,
+      permissionMode:
+        raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
+          ? raw.permissionMode
+          : undefined,
+      allowedCommands:
+        raw.allowedCommands && typeof raw.allowedCommands === "object"
+          ? Object.fromEntries(
+              Object.entries(raw.allowedCommands as Record<string, unknown>).flatMap(([k, v]) => {
+                const list = stringArray(v);
+                return list ? [[k, list]] : [];
+              }),
+            )
+          : undefined,
     };
   } catch {
     return { projectsRoot: defaultProjectsRoot() };
@@ -200,6 +217,36 @@ export async function saveUltracodeDefault(enabled: boolean): Promise<void> {
   await updateAppSettings((s) => {
     if (enabled) s.ultracode = true;
     else delete s.ultracode;
+  });
+}
+
+export async function loadPermissionModeDefault(): Promise<"bypass" | "ask" | "accept-edits"> {
+  return (await loadAppSettings()).permissionMode ?? "bypass";
+}
+
+export async function savePermissionModeDefault(
+  mode: "bypass" | "ask" | "accept-edits",
+): Promise<void> {
+  await updateAppSettings((s) => {
+    if (mode === "bypass") delete s.permissionMode;
+    else s.permissionMode = mode;
+  });
+}
+
+/** Whether this exact command was set to "always allow" in this project. */
+export async function isCommandAlwaysAllowed(cwd: string, command: string): Promise<boolean> {
+  const s = await loadAppSettings();
+  return s.allowedCommands?.[projectModelKey(cwd)]?.includes(command.trim()) ?? false;
+}
+
+export async function allowCommandAlways(cwd: string, command: string): Promise<void> {
+  const key = projectModelKey(cwd);
+  const trimmed = command.trim();
+  if (!trimmed) return;
+  await updateAppSettings((s) => {
+    const list = s.allowedCommands?.[key] ?? [];
+    if (list.includes(trimmed)) return;
+    s.allowedCommands = { ...s.allowedCommands, [key]: [...list, trimmed] };
   });
 }
 

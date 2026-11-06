@@ -485,3 +485,16 @@ describe("rewind", () => {
     expect(sends).not.toHaveBeenCalled();
   });
 });
+
+describe("permission mode pill", () => {
+  it("cycles the mode with Shift+Tab in the composer", async () => {
+    const setMode = vi
+      .spyOn(agent, "setPermissionMode")
+      .mockResolvedValue({ permissionMode: "ask", planMode: false });
+    const { input } = await setup();
+    expect(await screen.findByRole("button", { name: /Permission mode: Bypass/ })).toBeDefined();
+    fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
+    await waitFor(() => expect(setMode).toHaveBeenCalledWith("ask"));
+    expect(await screen.findByRole("button", { name: /Permission mode: Ask/ })).toBeDefined();
+  });
+});

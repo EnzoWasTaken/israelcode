@@ -27,6 +27,8 @@ import {
   sendKenPrompt,
   setAutopilot,
   setUltracode,
+  setPermissionMode,
+  respondApproval,
   cancel,
   newSession,
   selectProject,
@@ -92,6 +94,8 @@ import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
 import { ultracodePhases, ultracodeTurns, type UltracodePhase } from "./ultracode-phases";
 import { UltracodePhases } from "./UltracodePhases";
 import { RewindModal } from "./RewindModal";
+import { ApprovalCard } from "./ApprovalCard";
+import { currentPill, nextPill } from "./permission-mode";
 import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
 import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
 import {
@@ -1576,6 +1580,27 @@ function App(): React.ReactElement {
     resetForChosenProject();
     setInput(result.prompt);
     toast(result.mode === "both" ? `Rewound: ${files}.` : "Rewound the conversation.", "info");
+  }
+
+  function cyclePermission(): void {
+    const from = currentPill(state?.permissionMode, state?.planMode);
+    const next = nextPill(from);
+    // Plan only switches between runs; skip past it mid-run.
+    const target = next === "plan" && running ? nextPill(next) : next;
+    setPermissionMode(target)
+      .then((r) =>
+        setState((s) => (s ? { ...s, permissionMode: r.permissionMode, planMode: r.planMode } : s)),
+      )
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
+  }
+
+  function answerApproval(id: string, decision: "allow" | "always" | "deny", note?: string): void {
+    setState((s) =>
+      s ? { ...s, pendingApprovals: (s.pendingApprovals ?? []).filter((a) => a.id !== id) } : s,
+    );
+    respondApproval(id, decision, note).catch((e: unknown) =>
+      toast(`Couldn't answer: ${e instanceof Error ? e.message : String(e)}`, "error"),
+    );
   }
 
   function changeUltracode(next: boolean): void {
@@ -3197,6 +3222,9 @@ function App(): React.ReactElement {
               {workspaceMode === "motion" && hydrated && items.length === 0 && !running && (
                 <MotionStarters onPick={fillComposer} />
               )}
+              {state?.pendingApprovals && state.pendingApprovals.length > 0 && (
+                <ApprovalCard approvals={state.pendingApprovals} onAnswer={answerApproval} />
+              )}
               {liveTodos && <TodoPill todos={liveTodos.todos} />}
               {!toolsHidden && <LiveToolPanel entries={liveToolFeed} />}
             </div>
@@ -3425,6 +3453,12 @@ function App(): React.ReactElement {
                   scheduleDraft={scheduleDraft}
                   ultracodeArmed={ultracodeArmed}
                   onRewindShortcut={rewindAvailable && !running ? () => setRewindAt("") : undefined}
+                  permissionPill={
+                    rewindAvailable
+                      ? currentPill(state?.permissionMode, state?.planMode)
+                      : undefined
+                  }
+                  onCyclePermission={rewindAvailable ? cyclePermission : undefined}
                   onDismissUltracode={() => setUltracodeDismissed(true)}
                   running={running}
                   kenRunning={kenRunning}

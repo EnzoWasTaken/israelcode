@@ -1078,6 +1078,22 @@ describe("useAgentEvents", () => {
     expect(feed[0]).toMatchObject({ toolCallId: "t1", status: "done" });
   });
 
+  it("tracks approval cards and the permission mode from sidecar events", () => {
+    const { hook, getState } = setup(() => false, {
+      permissionMode: "bypass",
+      pendingApprovals: [],
+    });
+    const card = { id: "a1", tool: "bash", command: "rm x", createdAt: 1 };
+    act(() => {
+      hook.result.current.handleEvent(ev("approval_request", card));
+      hook.result.current.handleEvent(ev("approval_request", card));
+      hook.result.current.handleEvent(ev("permission_mode", { permissionMode: "ask" }));
+    });
+    expect(getState()).toMatchObject({ permissionMode: "ask", pendingApprovals: [card] });
+    act(() => hook.result.current.handleEvent(ev("approval_resolved", { id: "a1" })));
+    expect(getState()?.pendingApprovals).toEqual([]);
+  });
+
   it("keeps one checklist row per run, updated by each todo_write and settled at run_end", () => {
     const { hook, getItems } = setup();
     const step = (content: string, status: string) => ({

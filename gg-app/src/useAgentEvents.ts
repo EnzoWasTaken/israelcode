@@ -26,6 +26,7 @@ import {
 import { formatTokenCount } from "./ActivityBar";
 import type { LiveToolEntry } from "./LiveToolPanel";
 import { parseTodos } from "./todos";
+import type { PendingApproval } from "./agent";
 
 /** Recent tool calls kept for the live views (the floating current-tool line
  *  and the goal world's coordinator). */
@@ -1137,6 +1138,27 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
             const paused = typeof d.paused === "boolean" ? d.paused : s.goal.paused;
             return { ...s, goal: { ...s.goal, phase, critterModel, paused } };
           });
+          break;
+        case "approval_request": {
+          const approval = d as unknown as PendingApproval;
+          setState((s) =>
+            s && !(s.pendingApprovals ?? []).some((a) => a.id === approval.id)
+              ? { ...s, pendingApprovals: [...(s.pendingApprovals ?? []), approval] }
+              : s,
+          );
+          break;
+        }
+        case "approval_resolved":
+          setState((s) =>
+            s
+              ? { ...s, pendingApprovals: (s.pendingApprovals ?? []).filter((a) => a.id !== d.id) }
+              : s,
+          );
+          break;
+        case "permission_mode":
+          setState((s) =>
+            s ? { ...s, permissionMode: d.permissionMode as AgentState["permissionMode"] } : s,
+          );
           break;
         case "plan_mode":
           // Back in plan mode to revise a plan (no new "entering plan" banner).

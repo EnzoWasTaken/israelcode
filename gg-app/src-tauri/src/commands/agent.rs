@@ -915,6 +915,48 @@ pub(crate) async fn agent_autopilot_set(
     sidecar_json(res).await
 }
 
+/// Proxy: set THIS window's permission mode ("bypass", "ask", "accept-edits"
+/// or "plan"); the sidecar validates it.
+#[tauri::command]
+pub(crate) async fn agent_permission_mode_set(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    mode: String,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/permission-mode", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "mode": mode }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
+/// Proxy: answer an approval card ("allow", "always" or "deny", with an
+/// optional note for the model).
+#[tauri::command]
+pub(crate) async fn agent_approval_respond(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    id: String,
+    decision: String,
+    note: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/approval", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "id": id, "decision": decision, "note": note }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
 /// Proxy: the rewind points (one per typed prompt) of THIS window's session.
 #[tauri::command]
 pub(crate) async fn agent_rewind_points(

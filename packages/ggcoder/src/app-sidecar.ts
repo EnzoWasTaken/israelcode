@@ -126,6 +126,7 @@ import {
 } from "./core/ask-user.js";
 import { createAskUserTool } from "./tools/ask-user.js";
 import { createTodoWriteTool } from "./tools/todo-write.js";
+import { createApprovalBridge } from "./app-sidecar/approvals.js";
 import { createUsageService } from "./app-sidecar/usage.js";
 import { daemonReadBody, daemonJson, json } from "./app-sidecar/http.js";
 import { runJsonModeIfRequested } from "./app-sidecar/json-mode.js";
@@ -141,6 +142,9 @@ import {
   loadKenModelPref,
   loadAutopilot,
   loadUltracodeDefault,
+  loadPermissionModeDefault,
+  isCommandAlwaysAllowed,
+  allowCommandAlways,
 } from "./app-sidecar/app-settings.js";
 import { KEN_ALLOWED_TOOLS } from "./app-sidecar/ken-context.js";
 import { type ProgressManager, createProgressManager } from "./app-sidecar/progress-manager.js";
@@ -1075,6 +1079,11 @@ async function createSession(
     if (!goal || goal.record.startedAt || !isGoalStartMessage(text)) return;
     await startGoalFrom({ action: "answer", answers: { message: text } }, []);
   };
+  const approvals = createApprovalBridge({
+    broadcast: (event, data) => broadcast(event, data),
+    isAlwaysAllowed: (command) => isCommandAlwaysAllowed(cwd, command),
+    rememberAlways: (command) => allowCommandAlways(cwd, command),
+  });
   const askUserTool = createAskUserTool(async (request) => {
     const result = await asks.park(request);
     await startGoalFrom(result, request.questions);
@@ -1163,6 +1172,8 @@ async function createSession(
       additionalTools: [askUserTool, createTodoWriteTool()],
       // Rewind points (coding sessions only; Goals has its own branch above).
       checkpoints: true,
+      // Permission modes: held tool calls become approval cards in the app.
+      requestApproval: (request, signal) => approvals.request(request, signal),
       // A run must not end mid-plan with nothing submitted: nobody could review it.
       planSubmissionGate: true,
       // Plan mode belongs only to the coding agent.
@@ -1189,7 +1200,10 @@ async function createSession(
   }
   await session.initialize();
   // Only the coding agent orchestrates; chat, Motion and Goals ignore Ultracode.
-  if (mode === "code" && !goal) session.setUltracode(await loadUltracodeDefault());
+  if (mode === "code" && !goal) {
+    session.setUltracode(await loadUltracodeDefault());
+    session.setPermissionMode(await loadPermissionModeDefault());
+  }
   // This window just moved into a worktree (Git panel branch picker): tell the
   // agent where it now works before its next turn.
   const moveNote = resumeSessionPath ? pendingMoveNotes.get(resumeSessionPath) : undefined;
@@ -2774,6 +2788,7 @@ async function createSession(
     host,
     cwd,
     asks,
+    approvals,
     runClaim,
     sessionId: opts.id,
     sessionIdsAt,

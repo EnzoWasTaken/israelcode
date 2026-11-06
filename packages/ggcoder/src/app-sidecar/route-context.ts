@@ -26,6 +26,7 @@ import type {
   LocalEndpointProbe,
   OAuthLoginCallbacks,
 } from "@kenkaiiii/gg-core";
+import type { ApprovalBridge } from "./approvals.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -68,6 +69,8 @@ export interface SessionRouteContext {
   readonly host: string;
   readonly cwd: string;
   readonly asks: AskUserBridge;
+  /** Permission-mode approval cards waiting on the user. */
+  readonly approvals: ApprovalBridge;
   readonly runClaim: RunClaim;
   /** This window session's daemon id. */
   readonly sessionId: string;
