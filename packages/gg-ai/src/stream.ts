@@ -21,6 +21,7 @@ import { sanitizeMessagesForWire } from "./utils/well-formed.js";
 import { observePreparedContext } from "./utils/context-observation.js";
 import { planDeferredTools, usesDeferredToolLoading } from "./providers/transform.js";
 import { markContinuesTurn } from "./utils/turn-continuation.js";
+import { markCacheAnchor } from "./utils/cache-anchor.js";
 import { resolveFastModeModel } from "./fast-mode.js";
 import { localBearerKey } from "./local-api-key.js";
 
@@ -377,19 +378,44 @@ function observedTools(options: StreamOptions, messages: Message[]): StreamOptio
   return plan ? [...plan.live, ...plan.deferred] : (options.tools ?? []);
 }
 
-/** Clone provenance-bearing messages and remove internal metadata at the provider boundary. */
+/**
+ * User-role messages injected into a run that is still going: runtime notices,
+ * the user's own mid-run steering, and the agent's runtime nudges (completion
+ * gate, re-grounding, review follow-ups). They continue the current turn.
+ * Prompts, automations and compaction messages still open a new turn.
+ */
+const MID_RUN_KINDS: ReadonlySet<string> = new Set([
+  "notification",
+  "steering",
+  "completion_gate",
+  "continuation",
+  "review_follow_up",
+]);
+
+/** Clone metadata-bearing messages and remove internal metadata at the provider boundary. */
 function stripMessageProvenance(messages: Message[]): Message[] {
   let stripped: Message[] | undefined;
   for (let index = 0; index < messages.length; index++) {
     const message = messages[index]!;
-    if (!message.provenance) continue;
+    if (!message.provenance && message.cacheAnchor === undefined) continue;
     stripped ??= messages.slice();
-    const { provenance, ...wireMessage } = message;
-    // A runtime notice continues the current turn; keep that one fact (as a
+    const { provenance, cacheAnchor, ...rest } = message;
+    // The cache-anchor hint travels as a wire-safe marker, like a turn continuation.
+    const wireMessage =
+      cacheAnchor === true && (message.role === "user" || message.role === "tool")
+        ? markCacheAnchor(rest as Message)
+        : rest;
+    if (!provenance) {
+      stripped[index] = wireMessage as Message;
+      continue;
+    }
+    // A mid-run message continues the current turn; keep that one fact (as a
     // wire-safe marker) so the Anthropic encoder doesn't treat it as a new turn
-    // and strip the run's reasoning, which rewrote the whole cached prefix.
+    // and strip the run's reasoning, which rewrote the whole cached run. Live
+    // logs: mid-run steering and completion-gate messages caused 35 such
+    // rewrites in 5 days (~2.9M tokens), each the size of the run so far.
     stripped[index] =
-      provenance.kind === "notification" && message.role === "user"
+      MID_RUN_KINDS.has(provenance.kind) && message.role === "user"
         ? markContinuesTurn(wireMessage as Message)
         : (wireMessage as Message);
   }

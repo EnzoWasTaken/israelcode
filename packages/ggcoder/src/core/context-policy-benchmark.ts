@@ -24,6 +24,8 @@
  *     [--timeout-min 8] [--out <dir>]
  *   pnpm --filter @kenkaiiii/ggcoder bench:context --report <out dir>
  *   pnpm --filter @kenkaiiii/ggcoder bench:context --selftest   (graders only, no API calls)
+ *   pnpm --filter @kenkaiiii/ggcoder bench:context --suite long --timeout-min 20 [--thinking max]
+ *     (long runs that read ~170K tokens; compares mid-session pruning policies)
  *
  * Cost is a LIST-PRICE ESTIMATE (only Haiku 5.5 prices are encoded) and does
  * not include the compaction summary call's cache reads (only its logged
@@ -34,11 +36,13 @@ import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import fs from "node:fs/promises";
+import zlib from "node:zlib";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Message, ThinkingLevel } from "@kenkaiiii/gg-ai";
 import { AgentSession } from "./agent-session.js";
+import { pruneStaleToolResults } from "./compaction/tool-result-pruner.js";
 import { closeLogger, initLogger } from "./logger.js";
 import { SessionManager } from "./session-manager.js";
 import { SettingsManager, type Settings } from "./settings-manager.js";
@@ -53,13 +57,32 @@ type SettingOverrides = Partial<
   Pick<Settings, "compactThreshold" | "autoCompact" | "speedProfile" | "cachePrewarm">
 >;
 
+type Suite = "short" | "long";
+
+/**
+ * Mid-session tool-output pruning variants (long suite). Applied by wrapping
+ * the session's prune step, so the product code is unchanged:
+ *   off            never prune mid-session; only compaction trims
+ *   startFraction  prune only once the context reaches this share of the compaction trigger
+ *   minimumTokens  prune only when at least this many tokens can be freed at once
+ *   noAnchor       previous behaviour: no cache anchor at the prune point
+ */
+interface PrunePolicy {
+  off?: boolean;
+  startFraction?: number;
+  minimumTokens?: number;
+  noAnchor?: boolean;
+}
+
 interface Arm {
   id: string;
   label: string;
+  suite: Suite;
   history: boolean;
   settings: SettingOverrides;
   thinking: ThinkingLevel;
   tail?: string;
+  prune?: PrunePolicy;
 }
 
 /** Pinned so a change in the user's settings.json cannot shift the baseline. */
@@ -79,6 +102,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "baseline",
     label: "current defaults: compact 0.85, prune on, 1-h cache, thinking medium",
+    suite: "short",
     history: true,
     settings: {},
     thinking: "medium",
@@ -86,6 +110,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "fresh",
     label: "new session, no prior history",
+    suite: "short",
     history: false,
     settings: {},
     thinking: "medium",
@@ -93,6 +118,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "no-prune",
     label: "no pruning/compaction during the run",
+    suite: "short",
     history: true,
     settings: { autoCompact: false },
     thinking: "medium",
@@ -100,6 +126,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "compact-0.4",
     label: "compaction threshold 0.4",
+    suite: "short",
     history: true,
     settings: { compactThreshold: 0.4 },
     thinking: "medium",
@@ -107,6 +134,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "compact-0.2",
     label: "compaction threshold 0.2",
+    suite: "short",
     history: true,
     settings: { compactThreshold: 0.2 },
     thinking: "medium",
@@ -114,6 +142,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "cache-5min",
     label: "5-minute cache (speedProfile baseline)",
+    suite: "short",
     history: true,
     settings: { speedProfile: "baseline" },
     thinking: "medium",
@@ -121,6 +150,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "thinking-low",
     label: "thinking low",
+    suite: "short",
     history: true,
     settings: {},
     thinking: "low",
@@ -128,6 +158,7 @@ const ARMS: readonly Arm[] = [
   {
     id: "thinking-high",
     label: "thinking high",
+    suite: "short",
     history: true,
     settings: {},
     thinking: "high",
@@ -135,10 +166,59 @@ const ARMS: readonly Arm[] = [
   {
     id: "reground",
     label: "prompt: re-read files before relying on earlier output",
+    suite: "short",
     history: true,
     settings: {},
     thinking: "medium",
     tail: REGROUND_TAIL,
+  },
+  // Long suite: one long run that reads ~160K tokens of files, with compaction
+  // scaled to a 200K trigger (prune due from 100K) so pruning fires repeatedly,
+  // like a goal run against the 850K production trigger.
+  {
+    id: "prune-now",
+    label:
+      "current pruning (from 50% of the trigger, >=20K freed) with the prune-point cache anchor",
+    suite: "long",
+    history: false,
+    settings: { compactThreshold: 0.2 },
+    thinking: "medium",
+  },
+  {
+    id: "prune-old",
+    label: "current pruning without the prune-point cache anchor (behaviour before it)",
+    suite: "long",
+    history: false,
+    settings: { compactThreshold: 0.2 },
+    thinking: "medium",
+    prune: { noAnchor: true },
+  },
+  {
+    id: "prune-off",
+    label: "no mid-session pruning, compaction only",
+    suite: "long",
+    history: false,
+    settings: { compactThreshold: 0.2 },
+    thinking: "medium",
+    prune: { off: true },
+  },
+  {
+    id: "prune-batch",
+    label: "rarer, bigger prunes: from 50% of the trigger, only when >=60K can be freed",
+    suite: "long",
+    history: false,
+    settings: { compactThreshold: 0.2 },
+    thinking: "medium",
+    prune: { minimumTokens: 60_000 },
+  },
+  {
+    id: "prune-late",
+    label: "late pruning: only from 80% of the trigger",
+    suite: "long",
+    history: false,
+    settings: { compactThreshold: 0.2 },
+    thinking: "medium",
+    prune: { startFraction: 0.8 },
   },
 ];
 
@@ -263,6 +343,11 @@ const STALE: Readonly<Record<string, string>> = {
 
 interface Task {
   id: string;
+  suite: Suite;
+  /** Repo the agent works in. */
+  fixture: Readonly<Record<string, string>>;
+  /** Binary files added to the repo (images). */
+  assets?: () => Readonly<Record<string, Buffer>>;
   prompt: string;
   /** Hidden node:test files, copied in only after the agent finished. */
   graders: Readonly<Record<string, string>>;
@@ -270,14 +355,423 @@ interface Task {
   stale: (repo: string) => Promise<boolean>;
   /** Grader self-test: a correct solution (must pass) and a stale-memory one (must fail as stale). */
   reference: Readonly<Record<string, string>>;
-  staleAnswer: Readonly<Record<string, string>>;
+  staleAnswer?: Readonly<Record<string, string>>;
 }
 
 const readOr = async (file: string): Promise<string> => fs.readFile(file, "utf8").catch(() => "");
 
+// ── Long-suite fixture: 24 handler modules, values spread through each file ──
+
+interface HandlerSpec {
+  name: string;
+  pageSize: number;
+  pages: number;
+  region: string;
+  /** 0 = correct validate(); 1..4 = an off-by-one variant that lets maxItems + 1 through. */
+  bug: number;
+}
+
+const DOMAINS = [
+  "accounts",
+  "alerts",
+  "carts",
+  "catalog",
+  "coupons",
+  "fees",
+  "gifts",
+  "invoices",
+  "ledgers",
+  "loyalty",
+  "orders",
+  "payments",
+  "payouts",
+  "pricing",
+  "refunds",
+  "reports",
+  "returns",
+  "reviews",
+  "sessions",
+  "shipments",
+  "stock",
+  "taxes",
+  "vendors",
+  "wishlists",
+] as const;
+const REGIONS = ["eu", "us", "apac"] as const;
+
+const lcg = (seed: number): (() => number) => {
+  let state = seed;
+  return () => (state = (state * 16807) % 2147483647) / 2147483647;
+};
+
+const HANDLERS: readonly HandlerSpec[] = DOMAINS.map((name, i) => {
+  const rnd = lcg(1000 + i * 97);
+  return {
+    name,
+    pageSize: 5 + Math.floor(rnd() * 20),
+    pages: 2 + Math.floor(rnd() * 9),
+    region: REGIONS[Math.floor(rnd() * REGIONS.length)] ?? "eu",
+    bug: i % 3 === 1 ? 1 + (i % 4) : 0,
+  };
+});
+
+const CORRECT_CHECK = "items.length > LIMITS.maxItems";
+const BUGGY_CHECKS = [
+  "items.length > LIMITS.maxItems + 1",
+  "items.length - 1 > LIMITS.maxItems",
+  "items.length >= LIMITS.maxItems + 2",
+  "!(items.length <= LIMITS.maxItems + 1)",
+];
+
+const SENTENCES = [
+  "Callers in the {d} pipeline rely on this returning a new value; inputs are never mutated.",
+  "Keep this pure: it runs inside request handlers and in the nightly {d} backfill.",
+  "Edge cases (empty input, missing fields) are handled explicitly instead of throwing.",
+  "The rounding rule matches the finance export so totals reconcile across services.",
+  "Do not add I/O here; the {d} worker calls it in a tight loop.",
+  "Historical note: an earlier version mutated its argument, which broke retries.",
+  "If you change the output shape, update the {d} dashboards and the CSV exporter.",
+  "Values are clamped rather than rejected so a single bad row cannot fail a batch.",
+];
+
+function handlerSource(spec: HandlerSpec, check: string): string {
+  const rnd = lcg(5000 + spec.name.length * 131 + spec.pageSize);
+  const cap = spec.name.charAt(0).toUpperCase() + spec.name.slice(1);
+  const comment = (): string =>
+    Array.from({ length: 5 }, () => SENTENCES[Math.floor(rnd() * SENTENCES.length)] ?? "")
+      .map((t) => ` * ${t.replaceAll("{d}", spec.name)}`)
+      .join("\n");
+  const fn = (k: number): string => {
+    const field = ["amount", "weight", "quantity", "fee"][k % 4] ?? "amount";
+    const kind = k % 4;
+    const head = `/**\n${comment()}\n */\n`;
+    if (kind === 0) {
+      return `${head}export function normalize${cap}${k}(record = {}) {\n  const out = { ...record };\n  out.id = String(out.id ?? "").trim();\n  out.code = String(out.code ?? "${spec.name}").toLowerCase();\n  out.tags = Array.isArray(out.tags)\n    ? out.tags.map((tag) => String(tag).trim()).filter(Boolean)\n    : [];\n  out.updatedAt = Number.isFinite(out.updatedAt) ? out.updatedAt : 0;\n  return out;\n}\n`;
+    }
+    if (kind === 1) {
+      return `${head}export function total${cap}${k}(lines = []) {\n  let sum = 0;\n  for (const line of lines) {\n    if (typeof line?.${field} !== "number") continue;\n    sum += Math.max(0, line.${field});\n  }\n  return Math.round(sum * 100) / 100;\n}\n`;
+    }
+    if (kind === 2) {
+      return `${head}export function pad${cap}${k}(value, width = ${6 + (k % 5)}) {\n  const text = String(value ?? "");\n  if (text.length >= width) return text;\n  return " ".repeat(width - text.length) + text;\n}\n`;
+    }
+    return `${head}export function group${cap}${k}(items = [], key = "kind") {\n  const groups = {};\n  for (const item of items) {\n    const bucket = String(item?.[key] ?? "other");\n    (groups[bucket] ??= []).push(item);\n  }\n  return groups;\n}\n`;
+  };
+  const parts: string[] = [
+    `// ${cap} handler helpers. Generated fixture for the context-policy benchmark.\n`,
+  ];
+  for (let k = 0; k < 30; k++) {
+    if (k === 4)
+      parts.push(
+        `/** Records per page when ${spec.name} are exported. */\nconst PAGE_SIZE = ${spec.pageSize};\n`,
+      );
+    if (k === 15)
+      parts.push(
+        `/** Pages a single ${spec.name} request may span. */\nconst PAGES = ${spec.pages};\n`,
+      );
+    if (k === 25)
+      parts.push(
+        `/** Data residency for ${spec.name}. */\nconst HOME_REGION = "${spec.region}";\n`,
+      );
+    parts.push(fn(k));
+  }
+  parts.push(
+    `export const LIMITS = Object.freeze({ maxItems: PAGE_SIZE * PAGES, region: HOME_REGION });\n`,
+    `/** Reject batches larger than LIMITS.maxItems. */\nexport function validate(items) {\n  if (!Array.isArray(items)) throw new TypeError("items must be an array");\n  if (${check}) {\n    throw new RangeError(\`too many items: \${items.length} > \${LIMITS.maxItems}\`);\n  }\n  return true;\n}\n`,
+  );
+  return parts.join("\n");
+}
+
+const HANDLER_TEST = [
+  'import { test } from "node:test";',
+  'import assert from "node:assert/strict";',
+  `const names = ${JSON.stringify(DOMAINS)};`,
+  "for (const name of names) {",
+  "  const mod = await import(`../src/handlers/${name}.js`);",
+  "  test(`${name}: limits`, () => {",
+  "    assert.ok(Object.isFrozen(mod.LIMITS));",
+  "    assert.ok(mod.LIMITS.maxItems > 0);",
+  '    assert.ok(["eu", "us", "apac"].includes(mod.LIMITS.region));',
+  "  });",
+  "  test(`${name}: validate accepts an empty list`, () => assert.equal(mod.validate([]), true));",
+  '  test(`${name}: validate rejects a non-array`, () => assert.throws(() => mod.validate("x"), TypeError));',
+  "  for (const [fn, f] of Object.entries(mod)) {",
+  '    if (typeof f !== "function" || fn === "validate") continue;',
+  "    test(`${name}: ${fn} runs`, () => assert.notEqual(f(), undefined));",
+  "  }",
+  "}",
+  "",
+].join("\n");
+
+const handlerFiles = (fixed: boolean): Record<string, string> =>
+  Object.fromEntries(
+    HANDLERS.map((h) => [
+      `src/handlers/${h.name}.js`,
+      handlerSource(
+        h,
+        h.bug === 0 || fixed ? CORRECT_CHECK : (BUGGY_CHECKS[h.bug - 1] ?? CORRECT_CHECK),
+      ),
+    ]),
+  );
+
+const LONG_FIXTURE: Readonly<Record<string, string>> = {
+  "package.json": `${JSON.stringify(
+    {
+      name: "handlers",
+      version: "2.0.0",
+      type: "module",
+      scripts: { test: "node --test test/*.test.js" },
+    },
+    null,
+    2,
+  )}\n`,
+  ...handlerFiles(false),
+  "test/handlers.test.js": HANDLER_TEST,
+};
+
+const SUITE_PASSES = [
+  'import { spawnSync } from "node:child_process";',
+  'import fs from "node:fs";',
+  'test("the existing test suite still passes", () => {',
+  '  const files = fs.readdirSync("test").filter((f) => f.endsWith(".js")).map((f) => `test/${f}`);',
+  '  const r = spawnSync(process.execPath, ["--test", ...files], { encoding: "utf8" });',
+  "  assert.equal(r.status, 0, r.stdout.slice(-2000) + r.stderr);",
+  "});",
+].join("\n");
+
+const SPECS_JSON = JSON.stringify(
+  HANDLERS.map((h) => ({ name: h.name, max: h.pageSize * h.pages, region: h.region })),
+);
+
+const READ_ALL =
+  "read every handler file one at a time and in full (this is a code review; don't grep or script it)";
+
+// ── Heavy-untrimmed fixture: one design image per handler ────────────────────
+
+const BADGE_COLORS: readonly (readonly [string, readonly [number, number, number]])[] = [
+  ["red", [220, 40, 40]],
+  ["green", [40, 170, 70]],
+  ["blue", [40, 80, 220]],
+  ["yellow", [235, 200, 40]],
+  ["purple", [140, 60, 190]],
+  ["orange", [240, 140, 30]],
+];
+
+const badgeColorOf = (index: number): (typeof BADGE_COLORS)[number] =>
+  BADGE_COLORS[(index * 5 + 2) % BADGE_COLORS.length] ?? ["red", [220, 40, 40]];
+
+/** A solid-colour PNG. 1456x784 stays inside the vision budget (~1.5K tokens, no resize). */
+function solidPng(width: number, height: number, rgb: readonly [number, number, number]): Buffer {
+  const row = Buffer.alloc(1 + width * 3);
+  for (let x = 0; x < width; x++) row.set(rgb, 1 + x * 3);
+  const raw = Buffer.concat(Array.from({ length: height }, () => row));
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(zlib.crc32(body), 8 + data.length);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", zlib.deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+const DESIGN_ASSETS = (): Readonly<Record<string, Buffer>> =>
+  Object.fromEntries(
+    HANDLERS.map((h, i) => [`design/${h.name}.png`, solidPng(1456, 784, badgeColorOf(i)[1])]),
+  );
+
+const L4_SPECS_JSON = JSON.stringify(
+  HANDLERS.map((h, i) => ({
+    name: h.name,
+    max: h.pageSize * h.pages,
+    region: h.region,
+    color: badgeColorOf(i)[0],
+  })),
+);
+
+const LONG_TASKS: readonly Task[] = [
+  {
+    id: "l1-inventory",
+    suite: "long",
+    fixture: LONG_FIXTURE,
+    prompt:
+      "Write docs/handlers.md: a markdown table with one row per handler module in src/handlers/ " +
+      "(sorted by name) giving its name, maxItems and region. The values are assembled from " +
+      `constants spread through each file, so ${READ_ALL}. Make sure the test suite still passes.`,
+    graders: {
+      "grade-l1.test.js": [
+        'import { test } from "node:test";',
+        'import assert from "node:assert/strict";',
+        SUITE_PASSES,
+        `const SPECS = ${SPECS_JSON};`,
+        'test("the table lists every handler with its current values", () => {',
+        '  const lines = fs.readFileSync("docs/handlers.md", "utf8").split("\\n");',
+        "  const missing = SPECS.filter((s) => !lines.some((l) =>",
+        "    new RegExp(`\\\\b${s.name}\\\\b`).test(l) && new RegExp(`\\\\b${s.max}\\\\b`).test(l) && new RegExp(`\\\\b${s.region}\\\\b`).test(l)));",
+        "  assert.deepEqual(missing.map((s) => s.name), []);",
+        "});",
+        "",
+      ].join("\n"),
+    },
+    stale: async () => false,
+    reference: {
+      "docs/handlers.md": [
+        "| Handler | maxItems | region |",
+        "|---|---|---|",
+        ...HANDLERS.map((h) => `| ${h.name} | ${h.pageSize * h.pages} | ${h.region} |`),
+        "",
+      ].join("\n"),
+    },
+  },
+  {
+    id: "l2-review",
+    suite: "long",
+    fixture: LONG_FIXTURE,
+    prompt:
+      "Code review: some handlers in src/handlers/ have an off-by-one in validate() that lets one " +
+      `item more than LIMITS.maxItems through. ${READ_ALL.charAt(0).toUpperCase()}${READ_ALL.slice(1)}, ` +
+      "find and fix every one of them, and make sure the test suite passes. Then list the handlers you fixed.",
+    graders: {
+      "grade-l2.test.js": [
+        'import { test } from "node:test";',
+        'import assert from "node:assert/strict";',
+        SUITE_PASSES,
+        `const SPECS = ${SPECS_JSON};`,
+        "for (const s of SPECS) {",
+        "  test(`${s.name}: validate allows exactly maxItems`, async () => {",
+        "    const mod = await import(`../src/handlers/${s.name}.js`);",
+        "    assert.equal(mod.LIMITS.maxItems, s.max);",
+        "    assert.equal(mod.validate(new Array(s.max).fill(0)), true);",
+        "    assert.throws(() => mod.validate(new Array(s.max + 1).fill(0)), RangeError);",
+        "  });",
+        "}",
+        "",
+      ].join("\n"),
+    },
+    stale: async () => false,
+    reference: handlerFiles(true),
+  },
+  {
+    // Interleaves trimmable output (each ~6K-token read) with untrimmable content
+    // the agent writes (each doc stays under the 8K-char tool-argument cap), like
+    // real runs where commands, edits, images and thinking are about half the context.
+    id: "l3-docs",
+    suite: "long",
+    fixture: LONG_FIXTURE,
+    prompt:
+      "Document every handler module in src/handlers/: for each one write " +
+      "docs/handlers/<name>.md with its maxItems and region values and a one- or two-sentence " +
+      "description of every exported function, by name. Work through the handlers one at a " +
+      "time: read the file in full (no grep or scripts), write its doc, then move on to the " +
+      "next. Make sure the test suite still passes.",
+    graders: {
+      "grade-l3.test.js": [
+        'import { test } from "node:test";',
+        'import assert from "node:assert/strict";',
+        SUITE_PASSES,
+        `const SPECS = ${SPECS_JSON};`,
+        'const has = (t, w) => new RegExp("(^|[^0-9A-Za-z_])" + w + "($|[^0-9A-Za-z_])").test(t);',
+        "for (const s of SPECS) {",
+        "  test(`${s.name}: documented with its limits and every export`, async () => {",
+        "    const mod = await import(`../src/handlers/${s.name}.js`);",
+        '    const md = fs.readFileSync(`docs/handlers/${s.name}.md`, "utf8");',
+        "    assert.ok(has(md, String(s.max)), `maxItems ${s.max}`);",
+        "    assert.ok(has(md, s.region), `region ${s.region}`);",
+        '    const missing = Object.keys(mod).filter((k) => typeof mod[k] === "function" && !md.includes(k));',
+        "    assert.deepEqual(missing, []);",
+        "  });",
+        "}",
+        "",
+      ].join("\n"),
+    },
+    stale: async () => false,
+    reference: l3Reference(),
+  },
+  {
+    // About half of what stays in context cannot be trimmed, like real runs:
+    // each handler adds a ~6K-token read (trimmable), a ~1.5K-token image and a
+    // ~4K-token doc write (tool arguments are capped at 8K chars once old, never removed).
+    // Measured: ~45-50% of the context stays untrimmable, counting in-run thinking.
+    id: "l4-heavy",
+    suite: "long",
+    fixture: LONG_FIXTURE,
+    assets: DESIGN_ASSETS,
+    prompt:
+      "Write reference docs for every handler module in src/handlers/. Work through the " +
+      "handlers one at a time, in alphabetical order: read src/handlers/<name>.js in full (no " +
+      "grep or scripts), look at its design image design/<name>.png, then write " +
+      "docs/handlers/<name>.md by hand (no scripts, no copying with shell commands). Each doc " +
+      "must state the handler's badge colour (the solid colour of its design image, e.g. " +
+      '"Badge: blue"), its maxItems and its region, and then, for every exported function, ' +
+      "its full signature line and its complete JSDoc comment copied verbatim. Then move on to " +
+      "the next handler. Make sure the test suite still passes.",
+    graders: {
+      "grade-l4.test.js": [
+        'import { test } from "node:test";',
+        'import assert from "node:assert/strict";',
+        SUITE_PASSES,
+        `const SPECS = ${L4_SPECS_JSON};`,
+        'const has = (t, w) => new RegExp("(^|[^0-9A-Za-z_])" + w + "($|[^0-9A-Za-z_])", "i").test(t);',
+        "for (const s of SPECS) {",
+        "  test(`${s.name}: badge, limits, signatures and verbatim comments`, async () => {",
+        "    const mod = await import(`../src/handlers/${s.name}.js`);",
+        '    const md = fs.readFileSync(`docs/handlers/${s.name}.md`, "utf8");',
+        "    assert.ok(has(md, s.color), `badge ${s.color}`);",
+        "    assert.ok(has(md, String(s.max)), `maxItems ${s.max}`);",
+        "    assert.ok(has(md, s.region), `region ${s.region}`);",
+        '    const missing = Object.keys(mod).filter((k) => typeof mod[k] === "function" && !md.includes(`${k}(`));',
+        "    assert.deepEqual(missing, []);",
+        "    assert.ok(md.length >= 9000, `doc is ${md.length} chars; comments must be copied in full`);",
+        "  });",
+        "}",
+        "",
+      ].join("\n"),
+    },
+    stale: async () => false,
+    reference: Object.fromEntries(
+      Object.entries(l3Reference()).map(([file, text], i) => [
+        file,
+        `${text.replace(/^- (\w+):/gm, "- $1(…):")}\nBadge: ${badgeColorOf(i)[0]}\n${"Copied comment text. ".repeat(450)}\n`,
+      ]),
+    ),
+  },
+];
+
+function l3Reference(): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    HANDLERS.map((h) => {
+      const cap = h.name.charAt(0).toUpperCase() + h.name.slice(1);
+      const fns = Array.from(
+        { length: 30 },
+        (_, k) => `${["normalize", "total", "pad", "group"][k % 4] ?? "normalize"}${cap}${k}`,
+      );
+      return [
+        `docs/handlers/${h.name}.md`,
+        [
+          `# ${h.name}`,
+          `maxItems: ${h.pageSize * h.pages}; region: ${h.region}`,
+          ...[...fns, "validate"].map((f) => `- ${f}: helper.`),
+          "",
+        ].join("\n"),
+      ];
+    }),
+  );
+}
+
 const TASKS: readonly Task[] = [
   {
     id: "t1-docs",
+    suite: "short",
+    fixture: FIXTURE,
     prompt:
       "Write docs/limits.md: a markdown table with one row each for MAX_RETRIES and BACKOFF_MS " +
       "showing their current values in the code, followed by the full list of retry delays in ms " +
@@ -311,6 +805,8 @@ const TASKS: readonly Task[] = [
   },
   {
     id: "t2-bugfix",
+    suite: "short",
+    fixture: FIXTURE,
     prompt:
       "Customers report cart totals with a percentage discount are sometimes a cent too high: the " +
       "discount should be rounded to the nearest cent (half up), not rounded down. Fix it in the " +
@@ -350,6 +846,8 @@ const TASKS: readonly Task[] = [
   },
   {
     id: "t3-feature",
+    suite: "short",
+    fixture: FIXTURE,
     prompt:
       'Add a --json flag to the CLI: with it, print only a JSON object {"totalCents": number, ' +
       '"currency": string} for the cart instead of the formatted line. Without the flag the output ' +
@@ -391,6 +889,7 @@ const TASKS: readonly Task[] = [
       ),
     },
   },
+  ...LONG_TASKS,
 ];
 
 // ── Seeded long-session history ──────────────────────────────────────────────
@@ -510,11 +1009,21 @@ async function selfTest(): Promise<boolean> {
     const cases: [string, Readonly<Record<string, string>>, boolean, boolean][] = [
       ["untouched", {}, false, false],
       ["reference", task.reference, true, false],
-      ["stale", task.staleAnswer, false, true],
+      ...(task.staleAnswer
+        ? [
+            ["stale", task.staleAnswer, false, true] as [
+              string,
+              Readonly<Record<string, string>>,
+              boolean,
+              boolean,
+            ],
+          ]
+        : []),
     ];
     for (const [name, files, wantOk, wantStale] of cases) {
       const repo = await fs.mkdtemp(path.join(os.tmpdir(), "gg-ctx-selftest-"));
-      await writeFiles(repo, FIXTURE);
+      await writeFiles(repo, task.fixture);
+      await writeAssets(repo, task);
       await writeFiles(repo, files);
       const { ok, output } = await grade(task, repo);
       const stale = !ok && (await task.stale(repo));
@@ -532,6 +1041,8 @@ async function selfTest(): Promise<boolean> {
 
 interface Job {
   arm: string;
+  /** Overrides the arm's thinking level (`--thinking`). */
+  thinking?: ThinkingLevel;
   task: string;
   rep: number;
   model: string;
@@ -581,6 +1092,50 @@ function patchSettings(overrides: SettingOverrides): void {
     // `.call` drops the method's generic, so restore the key-specific return type.
     return original.call(this, key) as Settings[K];
   };
+}
+
+type PruneStep = (messages: Message[], activeTokens: number, targetTokens: number) => number;
+
+/** Wrap the session's prune step (shared by the request path and prewarm) with a policy variant. */
+function patchPrunePolicy(policy: PrunePolicy | undefined): void {
+  if (!policy) return;
+  const proto = AgentSession.prototype as unknown as {
+    pruneToolOutputsIfDue?: PruneStep;
+    applyPendingCacheAnchor?: (messages: Message[]) => boolean;
+  };
+  const original = proto.pruneToolOutputsIfDue;
+  if (typeof original !== "function" || typeof proto.applyPendingCacheAnchor !== "function") {
+    throw new Error("AgentSession prune step not found");
+  }
+  if (policy.noAnchor) proto.applyPendingCacheAnchor = () => false;
+  proto.pruneToolOutputsIfDue = function patchedPrune(
+    this: unknown,
+    messages: Message[],
+    activeTokens: number,
+    targetTokens: number,
+  ): number {
+    if (policy.off) return 0;
+    if (policy.startFraction !== undefined && activeTokens < targetTokens * policy.startFraction) {
+      return 0;
+    }
+    if (policy.minimumTokens !== undefined) {
+      // The minimum only gates whether a prune applies, not what it removes:
+      // a dry run on a copy tells whether the real prune would free enough.
+      const dry = pruneStaleToolResults(structuredClone(messages), {
+        minimumTokens: policy.minimumTokens,
+      });
+      if (!dry.pruned) return 0;
+    }
+    return original.call(this, messages, activeTokens, targetTokens);
+  };
+}
+
+async function writeAssets(root: string, task: Task): Promise<void> {
+  for (const [rel, data] of Object.entries(task.assets?.() ?? {})) {
+    const file = path.join(root, rel);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, data);
+  }
 }
 
 async function writeFiles(root: string, files: Readonly<Record<string, string>>): Promise<void> {
@@ -670,10 +1225,12 @@ async function runChild(job: Job): Promise<RunResult> {
   const task = TASKS.find((t) => t.id === job.task);
   if (!arm || !task) throw new Error(`unknown arm/task ${job.arm}/${job.task}`);
   patchSettings(arm.settings);
+  patchPrunePolicy(arm.prune);
 
   const repo = path.join(job.dir, "repo");
   const sessionRoot = path.join(job.dir, "sessions");
-  await writeFiles(repo, FIXTURE);
+  await writeFiles(repo, task.fixture);
+  await writeAssets(repo, task);
   spawnSync("git", ["init", "-q"], { cwd: repo });
   spawnSync("git", ["add", "-A"], { cwd: repo });
   spawnSync(
@@ -690,7 +1247,7 @@ async function runChild(job: Job): Promise<RunResult> {
     provider: PROVIDER,
     model: job.model,
     cwd: repo,
-    thinkingLevel: arm.thinking,
+    thinkingLevel: job.thinking ?? arm.thinking,
     sessionRootDir: sessionRoot,
     deferLoadCompaction: true,
     backgroundMcpConnect: true,
@@ -805,10 +1362,16 @@ export function renderReport(results: RunResult[], model: string): string {
   const priced = model === "claude-haiku-5-5";
   lines.push(`# Context-policy benchmark (${model}, ${results.length} runs)`, "");
   lines.push(
-    "| Arm | Pass | Stale | Wall p50 | Turns | First word p50 | Prompt p50 | Cache read | Cache write | Output | Est. $/task | Prunes | Compactions |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    "| Arm | Pass | Stale | Wall p50 | Turns | First word p50 | Prompt p50 | Cache read | Cache write | Big rewrites | Output | Est. $/task | Prunes | Compactions |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
   );
-  const baseline = results.filter((r) => r.arm === "baseline");
+  // A request that re-wrote >= 30K tokens of cache: prune/compaction rewrites and cold starts.
+  const bigRewrites = (rs: RunResult[]): string => {
+    const big = rs.flatMap((r) => r.requests.filter((q) => q.cacheWrite >= 30_000));
+    if (big.length === 0) return "0";
+    return `${(big.length / rs.length).toFixed(1)} × ${(mean(big.map((q) => q.cacheWrite)) / 1e3).toFixed(0)}k`;
+  };
+  const tasksRun = TASKS.filter((t) => results.some((r) => r.task === t.id));
   const costOf = (r: RunResult): number =>
     haikuCostUsd(
       r,
@@ -824,27 +1387,27 @@ export function renderReport(results: RunResult[], model: string): string {
         `${(median(rs.map((r) => r.wallMs)) / 1000).toFixed(1)} s | ${mean(rs.map((r) => r.requests.length)).toFixed(1)} | ` +
         `${(median(rs.flatMap((r) => r.ttftMs)) / 1000).toFixed(1)} s | ${k(median(reqs.map((r) => r.input + r.cacheRead + r.cacheWrite)))} | ` +
         `${k(mean(rs.map((r) => sum(r.requests.map((q) => q.cacheRead)))))} | ${k(mean(rs.map((r) => sum(r.requests.map((q) => q.cacheWrite)))))} | ` +
+        `${bigRewrites(rs)} | ` +
         `${k(mean(rs.map((r) => sum(r.requests.map((q) => q.output)))))} | ${priced ? `$${mean(rs.map(costOf)).toFixed(3)}` : "n/a"} | ` +
         `${sum(rs.map((r) => r.prunes))} | ${sum(rs.map((r) => r.compactions))} |`,
     );
   }
   lines.push("", "Per task (pass/runs):", "");
   lines.push(
-    `| Arm | ${TASKS.map((t) => t.id).join(" | ")} |`,
-    `|---|${TASKS.map(() => "---").join("|")}|`,
+    `| Arm | ${tasksRun.map((t) => t.id).join(" | ")} |`,
+    `|---|${tasksRun.map(() => "---").join("|")}|`,
   );
   for (const arm of ARMS) {
     const rs = results.filter((r) => r.arm === arm.id);
     if (rs.length === 0) continue;
-    const cells = TASKS.map((t) => {
+    const cells = tasksRun.map((t) => {
       const ts = rs.filter((r) => r.task === t.id);
       return `${ts.filter((r) => r.ok).length}/${ts.length}`;
     });
     lines.push(`| ${arm.id} | ${cells.join(" | ")} |`);
   }
-  if (baseline.length) {
-    lines.push("", "Arms: " + ARMS.map((a) => `**${a.id}** = ${a.label}`).join("; "));
-  }
+  const armsRun = ARMS.filter((a) => results.some((r) => r.arm === a.id));
+  lines.push("", "Arms: " + armsRun.map((a) => `**${a.id}** = ${a.label}`).join("; "));
   lines.push(
     "",
     "Notes: wall = prompt to finish (prewarm excluded). Stale = failed AND the result matches the outdated history. " +
@@ -854,6 +1417,8 @@ export function renderReport(results: RunResult[], model: string): string {
 }
 
 interface ParentOptions {
+  suite: Suite;
+  thinking?: ThinkingLevel;
   arms: string[];
   tasks: string[];
   reps: number;
@@ -871,15 +1436,22 @@ function parseArgs(
     const i = argv.indexOf(`--${name}`);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  const list = (name: string, all: readonly { id: string }[]): string[] => {
+  const suite: Suite = get("suite") === "long" ? "long" : "short";
+  const list = (name: string, all: readonly { id: string; suite: Suite }[]): string[] => {
     const v = get(name);
-    const ids = v ? v.split(",") : all.map((x) => x.id);
+    const ids = v ? v.split(",") : all.filter((x) => x.suite === suite).map((x) => x.id);
     for (const id of ids)
       if (!all.some((x) => x.id === id)) throw new Error(`unknown ${name}: ${id}`);
     return ids;
   };
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const thinking = get("thinking");
+  const levels: readonly ThinkingLevel[] = ["low", "medium", "high", "xhigh", "max"];
+  const level = levels.find((l) => l === thinking);
+  if (thinking !== undefined && !level) throw new Error(`unknown thinking level: ${thinking}`);
   return {
+    suite,
+    ...(level ? { thinking: level } : {}),
     arms: list("arms", ARMS),
     tasks: list("tasks", TASKS),
     reps: Number(get("reps") ?? 2),
@@ -965,8 +1537,13 @@ async function main(): Promise<void> {
   for (let rep = 0; rep < opts.reps; rep++) {
     for (const task of opts.tasks) {
       for (const arm of opts.arms) {
+        // short arms pair with short tasks, long arms with long tasks
+        if (ARMS.find((a) => a.id === arm)?.suite !== TASKS.find((t) => t.id === task)?.suite) {
+          continue;
+        }
         jobs.push({
           arm,
+          ...(opts.thinking ? { thinking: opts.thinking } : {}),
           task,
           rep,
           model: opts.model,
