@@ -527,7 +527,11 @@ mod tests {
     fn live_sidecar_with_alive_parent_is_excluded() {
         // The current gg-app (pid 100) is the parent of a live sidecar (pid 200).
         let snap = vec![
-            proc(100, 1, "/Applications/Israel Code.app/Contents/MacOS/gg-app"),
+            proc(
+                100,
+                1,
+                "/Applications/Israel Code.app/Contents/MacOS/gg-app",
+            ),
             proc(200, 100, "ggnode app-sidecar.mjs"),
         ];
         let ks = orphan_killset(&snap, 100, &no_ledger());
