@@ -1078,6 +1078,53 @@ describe("useAgentEvents", () => {
     expect(feed[0]).toMatchObject({ toolCallId: "t1", status: "done" });
   });
 
+  it("keeps one checklist row per run, updated by each todo_write and settled at run_end", () => {
+    const { hook, getItems } = setup();
+    const step = (content: string, status: string) => ({
+      content,
+      activeForm: `${content}…`,
+      status,
+    });
+    const write = (id: string, todos: unknown, result = "Todo list updated") => {
+      act(() => {
+        hook.result.current.handleEvent(
+          ev("tool_call_start", { toolCallId: id, name: "todo_write", args: { todos } }),
+        );
+        hook.result.current.handleEvent(
+          ev("tool_call_end", { toolCallId: id, isError: false, result }),
+        );
+      });
+    };
+    act(() => {
+      hook.result.current.handleEvent(ev("run_start", {}));
+    });
+    write("w1", [step("Fix", "in_progress"), step("Test", "pending")]);
+    write("w2", [step("Fix", "completed"), step("Test", "in_progress")]);
+    // Rejected by the tool: the row keeps the last good list.
+    write("w3", [step("A", "in_progress"), step("B", "in_progress")], "Error: Only one");
+    let rows = getItems().filter((it) => it.kind === "todos");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      todos: [
+        { content: "Fix", status: "completed" },
+        { content: "Test", status: "in_progress" },
+      ],
+    });
+    expect((rows[0] as { settled?: boolean }).settled).toBeUndefined();
+
+    act(() => {
+      hook.result.current.handleEvent(ev("run_end", {}));
+    });
+    rows = getItems().filter((it) => it.kind === "todos");
+    expect(rows[0]).toMatchObject({ settled: true });
+
+    act(() => {
+      hook.result.current.handleEvent(ev("run_start", {}));
+    });
+    write("w4", [step("Next", "in_progress")]);
+    expect(getItems().filter((it) => it.kind === "todos")).toHaveLength(2);
+  });
+
   it("keeps an image placeholder until its own generate_image call ends", () => {
     const { hook, getItems } = setup();
     act(() => {

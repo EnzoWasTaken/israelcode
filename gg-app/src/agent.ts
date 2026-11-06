@@ -9,6 +9,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { error as logError, info as logInfo } from "@tauri-apps/plugin-log";
 import type { ProjectColourChoice } from "./projectAccent";
+import type { TodoItem } from "./todos";
 
 // Per-window event bus. The Rust side emits agent traffic with `emit_to` the
 // specific window label, so each window must listen on ITS OWN webview target —
@@ -1233,6 +1234,8 @@ export interface HistoryEntry {
   /** Tool-produced images rendered inline (same as live `images` items),
    *  reconstructed from ImageContent blocks in persisted tool results. */
   toolImages?: Array<{ src: string; path?: string }>;
+  /** The turn's checklist: its latest `todo_write` list. */
+  todos?: TodoItem[];
   /** Sub-agent delegation group (same as live `subagent_group` items). */
   subagentGroup?: Array<{
     agentName?: string;

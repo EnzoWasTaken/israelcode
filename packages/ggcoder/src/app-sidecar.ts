@@ -125,6 +125,7 @@ import {
   type AskUserResult,
 } from "./core/ask-user.js";
 import { createAskUserTool } from "./tools/ask-user.js";
+import { createTodoWriteTool } from "./tools/todo-write.js";
 import { createUsageService } from "./app-sidecar/usage.js";
 import { daemonReadBody, daemonJson, json } from "./app-sidecar/http.js";
 import { runJsonModeIfRequested } from "./app-sidecar/json-mode.js";
@@ -1158,7 +1159,7 @@ async function createSession(
   } else {
     session = new AgentSession({
       ...baseSessionOptions,
-      additionalTools: [askUserTool],
+      additionalTools: [askUserTool, createTodoWriteTool()],
       // A run must not end mid-plan with nothing submitted: nobody could review it.
       planSubmissionGate: true,
       // Plan mode belongs only to the coding agent.

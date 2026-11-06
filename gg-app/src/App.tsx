@@ -85,6 +85,7 @@ import { useKenMentor } from "./useKenMentor";
 import { useAutopilot } from "./useAutopilot";
 import { useAgentEvents, type RunEnd } from "./useAgentEvents";
 import { LiveToolPanel, type LiveToolEntry } from "./LiveToolPanel";
+import { TodoPill } from "./TodoList";
 import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
 import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
 import {
@@ -1175,6 +1176,7 @@ function App(): React.ReactElement {
                   id: nextId(),
                   images: h.toolImages.map((img) => ({ src: img.src, path: img.path })),
                 };
+              if (h.todos) return { kind: "todos", id: nextId(), todos: h.todos, settled: true };
               // Sub-agent delegation group — reconstructed from persisted tool_call
               // + tool_result pairing. toolUseCount/activities aren't persisted, so
               // the resumed feed shows agent name + status only.
@@ -1894,6 +1896,15 @@ function App(): React.ReactElement {
     () => withoutSupersedingMessage(queuedMessages, supersedingText),
     [queuedMessages, supersedingText],
   );
+  // The running turn's checklist, pinned above the deck so it stays in view.
+  const liveTodos = useMemo(() => {
+    if (!running) return undefined;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (item?.kind === "todos") return item.settled ? undefined : item;
+    }
+    return undefined;
+  }, [items, running]);
   // Sub-agent groups for the critter floor. Recomputed with `items`, but the
   // floor compares group identities and ignores token-only re-renders.
   const critterGroups = useMemo(
@@ -3083,6 +3094,7 @@ function App(): React.ReactElement {
               {workspaceMode === "motion" && hydrated && items.length === 0 && !running && (
                 <MotionStarters onPick={fillComposer} />
               )}
+              {liveTodos && <TodoPill todos={liveTodos.todos} />}
               {!toolsHidden && <LiveToolPanel entries={liveToolFeed} />}
             </div>
 

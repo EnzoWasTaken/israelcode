@@ -3,7 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { restoredGifPreview, restoredWorkerRows } from "./history-routes.js";
+import { restoredGifPreview, restoredWorkerRows, restoreTurnTodos } from "./history-routes.js";
+import type { HistoryEntryForWire } from "./history.js";
 
 const spawn = {
   name: "spawn_agent",
@@ -67,5 +68,49 @@ describe("restoredGifPreview", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("restoreTurnTodos", () => {
+  const todo = (content: string, status: string) => ({ content, activeForm: content, status });
+  const call = (id: string, todos: unknown) => ({
+    type: "tool_call",
+    id,
+    name: "todo_write",
+    args: { todos },
+  });
+
+  it("adds one row per turn and keeps the latest successful list", () => {
+    const history: HistoryEntryForWire[] = [];
+    const results = new Map([
+      ["a", { isError: false }],
+      ["b", { isError: false }],
+      ["c", { isError: true }],
+    ]);
+    let row = restoreTurnTodos([call("a", [todo("Fix", "in_progress")])], results, null, history);
+    row = restoreTurnTodos(
+      [{ type: "text" }, call("b", [todo("Fix", "completed")]), call("c", [todo("X", "pending")])],
+      results,
+      row,
+      history,
+    );
+    expect(history).toHaveLength(1);
+    expect(row?.todos).toEqual([{ content: "Fix", activeForm: "Fix", status: "completed" }]);
+  });
+
+  it("skips invalid lists and calls without a result", () => {
+    const history: HistoryEntryForWire[] = [];
+    const results = new Map([["a", { isError: false }]]);
+    const row = restoreTurnTodos(
+      [
+        call("a", [todo("A", "in_progress"), todo("B", "in_progress")]),
+        call("z", [todo("Z", "pending")]),
+      ],
+      results,
+      null,
+      history,
+    );
+    expect(row).toBeNull();
+    expect(history).toEqual([]);
   });
 });

@@ -16,6 +16,7 @@ import {
   extractToolImagePaths,
 } from "../core/session-history.js";
 import { spawnedTasks } from "../tools/subagent-shared.js";
+import { parseTodos } from "../tools/todo-write.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { animatedPreview, downscaleForPreview, IMAGE_MEDIA_TYPES } from "../utils/image.js";
 import { readFileBounded } from "../tools/operations.js";
@@ -28,6 +29,32 @@ import type { SessionRouteContext } from "./route-context.js";
  * them on reopen (`resultIsError`: null when no result was saved). Async
  * workers are intentionally non-resumable; restored rows are historical.
  */
+/**
+ * Fold an assistant message's successful `todo_write` calls into the turn's
+ * checklist row: the first one adds the row, later ones replace its list.
+ * Returns the row (or the unchanged `current` when there were none).
+ */
+export function restoreTurnTodos(
+  content: ReadonlyArray<{ type: string; id?: string; name?: string; args?: unknown }>,
+  results: ReadonlyMap<string, { isError: boolean }>,
+  current: HistoryEntryForWire | null,
+  history: HistoryEntryForWire[],
+): HistoryEntryForWire | null {
+  let row = current;
+  for (const c of content) {
+    if (c.type !== "tool_call" || c.name !== "todo_write" || !c.id) continue;
+    if (results.get(c.id)?.isError !== false) continue;
+    const parsed = parseTodos((c.args as { todos?: unknown } | undefined)?.todos);
+    if (!("todos" in parsed)) continue;
+    if (row) row.todos = parsed.todos;
+    else {
+      row = { role: "assistant", text: "", todos: parsed.todos };
+      history.push(row);
+    }
+  }
+  return row;
+}
+
 export function restoredWorkerRows(
   call: { readonly name: string; readonly args: Record<string, unknown> },
   resultIsError: boolean | null,
@@ -298,6 +325,9 @@ export function handleHistoryRoutes(
         }
       };
       let nonSystemCount = 0;
+      // One checklist row per user turn, placed at its first todo_write and
+      // holding the latest list, the same as the live row.
+      let turnTodos: HistoryEntryForWire | null = null;
       // Turns/markers recorded before any build message (anchor 0) render at
       // the top.
       flushKen(0);
@@ -381,6 +411,7 @@ export function handleHistoryRoutes(
             const restored = restoreUserRow(msg.content, msg.provenance);
             const text = restored.text;
             const hook = msg.provenance ? null : detectHookKind(text);
+            if (!msg.provenance && !hook) turnTodos = null;
             const compacted =
               visibility === "summary" ||
               (!msg.provenance && !hook && text.startsWith("[Previous conversation summary]"));
@@ -453,6 +484,7 @@ export function handleHistoryRoutes(
 
           // Assistant tool_call blocks: detect sub-agent delegations.
           if (msg.role === "assistant" && typeof msg.content !== "string") {
+            turnTodos = restoreTurnTodos(msg.content, toolResultMap, turnTodos, history);
             const subagentCalls = msg.content.filter(
               (
                 c,

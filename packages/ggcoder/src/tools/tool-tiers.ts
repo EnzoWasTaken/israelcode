@@ -35,6 +35,9 @@ export const CORE_TOOL_NAMES: readonly string[] = [
   // was almost never reached even when a request needed a plan. The steering
   // line in prompt-hints.ts says when to use it.
   "enter_plan",
+  // App code sessions only (the checklist renders in the thread). Deferred, it
+  // would rarely be found before the work it should track had already started.
+  "todo_write",
 ];
 
 /**

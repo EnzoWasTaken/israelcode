@@ -7421,6 +7421,98 @@ select {
   text-overflow: ellipsis;
 }
 
+/* ── Agent checklist (todo_write): live steps while the run goes, then one
+   "3/7 done" line that unfolds on click. ── */
+.todo-list {
+  margin: var(--space-3) 0 var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.todo-list-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.todo-list-head:disabled {
+  cursor: default;
+}
+.todo-list-head:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.todo-list-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.todo-list-count {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.todo-list-items {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.todo-row {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  color: var(--text-secondary);
+}
+.todo-mark {
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+  color: var(--text-dim);
+}
+.todo-row[data-status="in_progress"] .todo-mark {
+  color: var(--primary);
+}
+.todo-row[data-status="completed"] .todo-mark {
+  color: var(--success);
+}
+.todo-pill {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  max-width: min(var(--column), 100%);
+  margin: 0 auto var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  width: fit-content;
+}
+.todo-pill .todo-mark {
+  color: var(--primary);
+}
+.todo-pill-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.todo-row[data-status="completed"] .todo-text {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
 /* ── Sub-agent in-chat line: the agents themselves walk on the critter floor,
    so the transcript keeps one short summary row. ── */
 .subagents {

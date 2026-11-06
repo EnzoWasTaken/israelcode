@@ -25,6 +25,7 @@ import {
 } from "./ask-user";
 import { formatTokenCount } from "./ActivityBar";
 import type { LiveToolEntry } from "./LiveToolPanel";
+import { parseTodos } from "./todos";
 
 /** Recent tool calls kept for the live views (the floating current-tool line
  *  and the goal world's coordinator). */
@@ -202,6 +203,9 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
   const ackedQueueTextsRef = useRef<Map<string, number>>(new Map());
   const queueSnapshotRef = useRef<QueuedMessage[]>([]);
   const subagentGroupIdRef = useRef<number | null>(null);
+  // This run's checklist row, and the lists sent by todo_write calls still running.
+  const todoItemIdRef = useRef<number | null>(null);
+  const pendingTodosRef = useRef<Map<string, unknown>>(new Map());
   const subagentGroupByAgentRef = useRef<Map<string, number>>(new Map());
   // subagent_state snapshots arrive per tool/turn event PER AGENT — with
   // several parallel agents that's a steady burst of full-transcript setItems,
@@ -616,6 +620,8 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           );
           endStreamingText();
           subagentGroupIdRef.current = null;
+          todoItemIdRef.current = null;
+          pendingTodosRef.current.clear();
           compactionIdRef.current = null;
           runStartRef.current = Date.now();
           runOpenRef.current = true;
@@ -739,6 +745,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
               pushItem({ kind: "subagent_group", id, agents: [newAgent] });
             }
           }
+          if (name === "todo_write") pendingTodosRef.current.set(toolCallId, args.todos);
           // Image generation: show a shimmering square placeholder while the
           // tool runs. It gets replaced by the real image on tool_call_end.
           if (name === "generate_image") {
@@ -796,6 +803,26 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           const isError = Boolean(d.isError);
           const result = typeof d.result === "string" ? d.result : undefined;
           const details = d.details;
+          // A todo_write call landed: show its list (the tool reports bad input as "Error:").
+          if (pendingTodosRef.current.has(id)) {
+            const todos = parseTodos(pendingTodosRef.current.get(id));
+            pendingTodosRef.current.delete(id);
+            if (todos && !isError && !result?.startsWith("Error:")) {
+              const todoId = todoItemIdRef.current;
+              if (todoId !== null) {
+                setItems((prev) =>
+                  prev.map((it) =>
+                    it.kind === "todos" && it.id === todoId ? { ...it, todos } : it,
+                  ),
+                );
+              } else {
+                const newId = nextId();
+                todoItemIdRef.current = newId;
+                endStreamingText();
+                pushItem({ kind: "todos", id: newId, todos });
+              }
+            }
+          }
           // Finalize a sub-agent's in-chat row: flip status + record duration.
           const groupId = subagentGroupIdRef.current;
           if (groupId !== null) {
@@ -991,6 +1018,15 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           );
           // Exit the tool panel (mirrors ggcoder).
           setLiveToolFeed([]);
+          const todoId = todoItemIdRef.current;
+          pendingTodosRef.current.clear();
+          if (todoId !== null) {
+            setItems((prev) =>
+              prev.map((it) =>
+                it.kind === "todos" && it.id === todoId ? { ...it, settled: true } : it,
+              ),
+            );
+          }
           // Safety: clear any lingering image-generation placeholders in case
           // tool_call_end didn't fire (e.g. hard cancel mid-fetch).
           setItems((prev) => prev.filter((it) => it.kind !== "generating_image"));

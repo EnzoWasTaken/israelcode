@@ -1,5 +1,6 @@
 import type { AppErrorPayload } from "../app-error.js";
 import type { ToolDetail } from "../core/session-export.js";
+import type { TodoItem } from "../tools/todo-write.js";
 
 // item kinds that are reconstructed from persisted session data.
 export interface HistoryEntryForWire {
@@ -65,6 +66,8 @@ export interface HistoryEntryForWire {
     status: "done" | "error";
     toolUseCount: number;
   }>;
+  /** The turn's checklist: the latest successful `todo_write` list. */
+  todos?: TodoItem[];
 }
 
 // ── Chat attachments (images / videos / files dropped into the input) ──────

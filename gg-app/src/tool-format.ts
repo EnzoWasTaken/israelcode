@@ -72,6 +72,7 @@ const VERBS: Record<string, VerbPair> = {
   skill: { running: "Loading skill", done: "Loaded skill" },
   source_path: { running: "Resolving", done: "Resolved" },
   tasks: { running: "Updating tasks", done: "Updated tasks" },
+  todo_write: { running: "Updating checklist", done: "Updated checklist" },
   screenshot: { running: "Capturing", done: "Captured" },
   debug: { running: "Debugging", done: "Debugged" },
   enter_plan: { running: "Entering plan", done: "Entered plan" },
@@ -95,7 +96,7 @@ export function getToolTone(name: string): ToolTone {
   if (["bash", "task_output", "task_stop", "debug"].includes(name)) return "run";
   if (["web_fetch", "web_search"].includes(name)) return "web";
   if (["subagent", "skill"].includes(name)) return "agent";
-  if (["tasks"].includes(name)) return "state";
+  if (["tasks", "todo_write"].includes(name)) return "state";
   if (["source_path"].includes(name)) return "source";
   if (name.startsWith("mcp__")) return "web";
   return "default";

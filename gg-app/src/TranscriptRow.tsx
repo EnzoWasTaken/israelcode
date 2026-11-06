@@ -8,6 +8,7 @@ import { useLiveText } from "./live-text";
 import { StreamingMarkdown } from "./StreamingMarkdown";
 import { HookNotice } from "./HookNotice";
 import { SubAgentFeed } from "./SubAgentFeed";
+import { TodoList } from "./TodoList";
 import { CompactionNotice } from "./CompactionNotice";
 import { PlanModeLogo } from "./PlanModeLogo";
 import { KenFace } from "./KenFace";
@@ -441,6 +442,8 @@ function TranscriptRowBody({
       );
     case "subagent_group":
       return <SubAgentFeed agents={item.agents} aborted={item.aborted} />;
+    case "todos":
+      return <TodoList todos={item.todos} settled={item.settled} />;
     case "shell":
       return <ShellBlock item={item} actions={shellActions} onGrow={onContentGrow} />;
     case "security":

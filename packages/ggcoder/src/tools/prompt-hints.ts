@@ -92,6 +92,10 @@ export const TOOL_STEERING_CLAUSES: ReadonlyArray<{
     text: "Call `enter_plan` first only when the request needs research and careful step-by-step work (several files, real risk, or an unclear approach). Go straight to work on small or clear changes; planning slows them down.",
   },
   {
+    needs: ["todo_write"],
+    text: "For work with 3+ distinct steps, call `todo_write` first with the steps, then update it as each one starts and finishes.",
+  },
+  {
     needs: ["read", "grep"],
     without: ["bash"],
     text: "Batch independent reads/searches in one turn; they run in parallel.",
@@ -158,6 +162,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "task_send",
   "task_stop",
   "tasks",
+  "todo_write",
   "tool_search",
   "ui_registry",
   "ui_adopt",

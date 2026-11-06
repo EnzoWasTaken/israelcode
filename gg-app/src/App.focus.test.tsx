@@ -17,12 +17,13 @@ function nativeIPC(command: string): unknown {
   return new Promise(() => {});
 }
 
+// Importing the whole App takes over the 10 s hook default on a loaded machine.
 beforeAll(async () => {
   mockWindows("main");
   mockIPC(nativeIPC);
   App = (await import("./App")).default;
   WorkspaceHeader = (await import("./WorkspaceHeader")).WorkspaceHeader;
-});
+}, 30_000);
 
 beforeEach(() => {
   // jsdom lacks element scrolling; preserve the scroll position the app requests.
