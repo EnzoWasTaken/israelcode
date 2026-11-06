@@ -42,4 +42,36 @@ describe("useWindowOrder focusing the composer", () => {
     window.dispatchEvent(new MouseEvent("mouseup"));
     expect(document.activeElement).not.toBe(el);
   });
+
+  it("leaves a clicked button alone even when only its child is the target", () => {
+    // Mac WebKit does not focus clicked buttons, so mouseup used to steal focus
+    // and close a picker before its click ran.
+    const el = composer(true);
+    const button = document.createElement("button");
+    const label = document.createElement("span");
+    button.append(label);
+    document.body.append(button);
+    renderHook(() => useWindowOrder({ current: el }));
+    label.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(document.activeElement).not.toBe(el);
+  });
+
+  it("leaves focus alone while a non-modal dialog is open", () => {
+    const el = composer(true);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.append(dialog);
+    renderHook(() => useWindowOrder({ current: el }));
+    window.dispatchEvent(new Event("focus"));
+    expect(document.activeElement).not.toBe(el);
+  });
+
+  it("still focuses the composer after a click on ordinary background", () => {
+    const el = composer(true);
+    const background = document.createElement("div");
+    document.body.append(background);
+    renderHook(() => useWindowOrder({ current: el }));
+    background.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(document.activeElement).toBe(el);
+  });
 });

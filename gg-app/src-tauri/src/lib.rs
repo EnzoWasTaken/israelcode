@@ -55,6 +55,7 @@ mod events;
 mod macos_event_guard;
 mod paths;
 mod process;
+mod project_colours;
 mod settings;
 mod state;
 mod tray;
@@ -146,6 +147,7 @@ pub fn run() {
             ..Default::default()
         })
         .manage(Windows::default())
+        .manage(project_colours::ProjectColours::default())
         .manage(RestoreTargets::default())
         .manage(AppExiting::default())
         .manage(FocusedWindow::default())
@@ -242,6 +244,8 @@ pub fn run() {
             commands::agent_admin::agent_set_project_hidden,
             settings::app_settings_get,
             settings::app_settings_save,
+            project_colours::project_colours_get,
+            project_colours::project_colours_save,
             settings::app_create_project,
             auth::app_auth_status,
             auth::app_auth_apikey,

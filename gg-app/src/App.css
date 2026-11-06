@@ -767,7 +767,13 @@
    Keyed by presence, so a changing number doesn't replay it. Inline, so a
    fade: a blur would need inline-block and break the strip's truncation. */
 .chat-head-title
-  > :is(.chat-head-accent-dot, .chat-head-cwd, .chat-head-health, .chat-head-github, .chat-head-ci),
+  > :is(
+    .project-colour-trigger,
+    .chat-head-cwd,
+    .chat-head-health,
+    .chat-head-github,
+    .chat-head-ci
+  ),
 .chat-head-strip > .title-usage-meter {
   animation: fade-in var(--dur-dissolve) var(--ease-out) backwards;
 }
@@ -2590,22 +2596,154 @@ select {
   flex-direction: column;
   border-bottom: 1px solid var(--border);
 }
-/* Per-project accent identity. `--project-accent` is set inline per window by
-   WorkspaceHeader (derived from the project folder name, see projectAccent.ts).
-   Deliberately restrained: a single dot by the project name, nothing more. The
-   header keeps the standard `--border` hairline so the chrome stays neutral. */
-.chat-head-accent-dot {
-  flex: 0 0 auto;
-  width: 6px;
+/* Personal colour only decorates identity, never actions or status indicators. */
+.chat-head-project-stripe .chat-head-strip::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 6px;
-  margin-right: 7px;
+  background: var(--project-accent);
+  pointer-events: none;
+}
+.project-colour-trigger {
+  appearance: none;
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: var(--space-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.project-colour-trigger:hover,
+.project-colour-trigger[aria-expanded="true"] {
+  background: var(--surface-3);
+}
+.chat-head-accent-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--project-accent);
-  /* The title row is baseline-aligned, so nudge the dot onto the text's optical
-     (cap-height) centre instead of letting it sit on the baseline. */
-  transform: translateY(-1.5px);
+  pointer-events: none;
+}
+.project-colour-trigger-none .chat-head-accent-dot {
+  background: none;
+  border: 1px solid var(--text-muted);
+}
+.project-colour-trigger:focus-visible,
+.project-colour-picker button:focus-visible,
+.project-colour-picker input:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+.project-colour-picker {
+  position: fixed;
+  z-index: 100;
+  width: 264px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface-3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.project-colour-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+.project-colour-close {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--fs-3xl);
+  cursor: pointer;
+}
+.project-colour-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.project-colour-choice {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.project-colour-choice[aria-pressed="true"] {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.project-colour-choice:hover,
+.project-colour-close:hover {
+  background: var(--surface-2);
+}
+.project-colour-choice[aria-disabled="true"] {
+  color: var(--text-dim);
+  cursor: default;
+}
+.project-colour-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.project-colour-swatch-none {
+  border: 1px solid var(--text-muted);
+}
+.project-colour-check {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.project-colour-stripe-setting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.project-colour-stripe-setting small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.project-colour-error {
+  margin: var(--space-5) 0 0;
+  color: var(--error);
+  line-height: 1.4;
 }
 .chat-head-strip {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-6);

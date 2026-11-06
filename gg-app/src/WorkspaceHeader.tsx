@@ -1,6 +1,8 @@
 import type { ReactNode, Ref } from "react";
 import { openProjectPath, workspaceProductName, type WorkspaceMode } from "./agent";
-import { projectAccent } from "./projectAccent";
+import { resolveProjectAccent } from "./projectAccent";
+import { useProjectColour } from "./project-colours";
+import { ProjectColourPicker } from "./ProjectColourPicker";
 import { formatWorkspaceTitle } from "./workspace-title";
 
 interface WorkspaceHeaderProps {
@@ -46,14 +48,15 @@ export function WorkspaceHeader({
 }: WorkspaceHeaderProps): React.ReactElement {
   const fallbackTitle = workspaceProductName(workspaceMode, goalName !== null);
   const directory = goalName ?? cwd?.split(/[\\/]/).filter(Boolean).pop();
-  // Stable per-project colour, so a wall of identical windows stays tellable
-  // apart at a glance.
-  const accent = projectAccent(cwd);
+  // Per-project colour (picked, or a stable hash), so a wall of identical
+  // windows stays tellable apart at a glance.
+  const colour = useProjectColour(cwd);
+  const accent = resolveProjectAccent(cwd, colour.choice);
 
   return (
     <div
       ref={ref}
-      className="chat-head"
+      className={`chat-head${accent && colour.stripe ? " chat-head-project-stripe" : ""}`}
       style={accent ? ({ "--project-accent": accent } as React.CSSProperties) : undefined}
     >
       <div className="chat-head-strip" data-tauri-drag-region>
@@ -76,7 +79,16 @@ export function WorkspaceHeader({
             additionalRoots,
           )}
         >
-          {accent && <span className="chat-head-accent-dot" aria-hidden="true" />}
+          {cwd && (
+            <ProjectColourPicker
+              key={cwd}
+              cwd={cwd}
+              choice={colour.choice}
+              stripe={colour.stripe}
+              ready={colour.ready}
+              loadError={colour.error}
+            />
+          )}
           {directory ? (
             <button
               type="button"

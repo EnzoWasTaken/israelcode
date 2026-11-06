@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 
 // WorkspaceHeader imports agent.ts (openProjectPath), which reads the current
 // webview window at module load — stub it for jsdom.
@@ -16,9 +16,18 @@ import { formatWorkspaceTitle } from "./workspace-title";
 
 afterEach(cleanup);
 
+// Settle the asynchronous project colour load before asserting header metadata.
+async function renderHeader(ui: React.ReactElement): Promise<ReturnType<typeof render>> {
+  let result: ReturnType<typeof render> | undefined;
+  await act(async () => {
+    result = render(ui);
+  });
+  return result!;
+}
+
 describe("WorkspaceHeader", () => {
-  it("is one row: back, the title, and the trailing actions", () => {
-    const { container } = render(
+  it("is one row: back, the title, and the trailing actions", async () => {
+    const { container } = await renderHeader(
       <WorkspaceHeader
         workspaceMode="chat"
         subtitle="General"
@@ -33,6 +42,7 @@ describe("WorkspaceHeader", () => {
     expect(screen.getByRole("button", { name: "Commit" })).toBeDefined();
     expect(container.querySelectorAll(".chat-head > *")).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /nav buttons/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Project colour:/ })).toBeNull();
   });
 
   it("formats clean, dirty, and pre-commit project context for the tooltip", () => {
@@ -52,8 +62,8 @@ describe("WorkspaceHeader", () => {
     ).toBe("app · +1 root · main");
   });
 
-  it("names the window after its folder, which opens on click, with the full context on hover", () => {
-    render(
+  it("names the window after its folder, which opens on click, with the full context on hover", async () => {
+    await renderHeader(
       <WorkspaceHeader
         workspaceMode="code"
         cwd={"C:\\work\\gg-coder"}
@@ -67,10 +77,18 @@ describe("WorkspaceHeader", () => {
     expect(folder.getAttribute("title")).toBeNull();
     expect(screen.getByTitle("gg-coder · feature/titlebar · 3 uncommitted")).toBeDefined();
     expect(screen.queryByText("GG Coder")).toBeNull();
+
+    const colour = screen.getByRole("button", { name: "Project colour: Automatic" });
+    expect(colour).not.toBe(folder);
+    expect(colour.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(colour.getAttribute("aria-expanded")).toBe("false");
+    expect(colour.hasAttribute("data-tauri-drag-region")).toBe(false);
   });
 
-  it("titles a Goal window with the goal's name", () => {
-    render(<WorkspaceHeader workspaceMode="code" cwd="/work/goal-x" goalName="Ship the deck" />);
+  it("titles a Goal window with the goal's name", async () => {
+    await renderHeader(
+      <WorkspaceHeader workspaceMode="code" cwd="/work/goal-x" goalName="Ship the deck" />,
+    );
     expect(screen.getByRole("button", { name: "Ship the deck. Open the folder" })).toBeDefined();
   });
 });

@@ -17,14 +17,21 @@ export function useWindowOrder(inputRef: RefObject<HTMLTextAreaElement | null>) 
   // a second click. Skips when the user is selecting text or focused elsewhere
   // intentionally (e.g. a menu button).
   useEffect(() => {
-    const focusInput = (): void => {
+    const focusInput = (event: Event): void => {
+      // Mac WebKit does not focus clicked buttons. Check the actual target too,
+      // or mouseup steals focus and dismisses a picker before its click runs.
+      if (
+        event.target instanceof Element &&
+        event.target.closest("button, a, input, select, textarea, label, [tabindex]")
+      )
+        return;
       const active = document.activeElement;
       if (active && active !== document.body && active.tagName === "BUTTON") return;
       if (window.getSelection()?.toString()) return;
-      // A modal/overlay owns keyboard focus while open — stealing it back to the
-      // chat input means the user can't type in the modal's fields. Bail when one
-      // is present (every modal renders inside `.modal-backdrop`).
-      if (document.querySelector(".modal-backdrop, .checklist-screen")) return;
+      // A modal/overlay or non-modal dialog (the project colour picker) owns
+      // keyboard focus while open, including when this window regains focus
+      // before WebKit focuses the clicked control.
+      if (document.querySelector('.modal-backdrop, .checklist-screen, [role="dialog"]')) return;
       // Nor into a composer that isn't on screen (a goal's Workers view hides
       // the chat): keys would go into a box nobody can see, and macOS draws its
       // caret marker over the farm where the box was. Hidden (display: none
