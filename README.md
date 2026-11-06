@@ -22,6 +22,13 @@ It is a modified version of [GG Coder](https://github.com/KenKaiii/gg-framework)
 - **Your subscriptions:** Claude, ChatGPT, Gemini, Grok, Kimi, API keys or local models.
 - **Project colour tags:** give each open project its own colour, with an optional header stripe.
 - **A branch per window:** windows that share a folder can each work on their own branch, using worktrees.
+- **Task list:** for bigger jobs the agent keeps a live checklist under your message, pinned above the composer while it works.
+- **Ultracode:** switch it on (or type "ultracode" in a message) and big jobs are split into phases, built by parallel agents, checked by a reviewer and combined, with the phases shown live.
+- **Dictation:** a mic button in the composer (`Ctrl+Shift+Space`) transcribes offline on your computer with Whisper.
+- **Rewind:** go back to just before any message, undoing its file changes, the conversation or both (`Esc Esc`, `/rewind`, or the button beside a message).
+- **Permission modes:** Ask, Accept edits, Plan or Bypass from the composer pill (`Shift+Tab`); held edits and commands show an approval card.
+- **Diff review:** each turn ends with what it changed on disk, file by file, with Revert per file or for all.
+- **Claude Code skills and plugins:** skills in `~/.claude/skills` and `.claude/skills`, and the plugins you installed in Claude Code (their skills, commands, agents and MCP servers), load here too.
 
 ## Get started
 

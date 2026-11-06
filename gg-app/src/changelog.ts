@@ -22,6 +22,20 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.105.0",
+    date: "2026-11-06",
+    items: [
+      "Welcome to `Israel Code`! Same powerful agent, your own app: new name, new icon, and your settings live in their own `~/.israelcode` folder.",
+      "Big jobs get a live `Task list` under your message, pinned above the composer while the agent works, so you always see what is done and what is next.",
+      '`Ultracode` splits big jobs into phases, runs up to `12` agents in parallel, has a reviewer try to break the result, and shows each phase live. Flip it on in the deck, run `/ultracode`, or just type "ultracode" in a message.',
+      "Talk instead of type: the new mic button (`Ctrl+Shift+Space`) transcribes on your own computer with Whisper. Nothing leaves your machine.",
+      "`Rewind` takes you back to just before any message, undoing its file changes, the conversation, or both. Press `Esc Esc` or use the button beside a message.",
+      "Choose how much the agent may do on its own: `Ask`, `Accept edits`, `Plan` or `Bypass`, from the composer pill or `Shift+Tab`. Held edits and commands show exactly what would change.",
+      "Every turn now ends with its diff: see each changed file and revert one file or all of them in a click.",
+      "Your Claude Code skills and installed plugins work here too: skills, slash commands, agents and MCP servers.",
+    ],
+  },
+  {
     version: "0.104.1",
     date: "2026-11-06",
     items: [
