@@ -1,6 +1,6 @@
 [package]
 name = "gg-app"
-version = "0.105.0"
+version = "0.105.1"
 # Shown as the Linux deb/rpm package description and maintainer.
 description = "Israel Code desktop workspace for code, chat and motion agents"
 authors = ["Enzo", "Ken Kai"]

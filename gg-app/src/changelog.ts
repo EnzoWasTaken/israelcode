@@ -22,6 +22,13 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.105.1",
+    date: "2026-11-06",
+    items: [
+      "`Israel Code` now updates itself on Windows: new versions download in the background and install with one click.",
+    ],
+  },
+  {
     version: "0.105.0",
     date: "2026-11-06",
     items: [
