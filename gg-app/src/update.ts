@@ -25,7 +25,14 @@ export interface UpdateInfo {
   progress: number | null;
   /** Kick off download → install → relaunch. No-op unless an update is pending. */
   install: () => Promise<void>;
+  /**
+   * Check right now, skipping the hourly lease (Settings → Updates → "Check
+   * for updates"). Resolves with what it found, so the button can say so.
+   */
+  checkNow: () => Promise<UpdateCheckResult>;
 }
+
+export type UpdateCheckResult = "available" | "up-to-date" | "error";
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 /** In-window signal: one hook's check found an update the others should load. */
@@ -64,17 +71,17 @@ export function useAppUpdate(): UpdateInfo {
 
   const hasUpdateRef = useRef(false);
 
-  const runCheck = useCallback(async (force = false): Promise<void> => {
+  const runCheck = useCallback(async (force = false): Promise<UpdateCheckResult> => {
     if (devFakeEnabled) {
       setFakeVersion(FAKE_VERSION);
       setPhase((p) => (p === "installing" ? p : "available"));
       announce(FAKE_VERSION);
-      return;
+      return "available";
     }
     // One check per lease across all windows/hooks (update-schedule.ts).
     const storage = storageOrNull();
     const decision = force ? { kind: "check" as const } : claimUpdateCheck(storage, Date.now());
-    if (decision.kind === "skip") return;
+    if (decision.kind === "skip") return hasUpdateRef.current ? "available" : "up-to-date";
     // Don't interrupt an in-flight install with a re-check.
     setPhase((p) => (p === "installing" ? p : "checking"));
     try {
@@ -90,16 +97,20 @@ export function useAppUpdate(): UpdateInfo {
         setPhase((p) => (p === "installing" ? p : "available"));
         announce(found.version);
         logInfo(`Update available: ${found.version}`);
-      } else {
-        setUpdate(null);
-        setPhase((p) => (p === "installing" ? p : "idle"));
+        return "available";
       }
+      setUpdate(null);
+      setPhase((p) => (p === "installing" ? p : "idle"));
+      return "up-to-date";
     } catch (e) {
       // No endpoint / no release yet / offline — stay quiet, just no banner.
       setPhase((p) => (p === "installing" ? p : "idle"));
       logError(`Update check failed: ${String(e)}`);
+      return "error";
     }
   }, []);
+
+  const checkNow = useCallback((): Promise<UpdateCheckResult> => runCheck(true), [runCheck]);
 
   useEffect(() => {
     void runCheck();
@@ -172,5 +183,6 @@ export function useAppUpdate(): UpdateInfo {
     phase,
     progress,
     install,
+    checkNow,
   };
 }

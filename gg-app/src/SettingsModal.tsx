@@ -16,6 +16,7 @@ import { SoundButton } from "./SoundButton";
 import { AppearancePicker } from "./AppearancePicker";
 import { HomeBackgroundButton } from "./HomeBackgroundButton";
 import { HumorButton } from "./HumorButton";
+import { UpdateCheckButton } from "./UpdateCheckButton";
 import { KeepAwakeButton } from "./KeepAwakeButton";
 import { Dropdown } from "./Dropdown";
 import { DICTATION_MODELS, loadDictationModel, saveDictationModel } from "./dictation";
@@ -174,6 +175,12 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
             <div className="modal-row">
               <KeepAwakeButton />
             </div>
+          </SettingsSection>
+          <SettingsSection
+            title="Updates"
+            description="New versions come from GitHub releases and install with a restart."
+          >
+            <UpdateCheckButton />
           </SettingsSection>
         </div>
         <div className="settings-col">

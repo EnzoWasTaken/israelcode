@@ -29,6 +29,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "A greeting under the home title follows the clock: boker tov, erev tov, and Shabbat shalom from Friday afternoon.",
       "Settings → Effects gets a `Humour` switch: off is the exact same app with plain wording and no boot screen.",
       "Dark theme's accent moves a touch closer to flag blue to match the light theme.",
+      "Settings → Updates gets a `Check for updates` button that asks GitHub right now, says whether you're up to date, and installs when there's something new.",
     ],
   },
   {

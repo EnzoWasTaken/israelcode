@@ -16,6 +16,7 @@ vi.mock("./SoundButton", () => ({ SoundButton: () => null }));
 vi.mock("./AppearancePicker", () => ({ AppearancePicker: () => null }));
 vi.mock("./HomeBackgroundButton", () => ({ HomeBackgroundButton: () => null }));
 vi.mock("./KeepAwakeButton", () => ({ KeepAwakeButton: () => null }));
+vi.mock("./UpdateCheckButton", () => ({ UpdateCheckButton: () => null }));
 
 afterEach(() => {
   cleanup();
