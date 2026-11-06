@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { clampToBytes, CONTEXT_LIMITS, type ContextLimits } from "./context-limits.js";
 import { cleanInstructionText } from "../utils/text.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import { log } from "./logger.js";
+import type { ClaudePlugin } from "./claude-plugins.js";
 import {
   defaultSkillScanCache,
   loadSkillScanCacheFile,
@@ -145,6 +147,12 @@ export async function discoverSkillsWithBlocked(options: {
   projectDir?: string;
   cacheFile?: string;
   cache?: SkillScanCache;
+  /**
+   * Also read Claude Code's skill folders (~/.claude/skills and the project's
+   * .claude/skills) and the skills of enabled Claude plugins. Same safety scan;
+   * on a name clash Israel Code's own folders win.
+   */
+  claude?: { home?: string; plugins?: readonly ClaudePlugin[] };
 }): Promise<SkillDiscovery> {
   const ctx = newLoadContext(options.cache);
   // Under vitest only an explicit file is used: many suites discover skills
@@ -163,6 +171,24 @@ export async function discoverSkillsWithBlocked(options: {
   // Bundled defaults ship with GG Coder. Global and project definitions with
   // the same name override them, preserving user control.
   addSkills(await loadBundledSkills(ctx));
+  if (options.claude) {
+    // Lowest of the user's sources: plugin skills, then Claude's own folders.
+    for (const plugin of options.claude.plugins ?? []) {
+      const source = plugin.scope === "project" ? "project" : "global";
+      for (const dir of plugin.skillDirs) {
+        const skills = await loadPluginSkillDir(dir, source, ctx);
+        for (const skill of skills) skill.name = `${plugin.name}:${skill.name}`;
+        addSkills(skills);
+      }
+    }
+    const claudeHome = options.claude.home ?? path.join(os.homedir(), ".claude");
+    addSkills(await loadSkillsFromDir(path.join(claudeHome, "skills"), "global", ctx));
+    if (options.projectDir) {
+      addSkills(
+        await loadSkillsFromDir(path.join(options.projectDir, ".claude", "skills"), "project", ctx),
+      );
+    }
+  }
   addSkills(await loadSkillsFromDir(options.globalSkillsDir, "global", ctx));
 
   if (options.projectDir) {
@@ -176,6 +202,21 @@ export async function discoverSkillsWithBlocked(options: {
   // A blocked name that a loaded skill of the same name replaced isn't missing.
   const blocked = ctx.blocked.filter((b) => !skillsByName.has(b.name.toLowerCase()));
   return { skills: [...skillsByName.values()], blocked };
+}
+
+/** A plugin `skills` path: a folder of skill folders, or one skill folder itself. */
+async function loadPluginSkillDir(dir: string, source: string, ctx: LoadContext): Promise<Skill[]> {
+  let content: string;
+  try {
+    content = await fs.readFile(path.join(dir, "SKILL.md"), "utf-8");
+  } catch {
+    return loadSkillsFromDir(dir, source, ctx);
+  }
+  const skill = parseSkillFile(content, source);
+  if (!skill.name) skill.name = path.basename(dir);
+  skill.root = dir;
+  const verdict = await scanSkillFolder(dir, content, ctx.cache);
+  return isBlocked(skill.name, source, dir, verdict, ctx) ? [] : [skill];
 }
 
 async function loadBundledSkills(ctx: LoadContext): Promise<Skill[]> {

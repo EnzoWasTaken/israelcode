@@ -79,3 +79,33 @@ describe("getAllMcpServers project-scope trust gate", () => {
     expect(kept[0]!.command).toBe(provided.command);
   });
 });
+
+describe("getAllMcpServers Claude plugin servers", () => {
+  const plugins = [
+    { scope: "user" as const, mcpServers: [{ name: "kit_api", url: "https://example.com/mcp" }] },
+    { scope: "project" as const, mcpServers: [{ name: "repo_tool", command: "node" }] },
+  ];
+
+  it("adds a user plugin's servers but holds a project plugin's until trusted", async () => {
+    const untrusted = await getAllMcpServers("anthropic", undefined, tmpProject, {
+      pluginServers: plugins,
+    });
+    expect(untrusted.map((s) => s.name)).toEqual(expect.arrayContaining(["kit_api"]));
+    expect(untrusted.map((s) => s.name)).not.toContain("repo_tool");
+    const trusted = await getAllMcpServers("anthropic", undefined, tmpProject, {
+      allowProjectScope: true,
+      pluginServers: plugins,
+    });
+    expect(trusted.map((s) => s.name)).toContain("repo_tool");
+  });
+
+  it("never lets a plugin server replace one the user configured", async () => {
+    await addServer({ name: "kit_api", command: "mine" }, "global", tmpProject);
+    const servers = await getAllMcpServers("anthropic", undefined, tmpProject, {
+      pluginServers: plugins,
+    });
+    const kept = servers.filter((s) => s.name === "kit_api");
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.command).toBe("mine");
+  });
+});

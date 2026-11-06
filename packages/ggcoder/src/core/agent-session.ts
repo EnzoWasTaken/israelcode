@@ -170,6 +170,12 @@ import {
   stablePrefixEnd,
 } from "./compaction/tool-result-pruner.js";
 import { discoverAgents, type AgentDefinition } from "./agents.js";
+import {
+  discoverClaudePlugins,
+  loadPluginAgents,
+  loadPluginCommands,
+  type ClaudePlugin,
+} from "./claude-plugins.js";
 import { enhancePrompt, type EnhanceResult } from "../utils/prompt-enhancer.js";
 import { detectLanguages, detectProjectStack, type LanguageId } from "./language-detector.js";
 import { buildLoopBreakMessage } from "./loop-breaker.js";
@@ -522,6 +528,11 @@ export interface AgentSessionOptions {
   contextLimits?: Partial<ContextLimits>;
   /** Register global + bundled subagents without loading project customization. */
   globalSubagents?: boolean;
+  /**
+   * Claude Code's folder for its skills and installed plugins (default
+   * ~/.claude; off under vitest unless given). `false` skips it.
+   */
+  claudeHome?: string | false;
   /** Load GG Coder extensions. Defaults to true. */
   loadExtensions?: boolean;
   /** Inject GG Coder's model-specific subagent orchestration prompt. Defaults to true. */
@@ -862,6 +873,8 @@ export class AgentSession {
   private approvedPlanPath?: string;
   /** Extra workspace roots added with `/add-dir` (resolved, de-duplicated). */
   private additionalRoots: string[] = [];
+  // Enabled Claude Code plugins (project sessions only), read once at start.
+  private claudePlugins: ClaudePlugin[] = [];
 
   private sessionId = "";
   private checkpointGeneration = 0;
@@ -1003,12 +1016,24 @@ export class AgentSession {
       await fs.mkdir(path.join(localGGDir, "commands"), { recursive: true });
       await fs.mkdir(path.join(localGGDir, "agents"), { recursive: true });
     }
+    const claudeHome =
+      this.opts.claudeHome ?? (process.env.VITEST ? false : path.join(os.homedir(), ".claude"));
+    if (projectCustomization && !this.opts.skills && claudeHome !== false) {
+      this.claudePlugins = await discoverClaudePlugins({ cwd: this.cwd, claudeHome });
+      if (this.claudePlugins.length > 0) {
+        log("INFO", "session", "Loaded Claude plugins", {
+          plugins: this.claudePlugins.map((p) => p.id).join(", "),
+        });
+      }
+    }
     if (this.opts.skills) {
       this.skills = [...this.opts.skills];
     } else if (projectCustomization) {
       const discovery = await discoverSkillsWithBlocked({
         globalSkillsDir: paths.skillsDir,
         projectDir: this.cwd,
+        claude:
+          claudeHome === false ? undefined : { home: claudeHome, plugins: this.claudePlugins },
       });
       this.skills = discovery.skills;
       this.blockedSkills = discovery.blocked;
@@ -1022,10 +1047,13 @@ export class AgentSession {
     const agents = this.opts.subAgents
       ? [...this.opts.subAgents]
       : projectCustomization
-        ? await discoverAgents({
-            globalAgentsDir: paths.agentsDir,
-            projectDir: this.cwd,
-          })
+        ? [
+            ...(await discoverAgents({
+              globalAgentsDir: paths.agentsDir,
+              projectDir: this.cwd,
+            })),
+            ...(await loadPluginAgents(this.claudePlugins)),
+          ]
         : this.opts.globalSubagents
           ? await discoverAgents({ globalAgentsDir: paths.agentsDir })
           : [];
@@ -1357,6 +1385,7 @@ export class AgentSession {
       }
       let servers = await getAllMcpServers(this.provider, apiKey, this.cwd, {
         allowProjectScope: this.settingsManager.isProjectTrusted(this.cwd),
+        pluginServers: this.claudePlugins,
       });
       // Whitelisted allow-listed session: connect ONLY the named servers, never
       // the user's full configured set (which could include mutating tools). The
@@ -3046,6 +3075,7 @@ export class AgentSession {
           // Use getAllMcpServers so user-configured servers survive the reconnect.
           const servers = await getAllMcpServers(this.provider, apiKey, this.cwd, {
             allowProjectScope: this.settingsManager.isProjectTrusted(this.cwd),
+            pluginServers: this.claudePlugins,
           });
           const mcpTools = await mcpManager.connectAll(servers);
           // Drop stale MCP tools from both the live set and deferred catalog before
@@ -4183,8 +4213,10 @@ export class AgentSession {
    * project's, then those of every added root (a goal's attached repos too).
    * Read fresh, so a new command file is picked up without a restart.
    */
-  loadCustomCommands(): Promise<CustomCommand[]> {
-    return loadWorkspaceCustomCommands([this.cwd, ...this.additionalRoots]);
+  async loadCustomCommands(): Promise<CustomCommand[]> {
+    const own = await loadWorkspaceCustomCommands([this.cwd, ...this.additionalRoots]);
+    // Plugin commands are namespaced (`plugin:command`), so they never clash.
+    return [...own, ...(await loadPluginCommands(this.claudePlugins))];
   }
 
   /**

@@ -114,8 +114,10 @@ import {
   requireInteractiveTTY,
 } from "./cli/shared.js";
 import { discoverAgents } from "./core/agents.js";
+import { discoverClaudePlugins, loadPluginAgents } from "./core/claude-plugins.js";
 import { applyAsyncSubagentPolicy } from "./core/subagent-policy.js";
 import { blockedSkillNotice, discoverSkillsWithBlocked } from "./core/skills.js";
+import os from "node:os";
 import path from "node:path";
 import chalk from "chalk";
 import { checkAndAutoUpdate } from "./core/auto-update.js";
@@ -607,14 +609,20 @@ async function runInkTUI(opts: {
   await fs.promises.mkdir(path.join(localGGDir, "commands"), { recursive: true });
   await fs.promises.mkdir(path.join(localGGDir, "agents"), { recursive: true });
 
-  // Discover agents and skills
-  const agents = await discoverAgents({
-    globalAgentsDir: paths.agentsDir,
-    projectDir: cwd,
-  });
+  // Discover agents and skills, including Claude Code's skills and plugins.
+  const claudeHome = path.join(os.homedir(), ".claude");
+  const claudePlugins = await discoverClaudePlugins({ cwd, claudeHome });
+  const agents = [
+    ...(await discoverAgents({
+      globalAgentsDir: paths.agentsDir,
+      projectDir: cwd,
+    })),
+    ...(await loadPluginAgents(claudePlugins)),
+  ];
   const { skills, blocked: blockedSkills } = await discoverSkillsWithBlocked({
     globalSkillsDir: paths.skillsDir,
     projectDir: cwd,
+    claude: { home: claudeHome, plugins: claudePlugins },
   });
   // Same startup-warning line as an expired login: plain, never a prompt.
   for (const blocked of blockedSkills)
@@ -680,6 +688,7 @@ async function runInkTUI(opts: {
           savedSettings.trustedProjects,
           cwd,
         ),
+        pluginServers: claudePlugins,
       });
       return mcpManager.connectAll(servers);
     })();

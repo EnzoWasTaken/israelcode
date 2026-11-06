@@ -69,7 +69,11 @@ export async function getAllMcpServers(
   provider: Provider,
   apiKey: string | undefined,
   cwd: string,
-  opts?: { allowProjectScope?: boolean },
+  opts?: {
+    allowProjectScope?: boolean;
+    /** Enabled Claude plugins; a project plugin's servers need the same trust. */
+    pluginServers?: ReadonlyArray<{ scope: "user" | "project"; mcpServers: MCPServerConfig[] }>;
+  },
 ): Promise<MCPServerConfig[]> {
   const defaults = getMCPServers(provider, apiKey);
   const defaultNames = new Set(defaults.map((s) => s.name));
@@ -82,5 +86,10 @@ export async function getAllMcpServers(
     .filter((s) => opts?.allowProjectScope === true || s.scope !== "project")
     .map((s) => s.config)
     .filter((c) => !defaultNames.has(c.name));
-  return [...defaults, ...userServers];
+  const taken = new Set([...defaultNames, ...userServers.map((c) => c.name)]);
+  const pluginServers = (opts?.pluginServers ?? [])
+    .filter((p) => opts?.allowProjectScope === true || p.scope !== "project")
+    .flatMap((p) => p.mcpServers)
+    .filter((c) => !taken.has(c.name));
+  return [...defaults, ...userServers, ...pluginServers];
 }
