@@ -1,0 +1,130 @@
+/* ── The Israel boot screen (BootScreen.tsx) ──
+   Art, not theme: the same deep blue and white in light and dark, so the joke
+   always lands. The pixel fonts are drawn on a 16px grid, so type is 16px or
+   a whole multiple of it. Nothing loops; the only motion is the reveal. */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #0a1a52;
+  color: #f4f7ff;
+  font-family: "m5x7", monospace;
+  font-size: 16px;
+  line-height: 24px;
+  opacity: 1;
+  transition: opacity 0.32s var(--ease-out);
+}
+.boot-screen-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+.boot-panel {
+  width: min(560px, 100%);
+  border-top: 4px solid #f4f7ff;
+  border-bottom: 4px solid #f4f7ff;
+  padding: 24px 0;
+}
+.boot-title {
+  margin: 0;
+  font-family: "Alagard", "m5x7", monospace;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 56px;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}
+.boot-sub {
+  margin: 0 0 16px;
+  color: #aebcf0;
+}
+.boot-log {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  /* Room for all the lines up front, so nothing jumps as they appear. */
+  min-height: calc(24px * 8);
+}
+.boot-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.boot-line-dots {
+  flex: 1 1 auto;
+  min-width: 16px;
+  border-bottom: 2px dotted #5b72c4;
+  transform: translateY(-4px);
+}
+.boot-line-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.boot-tag {
+  flex: none;
+}
+.boot-tag-ok {
+  color: #8ff0a4;
+}
+.boot-tag-warn {
+  color: #ffd866;
+}
+.boot-tag-busy {
+  color: #9fd0ff;
+}
+.boot-pita {
+  height: 16px;
+  border: 2px solid #f4f7ff;
+  padding: 2px;
+}
+.boot-pita-bar {
+  display: block;
+  height: 100%;
+  background: #f1c97a;
+  transition: width 0.24s var(--ease-out);
+}
+.boot-greeting {
+  margin: 16px 0 8px;
+  min-height: 24px;
+  font-size: 32px;
+  line-height: 32px;
+  color: #ffffff;
+  opacity: 0;
+}
+.boot-greeting-on {
+  opacity: 1;
+  transition: opacity 0.2s var(--ease-out);
+}
+.boot-skip {
+  border: 0;
+  padding: 4px 0;
+  background: none;
+  color: #aebcf0;
+  font: inherit;
+  cursor: pointer;
+}
+.boot-skip:hover,
+.boot-skip:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.boot-skip:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 4px;
+}
+@media (max-width: 480px) {
+  .boot-title {
+    font-size: 32px;
+    line-height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot-screen,
+  .boot-pita-bar,
+  .boot-greeting-on {
+    transition: none;
+  }
+}

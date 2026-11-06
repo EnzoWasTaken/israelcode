@@ -22,6 +22,14 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.106.0",
+    date: "2026-11-06",
+    items: [
+      "`Israel Code` now boots like it means business: a start-up-nation power-on check with a pita progress bar, plays once per launch, and any key skips it.",
+      "The light theme moves to a proper flag blue so buttons, links and highlights look like they came from the same country.",
+    ],
+  },
+  {
     version: "0.105.1",
     date: "2026-11-06",
     items: [

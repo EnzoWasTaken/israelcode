@@ -88,7 +88,7 @@
 
   /* Ambient glow behind the window. Alloy keeps it faint: the material, not a
      wash, carries the look. */
-  --glow: #3a4fb8;
+  --glow: #1f46b8;
 
   --user-text: var(--text);
   --user-bg: var(--surface-2);
@@ -139,11 +139,11 @@
   --text-muted: #4f5761;
   --text-dim: #59616b;
 
-  --primary: #2848d8;
-  --primary-hi: #3a5af0;
+  --primary: #0038b8;
+  --primary-hi: #1650d0;
   --on-primary: #ffffff;
   /* A light theme's links and accent text: the dark cobalt. */
-  --link: #2848d8;
+  --link: #0038b8;
 
   --success: #1a6c33;
   --on-success: #ffffff;
@@ -154,7 +154,7 @@
   --stop-fill-hi: #cc2f22;
   --caution: #9c4700;
   --on-error: #ffffff;
-  --secondary: #2848d8;
+  --secondary: #0038b8;
   --info: #0b6b62;
 
   --glow: #8ea2e6;
@@ -178,7 +178,7 @@
   --well-shadow: rgba(30, 45, 70, 0.28);
   --led-off: #bfc6cf;
   --deck-shadow: 0 1px 0 rgba(10, 20, 40, 0.08), 0 14px 28px -16px rgba(30, 45, 70, 0.45);
-  --mark: rgba(40, 72, 216, 0.16);
+  --mark: rgba(0, 56, 184, 0.16);
 
   --shadow-sm: 0 2px 6px rgba(30, 45, 70, 0.18);
   --shadow-md: 0 8px 28px rgba(30, 45, 70, 0.2);
