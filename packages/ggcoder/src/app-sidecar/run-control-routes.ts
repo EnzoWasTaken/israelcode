@@ -461,6 +461,38 @@ export function handleRunControlRoutes(
     return true;
   }
 
+  if (method === "POST" && url === "/turn-diff/revert") {
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let id: string;
+      let paths: string[] | undefined;
+      try {
+        const body = JSON.parse(raw) as { id?: unknown; paths?: unknown };
+        if (typeof body.id !== "string" || !/^cp-\d+$/.test(body.id)) throw new Error("id");
+        if (body.paths !== undefined) {
+          if (!Array.isArray(body.paths) || !body.paths.every((p) => typeof p === "string"))
+            throw new Error("paths");
+          paths = body.paths as string[];
+        }
+        id = body.id;
+      } catch {
+        json(res, 400, { error: "invalid revert request" });
+        return;
+      }
+      if (ctx.running || ctx.runClaim.active) {
+        json(res, 409, { error: "Stop the agent before reverting." });
+        return;
+      }
+      try {
+        const reverted = await ctx.session.revertTurnFiles(id, paths);
+        json(res, 200, { reverted });
+      } catch (err) {
+        json(res, 409, { error: err instanceof Error ? err.message : String(err) });
+      }
+    });
+    return true;
+  }
+
   if (method === "POST" && url === "/rewind") {
     void readBody(req, res).then(async (raw) => {
       if (raw === null) return;

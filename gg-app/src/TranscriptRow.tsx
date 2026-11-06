@@ -14,6 +14,7 @@ import { StreamingMarkdown } from "./StreamingMarkdown";
 import { HookNotice } from "./HookNotice";
 import { SubAgentFeed } from "./SubAgentFeed";
 import { TodoList } from "./TodoList";
+import { TurnDiffBar } from "./TurnDiffBar";
 import { CompactionNotice } from "./CompactionNotice";
 import { PlanModeLogo } from "./PlanModeLogo";
 import { KenFace } from "./KenFace";
@@ -465,6 +466,8 @@ function TranscriptRowBody({
       );
     case "subagent_group":
       return <SubAgentFeed agents={item.agents} aborted={item.aborted} />;
+    case "turn_diff":
+      return <TurnDiffBar checkpointId={item.checkpointId} files={item.files} />;
     case "todos":
       return <TodoList todos={item.todos} settled={item.settled} />;
     case "shell":

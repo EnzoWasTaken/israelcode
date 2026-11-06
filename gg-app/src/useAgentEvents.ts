@@ -26,7 +26,7 @@ import {
 import { formatTokenCount } from "./ActivityBar";
 import type { LiveToolEntry } from "./LiveToolPanel";
 import { parseTodos } from "./todos";
-import type { PendingApproval } from "./agent";
+import type { PendingApproval, TurnFileDiff } from "./agent";
 
 /** Recent tool calls kept for the live views (the floating current-tool line
  *  and the goal world's coordinator). */
@@ -1139,6 +1139,14 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
             return { ...s, goal: { ...s.goal, phase, critterModel, paused } };
           });
           break;
+        case "turn_diff": {
+          const files = Array.isArray(d.files) ? (d.files as TurnFileDiff[]) : [];
+          if (typeof d.id === "string" && files.length > 0) {
+            endStreamingText();
+            pushItem({ kind: "turn_diff", id: nextId(), checkpointId: d.id, files });
+          }
+          break;
+        }
         case "approval_request": {
           const approval = d as unknown as PendingApproval;
           setState((s) =>

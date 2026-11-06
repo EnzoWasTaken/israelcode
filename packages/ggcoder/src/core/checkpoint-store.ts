@@ -3,6 +3,7 @@ import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { createTwoFilesPatch } from "diff";
 import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 /** How a rewind restores state. Mirrors Claude Code's `/rewind` modes. */
@@ -48,6 +49,19 @@ export interface CheckpointInfo {
   leafId?: string | null;
   prompt?: string;
 }
+
+/** One file a turn changed: its state before the turn against the disk now. */
+export interface TurnFileDiff {
+  path: string;
+  status: "added" | "modified" | "deleted";
+  additions: number;
+  deletions: number;
+  /** Unified diff; omitted for binary or very large files. */
+  patch?: string;
+  binary?: boolean;
+}
+
+const MAX_DIFF_BYTES = 512 * 1024;
 
 export interface RestoreResult {
   filesRestored: number;
@@ -247,6 +261,82 @@ export class CheckpointStore {
       await this.restore(checkpoint.id, "code");
     }
     return { filesRestored: touched.size, messageIndex: target.messageIndex };
+  }
+
+  /**
+   * What checkpoint `id`'s turn changed: each file it touched, before the turn
+   * against the disk now. Files changed back to how they were are left out.
+   */
+  async turnDiff(id: string): Promise<TurnFileDiff[]> {
+    const manifest = await this.readManifest(id);
+    if (!manifest) return [];
+    const out: TurnFileDiff[] = [];
+    for (const entry of manifest.files) {
+      const before =
+        entry.snapshot === ABSENT
+          ? null
+          : await fs.readFile(path.join(this.blobsDir, entry.snapshot)).catch(() => null);
+      if (entry.snapshot !== ABSENT && before === null) continue; // blob pruned
+      const after = await fs.readFile(entry.absPath).catch(() => null);
+      if (before === null && after === null) continue;
+      if (before && after && before.equals(after)) continue;
+      const status = before === null ? "added" : after === null ? "deleted" : "modified";
+      const display = entry.relPath.split(path.sep).join("/");
+      const binary = [before, after].some((b) => b !== null && b.subarray(0, 8000).includes(0));
+      if (binary || (before?.length ?? 0) + (after?.length ?? 0) > MAX_DIFF_BYTES) {
+        out.push({
+          path: display,
+          status,
+          additions: 0,
+          deletions: 0,
+          ...(binary ? { binary } : {}),
+        });
+        continue;
+      }
+      const patch = createTwoFilesPatch(
+        `a/${display}`,
+        `b/${display}`,
+        before?.toString("utf-8") ?? "",
+        after?.toString("utf-8") ?? "",
+        undefined,
+        undefined,
+        { context: 3 },
+      );
+      const lines = patch.split("\n");
+      const body = lines.slice(lines.findIndex((l) => l.startsWith("@@")));
+      out.push({
+        path: display,
+        status,
+        additions: body.filter((l) => l.startsWith("+")).length,
+        deletions: body.filter((l) => l.startsWith("-")).length,
+        // Drop the Index/=== header lines; keep the ---/+++ pair and hunks.
+        patch: lines.slice(lines.findIndex((l) => l.startsWith("---"))).join("\n"),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Put some (or all) of checkpoint `id`'s files back as they were before its
+   * turn. `paths` are the display paths `turnDiff` reports.
+   */
+  async revertFiles(id: string, paths?: readonly string[]): Promise<number> {
+    const manifest = await this.readManifest(id);
+    if (!manifest) throw new Error(`Checkpoint ${id} not found`);
+    const wanted = paths ? new Set(paths) : null;
+    let reverted = 0;
+    for (const entry of manifest.files) {
+      if (wanted && !wanted.has(entry.relPath.split(path.sep).join("/"))) continue;
+      if (entry.snapshot === ABSENT) {
+        await fs.rm(entry.absPath, { force: true });
+      } else {
+        const buffer = await fs.readFile(path.join(this.blobsDir, entry.snapshot));
+        await fs.mkdir(path.dirname(entry.absPath), { recursive: true });
+        await fs.writeFile(entry.absPath, buffer);
+      }
+      reverted++;
+    }
+    return reverted;
   }
 
   /** Forget checkpoint `id` and every later one (their turns were rewound away). */

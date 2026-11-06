@@ -6603,6 +6603,103 @@ select {
      the text and every bubble below it at the moment the message is sent. */
   border: 1px solid transparent;
 }
+/* ── Turn diff: what a turn changed on disk, with revert ── */
+.turn-diff {
+  margin: var(--space-3) 0 var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.turn-diff-head,
+.turn-diff-file-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+}
+.turn-diff-summary,
+.turn-diff-path {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.turn-diff-path {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-diff-path:disabled {
+  cursor: default;
+}
+.turn-diff-summary:focus-visible,
+.turn-diff-path:focus-visible,
+.turn-diff-revert:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.turn-diff-status {
+  margin-left: var(--space-2);
+  color: var(--text-dim);
+}
+.turn-diff-revert {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.turn-diff-revert:hover:not(:disabled) {
+  color: var(--text);
+}
+.turn-diff-files {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.turn-diff-file[data-reverted] .turn-diff-path {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+.turn-diff-patch {
+  max-height: 360px;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  white-space: pre;
+}
+.diff-add {
+  color: var(--success);
+}
+.diff-del {
+  color: var(--error);
+}
+.diff-hunk {
+  color: var(--text-dim);
+}
+.diff-file {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* ── Permission modes: the composer pill and the approval card ── */
 .permission-pill {
   align-self: center;

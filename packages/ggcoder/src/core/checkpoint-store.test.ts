@@ -198,3 +198,49 @@ describe("CheckpointStore.restoreTo", () => {
     await expect(s.restoreTo("../../escape")).rejects.toThrow("not found");
   });
 });
+
+describe("CheckpointStore.turnDiff", () => {
+  it("reports each changed file against its state before the turn", async () => {
+    const changed = path.join(cwd, "src", "a.ts");
+    const same = path.join(cwd, "same.txt");
+    const gone = path.join(cwd, "gone.txt");
+    const added = path.join(cwd, "new.txt");
+    await fs.mkdir(path.dirname(changed), { recursive: true });
+    await fs.writeFile(changed, "one\ntwo\n");
+    await fs.writeFile(same, "keep");
+    await fs.writeFile(gone, "bye");
+    const s = store();
+    await s.openCheckpoint({ turnIndex: 1, messageIndex: 1 });
+    for (const f of [changed, same, gone, added]) await s.recordPreMutation(f);
+    await fs.writeFile(changed, "one\n2\nthree\n");
+    await fs.writeFile(same, "keep"); // rewritten with the same bytes
+    await fs.rm(gone);
+    await fs.writeFile(added, "hi\n");
+
+    const diff = await s.turnDiff("cp-0001");
+    expect(diff.map((d) => [d.path, d.status, d.additions, d.deletions])).toEqual([
+      ["src/a.ts", "modified", 2, 1],
+      ["gone.txt", "deleted", 0, 1],
+      ["new.txt", "added", 1, 0],
+    ]);
+    expect(diff[0]!.patch).toContain("--- a/src/a.ts");
+    expect(diff[0]!.patch).toContain("+three");
+
+    expect(await s.revertFiles("cp-0001", ["src/a.ts", "new.txt"])).toBe(2);
+    expect(await fs.readFile(changed, "utf-8")).toBe("one\ntwo\n");
+    await expect(fs.stat(added)).rejects.toThrow();
+    expect((await s.turnDiff("cp-0001")).map((d) => d.path)).toEqual(["gone.txt"]);
+  });
+
+  it("marks binary files without a patch", async () => {
+    const bin = path.join(cwd, "img.bin");
+    await fs.writeFile(bin, Buffer.from([1, 0, 2]));
+    const s = store();
+    await s.openCheckpoint({ turnIndex: 1, messageIndex: 1 });
+    await s.recordPreMutation(bin);
+    await fs.writeFile(bin, Buffer.from([1, 0, 3]));
+    expect(await s.turnDiff("cp-0001")).toEqual([
+      { path: "img.bin", status: "modified", additions: 0, deletions: 0, binary: true },
+    ]);
+  });
+});

@@ -957,6 +957,26 @@ pub(crate) async fn agent_approval_respond(
     sidecar_json(res).await
 }
 
+/// Proxy: undo some (`paths`) or all of the latest turn's file changes.
+#[tauri::command]
+pub(crate) async fn agent_turn_diff_revert(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    id: String,
+    paths: Option<Vec<String>>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/turn-diff/revert", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "id": id, "paths": paths }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
 /// Proxy: the rewind points (one per typed prompt) of THIS window's session.
 #[tauri::command]
 pub(crate) async fn agent_rewind_points(

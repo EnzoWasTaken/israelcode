@@ -2254,6 +2254,19 @@ async function createSession(
         if (session.getState().provider === "local") {
           void learnServedContext(runModel, false).catch(() => {});
         }
+        // What this turn changed on disk, for the diff bar under it.
+        if (mode === "code" && !goal) {
+          await session
+            .latestTurnDiff()
+            .then((diff) => {
+              if (diff && diff.files.length > 0) broadcast("turn_diff", diff);
+            })
+            .catch((error: unknown) =>
+              log("WARN", "app-sidecar", "turn diff failed", {
+                message: error instanceof Error ? error.message : String(error),
+              }),
+            );
+        }
         broadcast("run_end", {
           ...(cancelled ? { cancelled: true } : {}),
           ...(verificationProblem ? { unverified: true } : {}),

@@ -220,7 +220,12 @@ import {
 import type { VerificationEvidence } from "./verification-evidence.js";
 
 import { findUserSessionPrompt, getUserSessionPrompt } from "./session-preview.js";
-import { CheckpointStore, type CheckpointInfo, type RestoreMode } from "./checkpoint-store.js";
+import {
+  CheckpointStore,
+  type CheckpointInfo,
+  type RestoreMode,
+  type TurnFileDiff,
+} from "./checkpoint-store.js";
 import { normalizeMessageImages } from "./message-images.js";
 import { loadStreamRules } from "./stream-rules.js";
 import crypto from "node:crypto";
@@ -3768,6 +3773,25 @@ export class AgentSession {
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  }
+
+  /** What the latest prompt's turn changed (files only), with its point id. */
+  async latestTurnDiff(): Promise<{ id: string; files: TurnFileDiff[] } | null> {
+    const rewind = this.rewindCheckpoints();
+    const latest = (await rewind?.store.listCheckpoints())?.at(-1);
+    if (!rewind || !latest) return null;
+    return { id: latest.id, files: await rewind.store.turnDiff(latest.id) };
+  }
+
+  /** Undo some or all of a turn's file changes; only the latest turn's is safe. */
+  async revertTurnFiles(id: string, paths?: readonly string[]): Promise<number> {
+    const rewind = this.rewindCheckpoints();
+    const latest = (await rewind?.store.listCheckpoints())?.at(-1);
+    if (!rewind || latest?.id !== id)
+      throw new Error("Only the latest turn's changes can be reverted here.");
+    const count = await rewind.store.revertFiles(id, paths);
+    if (count > 0) this.clearReadTracker?.();
+    return count;
   }
 
   /** Rewind points for this session, oldest first. */

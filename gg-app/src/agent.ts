@@ -1188,6 +1188,26 @@ export async function respondApproval(
   await invoke("agent_approval_respond", { id, decision, note: note ?? null });
 }
 
+/** One file a turn changed (before the turn against the disk at its end). */
+export interface TurnFileDiff {
+  path: string;
+  status: "added" | "modified" | "deleted";
+  additions: number;
+  deletions: number;
+  patch?: string;
+  binary?: boolean;
+}
+
+/** Undo some (`paths`) or all of the latest turn's file changes. */
+export async function revertTurnFiles(id: string, paths?: string[]): Promise<number> {
+  await waitForReady();
+  const res = await invoke<{ reverted?: number }>("agent_turn_diff_revert", {
+    id,
+    paths: paths ?? null,
+  });
+  return res.reverted ?? 0;
+}
+
 /** A point the session can rewind to: just before one typed prompt. */
 export interface RewindPoint {
   id: string;

@@ -1078,6 +1078,18 @@ describe("useAgentEvents", () => {
     expect(feed[0]).toMatchObject({ toolCallId: "t1", status: "done" });
   });
 
+  it("adds a diff row for a turn that changed files", () => {
+    const { hook, getItems } = setup();
+    const file = { path: "a.ts", status: "modified", additions: 1, deletions: 0 };
+    act(() => {
+      hook.result.current.handleEvent(ev("turn_diff", { id: "cp-0003", files: [file] }));
+      hook.result.current.handleEvent(ev("turn_diff", { id: "cp-0004", files: [] }));
+    });
+    expect(getItems().filter((it) => it.kind === "turn_diff")).toEqual([
+      expect.objectContaining({ checkpointId: "cp-0003", files: [file] }),
+    ]);
+  });
+
   it("tracks approval cards and the permission mode from sidecar events", () => {
     const { hook, getState } = setup(() => false, {
       permissionMode: "bypass",

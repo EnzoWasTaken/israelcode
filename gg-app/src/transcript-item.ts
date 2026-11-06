@@ -4,6 +4,7 @@ import type { HookKind, VerificationReason } from "./HookNotice";
 import type { PlanDecision } from "./PlanDecisionNotice";
 import type { SubAgentLine } from "./SubAgentFeed";
 import type { TodoItem } from "./todos";
+import type { TurnFileDiff } from "./agent";
 
 // ── Transcript model ───────────────────────────────────────
 // Tool activity lives in the pinned LiveToolPanel, never in the transcript.
@@ -102,6 +103,8 @@ export type Item =
   | { kind: "task"; id: number; title: string }
   // Sub-agents delegated in a turn — a live, in-chat feed of each one's tools.
   | { kind: "subagent_group"; id: number; agents: SubAgentLine[]; aborted?: boolean }
+  // What a turn changed on disk (from its rewind point), with revert controls.
+  | { kind: "turn_diff"; id: number; checkpointId: string; files: TurnFileDiff[] }
   // The agent's checklist for one run (todo_write). `settled` once the run ends.
   | { kind: "todos"; id: number; todos: TodoItem[]; settled?: boolean }
   // Context compaction — a critter row: shimmering "A critter is munching…"
