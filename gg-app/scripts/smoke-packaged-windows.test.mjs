@@ -64,7 +64,7 @@ describe("packaged Windows smoke artifact discovery", () => {
     const root = temporaryDirectory();
     const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(join(install, "sidecar"), { recursive: true });
-    writeFileSync(join(install, "gg-app.exe"), "app");
+    writeFileSync(join(install, "israel-code.exe"), "app");
     writeFileSync(join(install, "ggnode.exe"), "node");
     writeFileSync(join(install, "sidecar", "app-sidecar.mjs"), "sidecar");
 
@@ -77,7 +77,7 @@ describe("packaged Windows smoke artifact discovery", () => {
     const root = temporaryDirectory();
     const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(join(install, "sidecar"), { recursive: true });
-    writeFileSync(join(install, "gg-app.exe"), "app");
+    writeFileSync(join(install, "israel-code.exe"), "app");
     writeFileSync(join(install, "sidecar", "app-sidecar.mjs"), "sidecar");
 
     expect(() => discoverPackagedLayout(root)).toThrow("packaged Node runtime missing");
@@ -87,7 +87,7 @@ describe("packaged Windows smoke artifact discovery", () => {
     const root = temporaryDirectory();
     const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(install, { recursive: true });
-    writeFileSync(join(install, "gg-app.exe"), "app");
+    writeFileSync(join(install, "israel-code.exe"), "app");
     writeFileSync(join(install, "ggnode.exe"), "node");
 
     expect(() => discoverPackagedLayout(root)).toThrow("packaged sidecar resource missing");

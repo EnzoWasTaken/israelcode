@@ -26,11 +26,17 @@ describe("release framework build", () => {
   });
 });
 
-describe("release platform matrix", () => {
-  it("ships Linux deb + rpm from the oldest supported Ubuntu, never AppImage", () => {
+describe("release platform (Windows-only fork)", () => {
+  it("builds one Windows NSIS installer and no macOS or Linux legs", () => {
+    expect(workflow).toMatch(/^ {4}runs-on: windows-latest\r?$/m);
+    expect(workflow).toMatch(/^ {10}args: "--bundles nsis"\r?$/m);
+    expect(workflow).not.toMatch(/macos|ubuntu-22\.04|APPLE_/);
+  });
+
+  it("fails closed when an updater signing secret is missing", () => {
     expect(workflow).toMatch(
-      /^ {10}- platform: ubuntu-22\.04\r?\n {12}args: "--bundles deb,rpm"\r?$/m,
+      /required=\(TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD\)/,
     );
-    expect(workflow).not.toMatch(/--bundles [^"\n]*appimage/i);
+    expect(workflow).toMatch(/Missing protected release secret/);
   });
 });

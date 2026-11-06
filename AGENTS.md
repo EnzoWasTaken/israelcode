@@ -19,8 +19,10 @@ Israel Code is a modified version of GG Coder (`upstream` = KenKaiii/gg-framewor
 Keep Ken Kai's copyright in `NOTICE` and the About page's link to the source.
 To keep upstream merges easy, rebrand only what users see: product names ("Israel Code",
 "Israel Goals", "Israel" for the mentor/Autopilot persona), app identity and the home data
-folder. Code identifiers, file names, npm scopes (`@kenkaiiii/*`), the `gg-app` binary and
-project-level `.gg/` folders stay as upstream. Home-level data lives in `~/.israelcode`
+folder. Code identifiers, file names, npm scopes (`@kenkaiiii/*`), the `gg-app` crate/package and
+project-level `.gg/` folders stay as upstream. Exception: the installed executable is
+`israel-code.exe` (`mainBinaryName` in tauri.conf.json), because the Windows installer kills
+every running process with its exe name and GG Coder also runs as `gg-app.exe`. Home-level data lives in `~/.israelcode`
 (`APP_DIR_NAME` in gg-core `paths.ts` and `src-tauri/src/paths.rs`); never hard-code `".gg"`
 for a home path.
 

@@ -1,28 +1,20 @@
 name: Release
 
-# Build + sign + publish the gg-app desktop bundle for every OS/arch on a tag
-# push (v*). Each runner stages its own per-platform Node runtime and bundles
-# the sidecar (so sharp's native binary matches the target), then tauri-action
-# produces the installers, signs the updater artifacts, uploads them to a
-# published (non-draft) GitHub release, and generates `latest.json` for the
-# updater endpoint.
+# Build + sign + publish the gg-app desktop bundle for Windows on a tag push
+# (v*). This fork ships Windows only (personal use): macOS and Linux legs and
+# their signing are intentionally removed. The runner stages its own Node
+# runtime and bundles the sidecar (so native binaries match the target), then
+# tauri-action builds the NSIS installer, signs the updater artifact, uploads
+# both to a published (non-draft) GitHub release, and generates `latest.json`
+# for the updater endpoint.
 #
-# Required repository secrets:
-#   Updater signing (all OSes):
-#     TAURI_SIGNING_PRIVATE_KEY           — minisign private key (must match the
-#                                           `plugins.updater.pubkey` in tauri.conf.json)
-#     TAURI_SIGNING_PRIVATE_KEY_PASSWORD  — password for that key
-#   macOS code signing + notarization (only used on the macOS matrix legs):
-#     APPLE_CERTIFICATE           — base64 of the exported "Developer ID Application" .p12
-#     APPLE_CERTIFICATE_PASSWORD  — password set when exporting that .p12
-#     APPLE_SIGNING_IDENTITY      — e.g. "Developer ID Application: NAME (396M7LY29W)"
-#     KEYCHAIN_PASSWORD           — any throwaway password for the CI keychain
-#     APPLE_ID                    — Apple ID email used for notarization
-#     APPLE_PASSWORD              — app-specific password for that Apple ID
-#     APPLE_TEAM_ID               — Apple Team ID (396M7LY29W)
-# All signing/notarization credentials live in the protected
-# `desktop-production` environment. Preflight fails closed before any build if
-# credentials are absent; unsigned public releases are never produced.
+# Required secrets (in the protected `desktop-production` environment):
+#   TAURI_SIGNING_PRIVATE_KEY           — minisign private key (must match the
+#                                         `plugins.updater.pubkey` in tauri.conf.json)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  — password for that key
+# Preflight fails closed before any build if either is absent; unsigned
+# releases are never produced. No Authenticode certificate is used, so
+# SmartScreen shows an "unknown publisher" prompt on first install.
 
 on:
   push:
@@ -48,13 +40,6 @@ jobs:
       - name: Validate tag and every release credential
         shell: bash
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
@@ -66,22 +51,23 @@ jobs:
             echo "Release tag must point to a commit on origin/main" >&2
             exit 1
           }
-          required=(
-            TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-            APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY
-            KEYCHAIN_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
-          )
+          required=(TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
           for name in "${required[@]}"; do
             [[ -n "${!name:-}" ]] || {
               echo "Missing protected release secret: $name" >&2
               exit 1
             }
           done
+          # The updater rejects every update if the app ships without a pubkey.
+          node -e '
+            const c = JSON.parse(require("fs").readFileSync("gg-app/src-tauri/tauri.conf.json", "utf8"));
+            if (!c.plugins?.updater?.pubkey) { console.error("plugins.updater.pubkey is empty"); process.exit(1); }
+            const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+            if (c.version !== tag) { console.error(`tauri.conf.json version ${c.version} != tag ${tag}`); process.exit(1); }
+          '
 
-  # Create (or find) the GitHub release once, before any build, with retries.
-  # tauri-action creating it per leg also PATCHes an existing release's name and
-  # body, and one GitHub HTTP 500 on that call failed a fully built, notarized
-  # macOS leg (v0.103.0). With `releaseId` the legs only upload, and uploads retry.
+  # Create (or find) the GitHub release once, before the build, with retries.
+  # With `releaseId` tauri-action only uploads, and uploads retry.
   create-release:
     needs: preflight
     runs-on: ubuntu-latest
@@ -106,7 +92,7 @@ jobs:
           set -uo pipefail
           # Notes come from the in-app "What's new" entry for this version.
           body=$(node .github/ci/release-notes.mjs "$TAG") ||
-            body="Download the installer for your platform from the assets below."
+            body="Download the Windows installer from the assets below."
           id=""
           for attempt in 1 2 3 4 5 6; do
             # GET first: a create that 500s may still have made the release.
@@ -127,41 +113,11 @@ jobs:
     needs: [preflight, create-release]
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Apple Silicon (arm64). macos-14 was retired by GitHub (jobs fail with
-          # "configuration not supported"); CI already builds on macos-latest.
-          - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
-          # NOTE: Intel macOS (x86_64) is intentionally omitted. GitHub's free
-          # Intel mac runners are effectively unavailable (jobs queue for hours),
-          # and a universal binary isn't viable here because the bundled Node
-          # runtime + native .node addons are single-arch. Re-add a
-          # `macos-13 / --target x86_64-apple-darwin` leg if a paid/Intel runner
-          # becomes available. Apple Silicon covers all Macs sold since 2020.
-          - platform: windows-latest
-            args: ""
-          # Linux x86_64: deb + rpm only — AppImage's linuxdeploy hangs on CI
-          # for Node-bundling apps. Built on the OLDEST supported Ubuntu
-          # because the binary links the runner's glibc: a 24.04 build would
-          # refuse to start on 22.04/Debian 12. The updater installs deb/rpm
-          # updates in place (pkexec prompt) via `linux-x86_64-{deb,rpm}` keys.
-          - platform: ubuntu-22.04
-            args: "--bundles deb,rpm"
-    runs-on: ${{ matrix.platform }}
-    # Signing + notarization + per-OS installer builds; observed ~15-20 min on
-    # macOS/Windows. The Linux leg spends ~50 min in tauri's RPM bundler alone
-    # (the .deb takes ~25 s), so 60 min cancelled it before upload.
+    runs-on: windows-latest
     timeout-minutes: 100
     environment:
       name: desktop-production
       url: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
-    # Hoisted to job level so the certificate-import step's own `if` can read it
-    # (a step cannot reference env it defines in the same step's `if`).
-    env:
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -170,13 +126,6 @@ jobs:
       - name: Validate protected release context
         shell: bash
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
@@ -188,14 +137,7 @@ jobs:
             echo "Release tag must point to a commit on origin/main" >&2
             exit 1
           }
-          required=(TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            required+=(
-              APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY
-              KEYCHAIN_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
-            )
-          fi
-          for name in "${required[@]}"; do
+          for name in TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
             [[ -n "${!name:-}" ]] || {
               echo "Missing protected release secret: $name" >&2
               exit 1
@@ -212,32 +154,18 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin' || '' }}
 
-      # Same cache as the ci.yml app job: the Tauri dependency tree is large
-      # and identical across runs; without this every tag rebuilds it from
-      # scratch on every matrix leg.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: gg-app/src-tauri
 
-      - name: Linux system deps (tauri)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf libayatana-appindicator3-dev
-
       - name: Install
+        shell: bash
         run: pnpm install --frozen-lockfile
 
-      # shell: bash is load-bearing on the windows-latest leg. The default shell
-      # there is PowerShell, which does NOT abort a multi-line script when an
-      # intermediate command exits non-zero — only the LAST line decides the
-      # step's outcome. Without this a failing gg-ai or gg-agent build is
-      # silently swallowed by ggcoder's build succeeding after it, and we SHIP
-      # an installer built from stale or missing artifacts. The same bug hid 72
-      # failing tests in ci.yml.
+      # shell: bash is load-bearing on Windows: PowerShell only fails on the
+      # LAST line of a multi-line script, so a failing early build would be
+      # swallowed and we'd ship an installer built from stale artifacts.
       - name: Build framework packages
         shell: bash
         run: |
@@ -247,71 +175,28 @@ jobs:
           pnpm --filter @kenkaiiii/ggcoder build
 
       - name: Stage node runtime + bundle sidecar
+        shell: bash
         run: |
           pnpm --filter gg-app stage:node
           pnpm --filter gg-app bundle:sidecar
-        shell: bash
 
       - name: Sidecar smoke (bundled runtime + bundle)
-        run: node gg-app/scripts/smoke-sidecar.mjs
         shell: bash
+        run: node gg-app/scripts/smoke-sidecar.mjs
 
-      # Preflight above guarantees every macOS signing secret exists. Import the
-      # Developer ID certificate into an ephemeral keychain for nested signing and
-      # Tauri notarization.
-      - name: Import Apple Developer certificate (macOS)
-        if: runner.os == 'macOS'
-        env:
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
-          rm -f certificate.p12
-
-      # Sign the nested Mach-O binaries Tauri won't touch (the staged Node
-      # runtime + the sidecar's native addons under bundle.resources) with
-      # Developer ID + hardened runtime + secure timestamp, so notarization of
-      # the assembled app passes. Runs after the cert is in the keychain and
-      # before tauri-action assembles + notarizes the bundle.
-      - name: Sign nested bundle binaries (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          bash gg-app/scripts/sign-nested-macos.sh \
-            "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
-            gg-app/src-tauri/binaries \
-            gg-app/src-tauri/sidecar
-
-      # v1 (from v0): updater artifacts (.app.tar.gz[.sig]) now include the
-      # app version in their filename; latest.json is generated by the action
-      # itself so the updater endpoint stays consistent. v1 also restored the
-      # `uploadUpdaterJson` input name (v0's `includeUpdaterJson` is gone and
-      # would be silently ignored).
+      # NSIS only: one installer type, so `latest.json` and the in-app updater
+      # always agree (the app installs per-user via NSIS `currentUser`).
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # macOS signing + notarization; protected-environment preflight
-          # guarantees these are populated on the macOS leg.
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: gg-app
           # Upload-only into the release created above (no create/update calls).
           releaseId: ${{ needs.create-release.outputs.id }}
           # Retries a failed asset or latest.json upload (GitHub 5xx).
           retryAttempts: 3
-          # Generates + uploads `latest.json` for the updater endpoint
-          # (default true; kept explicit because the updater depends on it).
+          # Generates + uploads `latest.json` for the updater endpoint.
           uploadUpdaterJson: true
-          args: ${{ matrix.args }}
+          args: "--bundles nsis"

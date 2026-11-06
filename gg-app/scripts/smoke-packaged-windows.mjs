@@ -193,8 +193,8 @@ function findNamedFiles(root, expectedName) {
  * "app installs but does nothing" bug this smoke exists to catch.
  */
 export function discoverPackagedLayout(extractRoot) {
-  const apps = findNamedFiles(extractRoot, "gg-app.exe");
-  if (apps.length !== 1) fail(`expected one extracted gg-app.exe, found ${apps.length}`);
+  const apps = findNamedFiles(extractRoot, "israel-code.exe");
+  if (apps.length !== 1) fail(`expected one extracted israel-code.exe, found ${apps.length}`);
   const executable = realpathSync.native(apps[0]);
   const installDir = dirname(executable);
   const node = join(installDir, "ggnode.exe");
