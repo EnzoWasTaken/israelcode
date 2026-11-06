@@ -1293,6 +1293,13 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           schedulePromotionEnd();
           break;
         }
+        case "checkout_notice": {
+          // The conversation reopened somewhere new for its branch.
+          if (typeof d.text === "string" && d.text) {
+            pushItem({ kind: "info", id: nextId(), text: d.text });
+          }
+          break;
+        }
         case "security_block": {
           // A guard refused a step: a lasting row in the chat (the step line
           // above the composer is gone once the run ends).
@@ -1465,6 +1472,8 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
                     d.gitHubCI !== undefined ? (d.gitHubCI as AgentState["gitHubCI"]) : s.gitHubCI,
                   projectHealth: d.projectHealth !== undefined ? d.projectHealth : s.projectHealth,
                   additionalRoots: (d.additionalRoots as string[] | undefined) ?? s.additionalRoots,
+                  worktreeOf:
+                    d.worktreeOf !== undefined ? (d.worktreeOf as string | null) : s.worktreeOf,
                 }
               : s,
           );

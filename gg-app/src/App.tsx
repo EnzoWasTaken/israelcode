@@ -28,6 +28,7 @@ import {
   setAutopilot,
   cancel,
   newSession,
+  selectProject,
   listModels,
   switchModel,
   isSwitchModelError,
@@ -1223,6 +1224,7 @@ function App(): React.ReactElement {
               if (h.infoKind === "video_warning")
                 return { kind: "info", id: nextId(), text: VIDEO_CAPABILITY_WARNING };
               if (h.shell) return shellItemFromHistory(h.shell, nextId(), pendingShellRuns);
+              if (h.checkoutNotice) return { kind: "info", id: nextId(), text: h.checkoutNotice };
               // Ken "Send to GG Coder" prompts: restore the shimmer label, not the
               // full prompt body (matches live).
               if (h.kenSent && h.role === "user")
@@ -2591,6 +2593,13 @@ function App(): React.ReactElement {
     // Picker → workspace switches like every other screen change (showScreen).
     showScreen(resetForChosenProject);
   }
+  // The Git panel's branch picker put this window's branch in its own
+  // worktree (other windows share this folder): re-open there, same conversation.
+  async function moveToWorktree(cwd: string, sessionPath: string | null): Promise<void> {
+    await selectProject(cwd, sessionPath ?? undefined);
+    setDeckPanel(null);
+    onProjectChosen();
+  }
   function resetForChosenProject(): void {
     checklistFetchRef.current++;
     checklistRunRef.current = null;
@@ -2800,7 +2809,10 @@ function App(): React.ReactElement {
               <GoalPicker {...pickerProps} />
             </Suspense>
           ) : (
-            <ProjectPicker initialProjectPath={state?.cwd ?? null} {...pickerProps} />
+            <ProjectPicker
+              initialProjectPath={state?.worktreeOf ?? state?.cwd ?? null}
+              {...pickerProps}
+            />
           )}
           {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
           {/* Tray Settings can toast a save failure over the picker. */}
@@ -3076,6 +3088,9 @@ function App(): React.ReactElement {
               hydrated={hydrated}
               // A Goal works in a git repo too: its branch key opens the Git panel.
               showGit={workspaceMode === "code"}
+              onMoveToWorktree={
+                workspaceMode === "code" && !state?.goal ? moveToWorktree : undefined
+              }
               panel={deckPanel}
               onPanelChange={setDeckPanel}
               running={running}
