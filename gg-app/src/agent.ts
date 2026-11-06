@@ -99,8 +99,8 @@ export type ChatAgentId = "general" | "therapist" | "research";
  * window is a code-mode session whose agent is GG Goals.
  */
 export function workspaceProductName(mode: WorkspaceMode, isGoal = false): string {
-  if (isGoal) return "GG Goals";
-  return mode === "chat" ? "GG Chat" : mode === "motion" ? "GG Motion" : "GG Coder";
+  if (isGoal) return "Israel Goals";
+  return mode === "chat" ? "Israel Chat" : mode === "motion" ? "Israel Motion" : "Israel Code";
 }
 
 export type MemoryCategory =
@@ -669,7 +669,7 @@ export async function getKeepAwake(): Promise<boolean> {
   return keepAwakeEnabled(await invoke<{ enabled?: unknown }>("agent_keep_awake_get"));
 }
 
-/** Turn keep-awake on/off. Saved to ~/.gg/settings.json and applied live. */
+/** Turn keep-awake on/off. Saved to ~/.israelcode/settings.json and applied live. */
 export async function setKeepAwake(enabled: boolean): Promise<boolean> {
   await waitForReady();
   return keepAwakeEnabled(await invoke<{ enabled?: unknown }>("agent_keep_awake_set", { enabled }));
@@ -1137,7 +1137,7 @@ export async function cancelKen(): Promise<void> {
 }
 
 /** Toggle autopilot (auto-review) for this window's project. Persisted
- *  server-side (~/.gg/gg-app.json, keyed by cwd). Returns the new value. */
+ *  server-side (~/.israelcode/gg-app.json, keyed by cwd). Returns the new value. */
 export async function setAutopilot(enabled: boolean): Promise<boolean> {
   try {
     await waitForReady();
@@ -1318,7 +1318,7 @@ export interface AuthProvider {
   currentBaseUrl?: string;
   /** When set, the API-key flow must ask which variant before submitting. */
   apiKeyVariants?: ApiKeyVariant[];
-  /** Live connection status from ~/.gg/auth.json. */
+  /** Live connection status from ~/.israelcode/auth.json. */
   connected: boolean;
   /**
    * Which methods actually hold a credential. Providers supporting both (Kimi,
@@ -1342,7 +1342,7 @@ export interface AuthProvider {
 /**
  * List providers with their supported auth methods + live connection status.
  *
- * Handled NATIVELY in Rust (static list + reads ~/.gg/auth.json directly) so the
+ * Handled NATIVELY in Rust (static list + reads ~/.israelcode/auth.json directly) so the
  * login hub always renders even when the Node sidecar is slow/crashed — it used
  * to show a blank list, the same failure mode as the project-folder bug. The
  * login ACTIONS (OAuth, key save, logout) still go through the sidecar.
@@ -1372,7 +1372,7 @@ export async function hasModelSource(): Promise<boolean> {
 }
 
 /**
- * Store an API key for a provider. Handled NATIVELY in Rust (writes ~/.gg/auth.json
+ * Store an API key for a provider. Handled NATIVELY in Rust (writes ~/.israelcode/auth.json
  * directly) so it never depends on the per-window sidecar being up — a fresh
  * user's sidecar may not have booted yet, and a sidecar round-trip would hang.
  * Throws with a user-facing message on error.
@@ -1471,7 +1471,7 @@ export async function answerAskUser(
 
 /**
  * Disconnect a provider (clear stored credentials). Handled NATIVELY in Rust
- * (removes the provider from ~/.gg/auth.json, including a dual-auth provider's
+ * (removes the provider from ~/.israelcode/auth.json, including a dual-auth provider's
  * separate OAuth key) so it never depends on the sidecar.
  *
  * `method` disconnects just ONE credential of a provider that holds both — e.g.
@@ -1840,7 +1840,7 @@ export interface AppSettings {
 /**
  * Read gg-app settings (projects root folder + whether it was explicitly set).
  *
- * Handled NATIVELY in Rust (reads ~/.gg/gg-app.json directly) so the home
+ * Handled NATIVELY in Rust (reads ~/.israelcode/gg-app.json directly) so the home
  * screen never depends on the Node sidecar being up — a slow/crashed sidecar on
  * a fresh install used to leave "Your Projects" dimmed and saves timing out.
  */
@@ -1854,7 +1854,7 @@ export async function getSettings(): Promise<AppSettings | null> {
 }
 
 /**
- * Save gg-app settings. Handled NATIVELY in Rust (writes ~/.gg/gg-app.json
+ * Save gg-app settings. Handled NATIVELY in Rust (writes ~/.israelcode/gg-app.json
  * directly) — no sidecar round-trip, so saving the project folder works even
  * before/while the sidecar is still booting. Throws on a write error.
  */

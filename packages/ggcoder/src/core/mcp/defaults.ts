@@ -62,7 +62,7 @@ export function getMCPServers(provider: Provider, apiKey?: string): MCPServerCon
 
 /**
  * Full startup set: provider defaults + user-configured servers from
- * ~/.gg/mcp.json and ./.gg/mcp.json. Provider defaults stay authoritative —
+ * ~/.israelcode/mcp.json and ./.gg/mcp.json. Provider defaults stay authoritative —
  * a user server can only ADD a new name, never override a default.
  */
 export async function getAllMcpServers(
@@ -77,7 +77,7 @@ export async function getAllMcpServers(
   // Project scope (<repo>/.gg/mcp.json) is repo-controlled: a malicious repo
   // can declare a stdio `command` that would execute the moment the project
   // opens. Only include those when explicitly trusted (trustProjectMcpServers);
-  // global ~/.gg/mcp.json is the user's own file and always connects.
+  // global ~/.israelcode/mcp.json is the user's own file and always connects.
   const userServers = scoped
     .filter((s) => opts?.allowProjectScope === true || s.scope !== "project")
     .map((s) => s.config)

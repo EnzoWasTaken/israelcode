@@ -1167,7 +1167,7 @@ describe("useAgentEvents", () => {
     expect(setRunning).not.toHaveBeenCalled();
   });
 
-  it("ken_model_change updates Ken's footer model state (falls through ken_ delegation)", () => {
+  it("ken_model_change updates Israel's footer model state (falls through ken_ delegation)", () => {
     // useKenMentor's handleKenEvent returns false for ken_model_change (it only
     // owns the chat-bubble events), so the event must reach the main switch —
     // the default setup handleKenEvent mirrors that by returning false.
@@ -1288,7 +1288,7 @@ describe("useAgentEvents", () => {
     expect(deps.planDoneRef.current.size).toBe(0);
   });
 
-  it("autopilot_prompted closes the stale plan modal after Ken asks for revision", () => {
+  it("autopilot_prompted closes the stale plan modal after Israel asks for revision", () => {
     const { hook, getPlanReview } = setup();
     act(() => {
       hook.result.current.handleEvent(

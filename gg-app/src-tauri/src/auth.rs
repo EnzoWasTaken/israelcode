@@ -1,10 +1,10 @@
-//! Native provider auth status and API-key writes (~/.gg/auth.json).
+//! Native provider auth status and API-key writes (~/.israelcode/auth.json).
 
 use crate::*;
 
-// ── Native provider auth status (~/.gg/auth.json) ─────────────────────────
+// ── Native provider auth status (~/.israelcode/auth.json) ─────────────────────────
 // The AI-providers list is STATIC metadata and the "connected" badge only needs
-// to read which provider keys exist in ~/.gg/auth.json — neither needs the Node
+// to read which provider keys exist in ~/.israelcode/auth.json — neither needs the Node
 // agent. Reading it natively means the login hub always renders even when the
 // sidecar is slow/crashed (it used to show a blank list, identical in spirit to
 // the project-folder bug). The login ACTIONS (OAuth flow, key storage, logout)
@@ -13,9 +13,9 @@ use crate::*;
 // This list mirrors packages/ggcoder/src/core/auth-providers.ts (AUTH_PROVIDERS).
 // Keep the two in sync when adding a provider.
 
-/// Absolute path to ~/.gg/auth.json.
+/// Absolute path to ~/.israelcode/auth.json.
 pub(crate) fn auth_file_path() -> PathBuf {
-    home_dir().join(".gg").join("auth.json")
+    app_data_dir().join("auth.json")
 }
 
 /// One API-key option for a provider that splits auth across multiple
@@ -343,7 +343,7 @@ pub(crate) fn resolve_apikey_target(
 }
 
 /// Native: provider list + live connection status, read directly from
-/// ~/.gg/auth.json. `connected` is true when a credential key is present
+/// ~/.israelcode/auth.json. `connected` is true when a credential key is present
 /// (a dual-auth provider like Moonshot/xAI is satisfied by either its OAuth key
 /// or its API key; a multi-variant provider like Xiaomi is satisfied by ANY of
 /// its variant keys — mirrors AuthStorage.hasProviderAuth). Never needs the
@@ -609,7 +609,7 @@ async fn serves_a_model(base_url: &str) -> bool {
         .unwrap_or(false)
 }
 
-// ── Native API-key auth writes (~/.gg/auth.json) ──────────────────────────
+// ── Native API-key auth writes (~/.israelcode/auth.json) ──────────────────────────
 // Storing/removing an API key is a pure mutation of auth.json — the SAME file
 // app_auth_status reads. Doing it natively (not via the sidecar) means a fresh
 // user can log in even though their not-yet-configured sidecar may not be up:
@@ -730,7 +730,7 @@ pub(crate) fn parse_auth_object(existing: Option<&str>) -> Result<serde_json::Va
     }
 }
 
-/// Atomically write auth.json (temp file + rename), creating ~/.gg if needed.
+/// Atomically write auth.json (temp file + rename), creating ~/.israelcode if needed.
 /// On unix the file is mode 0600 (credentials). Mirrors gg-core's atomicWriteFile.
 pub(crate) fn write_auth_file(contents: &str) -> Result<(), String> {
     let path = auth_file_path();
@@ -751,7 +751,7 @@ pub(crate) fn write_auth_file(contents: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Native: store an API key for a provider directly in ~/.gg/auth.json. Never
+/// Native: store an API key for a provider directly in ~/.israelcode/auth.json. Never
 /// touches the sidecar, so it can't hang on a not-yet-booted agent. Validates
 /// that the provider exists and supports API-key auth, and that the key is
 /// non-empty. `variant` selects which storage key/base URL to use for
@@ -825,7 +825,7 @@ pub(crate) fn app_auth_baseurl(
     Ok(serde_json::json!({ "ok": true, "baseUrl": normalized }))
 }
 
-/// Native: disconnect a provider (remove its credential from ~/.gg/auth.json).
+/// Native: disconnect a provider (remove its credential from ~/.israelcode/auth.json).
 /// `method` ("oauth" | "apikey") disconnects just one of a dual-auth provider's
 /// two credentials; omitted, it removes all of them — including the OAuth key
 /// and every API-key variant (currently only Xiaomi's). Never touches the

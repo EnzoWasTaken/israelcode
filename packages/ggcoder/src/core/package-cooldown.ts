@@ -321,12 +321,12 @@ export function cooldownFailureHint(output: string, days: number): string | null
     const m = re.exec(tail);
     if (!m) continue;
     const pkg = m[2] ? `${m[1]}@${m[2]}` : (m[1] ?? "that version");
-    return `GG Coder's ${days}-day release-age cooldown hid ${pkg}: it was published less than ${days} days ago. Pin the newest older version (or drop the version so the manager picks one); if the user needs this exact version, tell them it is held back by the cooldown (setting packageCooldownDays).`;
+    return `Israel Code's ${days}-day release-age cooldown hid ${pkg}: it was published less than ${days} days ago. Pin the newest older version (or drop the version so the manager picks one); if the user needs this exact version, tell them it is held back by the cooldown (setting packageCooldownDays).`;
   }
   for (const re of COOLDOWN_MAYBE) {
     const m = re.exec(tail);
     if (!m) continue;
-    return `If ${m[1] ?? "that version"} was published in the last ${days} days, GG Coder's release-age cooldown hid it: pin the newest older version instead (if the user needs that exact version, tell them it is held back by the cooldown, setting packageCooldownDays).`;
+    return `If ${m[1] ?? "that version"} was published in the last ${days} days, Israel Code's release-age cooldown hid it: pin the newest older version instead (if the user needs that exact version, tell them it is held back by the cooldown, setting packageCooldownDays).`;
   }
   return null;
 }

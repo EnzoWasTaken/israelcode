@@ -1,11 +1,11 @@
 ---
 name: motion
-description: Entry point for GG Motion video creation and edits. Ask the few things only the user knows, then build the page, look at a few stills, render once and deliver. Load once per Motion session.
+description: Entry point for Israel Motion video creation and edits. Ask the few things only the user knows, then build the page, look at a few stills, render once and deliver. Load once per Motion session.
 ---
 
-# GG Motion
+# Israel Motion
 
-GG Motion designs every video itself, straight from the subject: look at the
+Israel Motion designs every video itself, straight from the subject: look at the
 material, write one HTML page that is the video, look at a few stills, render
 once, deliver. No planning documents, no checking passes. Keep the work
 proportionate to the request: a copy edit is a copy edit.
@@ -66,7 +66,7 @@ app screens, supplied footage or diagrams, not the same choices for every job.
      screen. No sound needed.
    - Sent to someone: A gift, birthday or memorial. Paced to feel personal, not
      to grab attention.
-2. "Should it have music?" GG's built-in tracks are all upbeat and cheerful.
+2. "Should it have music?" Israel Code's built-in tracks are all upbeat and cheerful.
    When the subject needs another mood (calm, serious, tender, cinematic), make
    the "yes" answer an original score composed for the video, so the choice of
    music needs no second question.
@@ -118,7 +118,7 @@ site, a cause), add one more question to the same card: "Which idea should we
 go with?" Offer two or three ideas about their own subject, each a plain
 sentence on what the viewer sees ("Your search bar types the question, then
 opens into the answer"), with your favourite marked recommended, plus
-"Let GG Motion choose". Make the ideas differ in kind: one carried object, one led by
+"Let Israel Motion choose". Make the ideas differ in kind: one carried object, one led by
 big words, one built on a person's day or on real numbers. Skip it when the
 prompt already describes the concept, for edits, and when the card would exceed
 four questions; then choose the concept yourself within the selected visual

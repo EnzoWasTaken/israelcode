@@ -28,7 +28,7 @@ interface McpAuthFile {
 
 /**
  * File-backed store for remote-MCP OAuth credentials, living next to the CLI's
- * other auth at `~/.gg/mcp-auth.json`. Keyed by server name (the same identity
+ * other auth at `~/.israelcode/mcp-auth.json`. Keyed by server name (the same identity
  * the config + UI use). Every read re-reads the file so concurrent sidecars /
  * windows see each other's logins; writes are read-modify-write so two servers
  * don't clobber one another.

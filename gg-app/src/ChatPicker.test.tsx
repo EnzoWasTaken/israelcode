@@ -119,16 +119,16 @@ describe("ChatPicker", () => {
     render(<ChatPicker mode="motion" onChosen={onChosen} />);
 
     expect(await screen.findByText("No motion sessions yet.")).toBeDefined();
-    expect(listSessionsMock).toHaveBeenCalledWith("/workspaces/GG Motion", "motion");
+    expect(listSessionsMock).toHaveBeenCalledWith("/workspaces/Israel Motion", "motion");
     fireEvent.click(screen.getAllByRole("button", { name: "+ New video" })[0]);
     await waitFor(() => {
       expect(selectWorkspaceMock).toHaveBeenCalledWith(
         "motion",
-        "/workspaces/GG Motion",
+        "/workspaces/Israel Motion",
         undefined,
         "general",
       );
-      expect(onChosen).toHaveBeenCalledWith("/workspaces/GG Motion");
+      expect(onChosen).toHaveBeenCalledWith("/workspaces/Israel Motion");
     });
   });
 

@@ -52,7 +52,7 @@ export interface ApiBenchmarkResult {
 
 function buildSystemPrompt(): string {
   return [
-    "You are GG Coder — a coding agent that works directly in the user's codebase.",
+    "You are Israel Code — a coding agent that works directly in the user's codebase.",
     "You explore, understand, change, and verify code — completing tasks end-to-end",
     "rather than just suggesting edits.",
     "",

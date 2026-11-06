@@ -9,7 +9,7 @@ import {
   stopPeriodicUpdateCheck,
 } from "./auto-update.js";
 
-// Use a temp directory for state file instead of the real ~/.gg
+// Use a temp directory for state file instead of the real ~/.israelcode
 const tmpDir = path.join(os.tmpdir(), `gg-update-test-${process.pid}`);
 
 // Mock the state file path
@@ -30,23 +30,26 @@ vi.mock("node:child_process", () => ({
 }));
 
 function writeStateFile(state: Record<string, unknown>): void {
-  fs.mkdirSync(path.join(tmpDir, ".gg"), { recursive: true });
-  fs.writeFileSync(path.join(tmpDir, ".gg", "update-state.json"), JSON.stringify(state));
+  fs.mkdirSync(path.join(tmpDir, ".israelcode"), { recursive: true });
+  fs.writeFileSync(path.join(tmpDir, ".israelcode", "update-state.json"), JSON.stringify(state));
 }
 
 function readStateFile(): Record<string, unknown> | null {
   try {
-    return JSON.parse(fs.readFileSync(path.join(tmpDir, ".gg", "update-state.json"), "utf-8"));
+    return JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".israelcode", "update-state.json"), "utf-8"),
+    );
   } catch {
     return null;
   }
 }
 
 beforeEach(() => {
-  fs.mkdirSync(path.join(tmpDir, ".gg"), { recursive: true });
+  process.env.ISRAELCODE_NPM_AUTO_UPDATE = "1";
+  fs.mkdirSync(path.join(tmpDir, ".israelcode"), { recursive: true });
   // Clear any existing state
   try {
-    fs.unlinkSync(path.join(tmpDir, ".gg", "update-state.json"));
+    fs.unlinkSync(path.join(tmpDir, ".israelcode", "update-state.json"));
   } catch {
     // fine
   }
@@ -54,6 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.ISRAELCODE_NPM_AUTO_UPDATE;
   stopPeriodicUpdateCheck();
   vi.restoreAllMocks();
   try {
@@ -186,7 +190,7 @@ describe("checkAndAutoUpdate", () => {
   });
 
   it("handles corrupt state file gracefully", () => {
-    fs.writeFileSync(path.join(tmpDir, ".gg", "update-state.json"), "not json{{{");
+    fs.writeFileSync(path.join(tmpDir, ".israelcode", "update-state.json"), "not json{{{");
 
     vi.stubGlobal(
       "fetch",
@@ -264,5 +268,18 @@ describe("startPeriodicUpdateCheck", () => {
     expect(fetchMock).not.toHaveBeenCalled();
 
     vi.useRealTimers();
+  });
+});
+
+describe("npm auto-update opt-in", () => {
+  it("never fetches or installs unless ISRAELCODE_NPM_AUTO_UPDATE=1", () => {
+    delete process.env.ISRAELCODE_NPM_AUTO_UPDATE;
+    writeStateFile({ lastCheck: 0, latestVersion: "99.0.0" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    vi.mocked(spawn).mockClear();
+    expect(checkAndAutoUpdate("1.0.0")).toBeNull();
+    startPeriodicUpdateCheck("1.0.0", () => {});
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(spawn).not.toHaveBeenCalled();
   });
 });

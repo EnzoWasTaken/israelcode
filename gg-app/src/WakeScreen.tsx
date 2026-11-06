@@ -68,21 +68,21 @@ export const WAKE_LINES = {
   goals: [
     [
       "*unrolls the map*\u2026",
-      "GG Goals is reading your goal.",
+      "Israel Goals is reading your goal.",
       "Back in a moment with questions.",
     ],
     [
       "Oh, a big one!",
-      "GG Goals is looking through your context.",
+      "Israel Goals is looking through your context.",
       "I\u2019ll check in before we start.",
     ],
     [
       "*sharpens pencil*\u2026",
-      "GG Goals is sizing up the goal.",
+      "Israel Goals is sizing up the goal.",
       "Let\u2019s make sure we agree first.",
     ],
-    ["Hi!", "GG Goals is getting the lay of the land.", "Questions incoming."],
-    ["*opens notebook*\u2026", "GG Goals is taking notes.", "We\u2019ll plan it together."],
+    ["Hi!", "Israel Goals is getting the lay of the land.", "Questions incoming."],
+    ["*opens notebook*\u2026", "Israel Goals is taking notes.", "We\u2019ll plan it together."],
   ],
 } as const satisfies Record<WakeMode, readonly (readonly string[])[]>;
 

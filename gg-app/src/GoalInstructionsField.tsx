@@ -50,7 +50,7 @@ export function GoalInstructionsField({
         onChange={(e) => onChange(e.target.value)}
       />
       <div id={hintId} className="modal-hint" style={{ color: theme.textDim }}>
-        Rules for the whole goal. GG Goals and its workers follow them throughout.
+        Rules for the whole goal. Israel Goals and its workers follow them throughout.
       </div>
     </>
   );

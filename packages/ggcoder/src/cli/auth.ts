@@ -15,6 +15,7 @@ import {
   GEMINI_API_KEY_BASE_URL,
   XIAOMI_CREDITS_KEY,
   dualAuthProvider,
+  APP_DIR_NAME,
 } from "@kenkaiiii/gg-core";
 import { getAuthProvider, describeAuthMethods } from "../core/auth-providers.js";
 import type { OAuthCredentials, OAuthLoginCallbacks } from "../core/oauth/types.js";
@@ -205,10 +206,10 @@ export async function runDoctor(): Promise<void> {
   // ── Banner ──────────────────────────────────────────────────
   console.log();
   for (const row of renderLogoBlock([
-    primary.bold("GG Coder") +
+    primary.bold("Israel Code") +
       dim(` v${CLI_VERSION}`) +
       dim(" · By ") +
-      chalk.white.bold("Ken Kai"),
+      chalk.white.bold("Israel"),
     accent("Doctor"),
     dim("Diagnose & Fix"),
   ])) {
@@ -217,7 +218,7 @@ export async function runDoctor(): Promise<void> {
   console.log();
 
   const home = os.homedir();
-  const ggDir = path.join(home, ".gg");
+  const ggDir = path.join(home, APP_DIR_NAME);
   const authFile = path.join(ggDir, "auth.json");
   const lockFile = authFile + ".lock";
   // uid/gid exist only on POSIX; Windows has no file ownership to check or fix.
@@ -241,7 +242,7 @@ export async function runDoctor(): Promise<void> {
   if (ids && ids.uid !== ids.euid) {
     console.log(warn("    ⚠ uid ≠ euid — running with elevated privileges (sudo?)"));
     console.log(dim("      Running ggcoder with sudo can cause ownership issues."));
-    console.log(dim("      Use without sudo, or fix after: sudo chown -R $(whoami) ~/.gg"));
+    console.log(dim("      Use without sudo, or fix after: sudo chown -R $(whoami) ~/.israelcode"));
   }
   console.log();
 

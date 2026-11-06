@@ -135,10 +135,18 @@ pub(crate) fn strip_extended_prefix(path: PathBuf) -> PathBuf {
     }
 }
 
+/// Folder name under the home dir; must match gg-core `APP_DIR_NAME`.
+pub(crate) const APP_DIR_NAME: &str = ".israelcode";
+
+/// Absolute path to `~/.israelcode`, kept apart from GG Coder's `~/.gg`.
+pub(crate) fn app_data_dir() -> PathBuf {
+    home_dir().join(APP_DIR_NAME)
+}
+
 /// The current user's home directory.
 ///
 /// MUST agree with Node's `os.homedir()` in the sidecar — both sides read and
-/// write the same `~/.gg` files (auth.json, gg-app.json, the workspace file,
+/// write the same `~/.israelcode` files (auth.json, gg-app.json, the workspace file,
 /// the sidecar ledger). libuv resolves Windows homes as
 /// `USERPROFILE` → `HOMEDRIVE`+`HOMEPATH`, and ignores `HOME` entirely; a
 /// Windows box with `HOME` set (Git for Windows / MSYS sets it, often to a

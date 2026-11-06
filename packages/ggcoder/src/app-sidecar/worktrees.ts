@@ -5,7 +5,7 @@ import { getGitDirtyFileCount, realpathNative, runBackgroundGit } from "../utils
 
 /**
  * A project's git worktrees for Home (open, review, clean up) and the setup
- * command a new worktree runs. GG-made worktrees live under `~/.gg/worktrees`;
+ * command a new worktree runs. GG-made worktrees live under `~/.israelcode/worktrees`;
  * the user's own worktrees are listed too but never removed from here.
  */
 
@@ -17,7 +17,7 @@ export interface WorktreeRow {
   path: string;
   /** Checked-out branch, or null when detached. */
   branch: string | null;
-  /** Made by GG Coder (under ~/.gg/worktrees): removable from Home. */
+  /** Made by GG Coder (under ~/.israelcode/worktrees): removable from Home. */
   managed: boolean;
   /** The folder is gone (deleted outside git). */
   missing: boolean;
@@ -166,7 +166,7 @@ export async function removeWorktree(options: {
   const row = list?.worktrees.find((w) => w.path === target);
   if (!list || !row) throw new WorktreeRemoveError("That folder isn't a worktree of this project.");
   if (!row.managed) {
-    throw new WorktreeRemoveError("Only worktrees GG Coder made can be removed here.");
+    throw new WorktreeRemoveError("Only worktrees Israel Code made can be removed here.");
   }
   if (options.openWindows > 0) {
     throw new WorktreeRemoveError("A window is open in this worktree. Close it first.");

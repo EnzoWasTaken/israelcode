@@ -10,7 +10,7 @@ import { getGitHubRepoSlug } from "../utils/github.js";
 /**
  * The folder whose git state a window's titlebar shows (branch, uncommitted
  * files, GitHub, CI, Project Health). Normally the window's cwd. A Goal
- * window's cwd is the goal's own folder under `~/.gg/goals`, which is not a
+ * window's cwd is the goal's own folder under `~/.israelcode/goals`, which is not a
  * repo, so it uses the first attached folder that is inside a git work tree:
  * the project the goal is actually changing.
  *

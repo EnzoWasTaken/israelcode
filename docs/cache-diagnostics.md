@@ -1,6 +1,6 @@
 # Cache diagnostics
 
-GG Coder logs two content-free records per successful model request under the `cache`
+Israel Code logs two content-free records per successful model request under the `cache`
 category: `Prepared context` and `Context cache outcome`. Both include a session ID;
 their JSON `data` field carries a request number. Failed attempts can have a prepared
 record without an outcome. No prompt text, image data, tool arguments, signatures,

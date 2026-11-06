@@ -109,7 +109,7 @@ function KenByline({ talking = false }: { talking?: boolean }): React.ReactEleme
   return (
     <div className="ken-byline">
       <KenFace mood="chat" talking={talking} />
-      <span className="ken-byline-name">Ken</span>
+      <span className="ken-byline-name">Israel</span>
     </div>
   );
 }
@@ -250,7 +250,7 @@ function TranscriptRowBody({
         return (
           <div className="user-msg command labelled user-ken-sent">
             <span className="command-shimmer" style={{ color: theme.ken }}>
-              Sent to GG Coder
+              Sent to Israel Code
             </span>
           </div>
         );
@@ -341,8 +341,8 @@ function TranscriptRowBody({
       // repeating the exact same sentence turn after turn.
       const copy: Record<Extract<Item, { kind: "autopilot" }>["phase"], string> = {
         prompted: item.body?.trim()
-          ? `Sending GG Coder back in:\n\n${item.body.trim()}`
-          : "Sending GG Coder back in for another pass.",
+          ? `Sending Israel Code back in:\n\n${item.body.trim()}`
+          : "Sending Israel Code back in for another pass.",
         done: [allClearCopy(item.copySeed, item.id), item.reason?.trim()]
           .filter(Boolean)
           .join("\n\n"),

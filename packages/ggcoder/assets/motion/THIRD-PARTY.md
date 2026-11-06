@@ -1,8 +1,8 @@
-# Third-party content in GG Motion
+# Third-party content in Israel Motion
 
 Motion exposes GG-authored skills and craft references. The old upstream
 creative/workflow skills and guidance adapters have been removed. Retained
-technical references are adapted for GG's pinned launcher and local-only safety
+technical references are adapted for Israel Code's pinned launcher and local-only safety
 boundaries; do not restore entire upstream skill folders when updating the
 runtime.
 
@@ -21,7 +21,7 @@ motion projects. The earlier Mixkit, Mobile Notification and Kinetic Text
 reconstructions were removed on 2026-09-29 and are not part of any release.
 
 Existing `references/index.json`, signal sources and compact temporal JPEGs are
-GG studies, not private user videos or a universal style. They remain optional
+Israel Code studies, not private user videos or a universal style. They remain optional
 implementation/reference assets, not a mandatory research workflow. Previews are
 rendered offline by `scripts/build-motion-references.mjs`; existing library/font
 licenses remain with their sources.

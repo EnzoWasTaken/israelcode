@@ -333,7 +333,7 @@ describe("streaming assistant spacing", () => {
         lastHistoryItem: {
           kind: "update_notice",
           id: "update-notice-1",
-          text: "Ken just pushed a fresh update.",
+          text: "Israel just pushed a fresh update.",
         },
       }),
     ).toBe(true);

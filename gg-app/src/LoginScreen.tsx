@@ -65,7 +65,7 @@ export function LoginScreen({ onClose }: Props): React.ReactElement {
     };
   }, []);
 
-  // ~/.gg/auth.json is shared by every window, so connecting or disconnecting
+  // ~/.israelcode/auth.json is shared by every window, so connecting or disconnecting
   // anywhere changes what THIS screen should show. `auth_change` covers both
   // directions (unlike `auth_done`, which only means a login succeeded);
   // without re-reading here the nerves, the brain and the "N connected" badge

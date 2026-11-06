@@ -40,7 +40,7 @@ const UNCACHED_MARKER = "<!-- uncached -->";
  * contradictory double identity when streaming through Anthropic.
  */
 function productName(provider: Provider | undefined): string {
-  return provider === "anthropic" ? "Claude Code" : "GG Coder by Ken Kai";
+  return provider === "anthropic" ? "Claude Code" : "Israel Code";
 }
 
 function renderIdentitySection(provider: Provider | undefined): string {

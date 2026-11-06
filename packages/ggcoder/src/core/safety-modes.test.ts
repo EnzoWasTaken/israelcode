@@ -128,7 +128,7 @@ describe("safety features per mode", () => {
     });
   });
 
-  it("worker inside a project (GG Goals team, sub-agents): row + list, parent watches", async () => {
+  it("worker inside a project (Israel Goals team, sub-agents): row + list, parent watches", async () => {
     expect(await blockIn({ subagentWorker: true }, undefined, true)).toEqual({
       chatRows: 1,
       listWritten: true,
@@ -136,7 +136,7 @@ describe("safety features per mode", () => {
     });
   });
 
-  it("GG Goals coordinator (goal notes folder): row only, no list, no watch", async () => {
+  it("Israel Goals coordinator (goal notes folder): row only, no list, no watch", async () => {
     expect(await blockIn({ agentContext: "none" })).toEqual({
       chatRows: 1,
       listWritten: false,
@@ -144,7 +144,7 @@ describe("safety features per mode", () => {
     });
   });
 
-  it("GG Motion (own skills, not a project): row only", async () => {
+  it("Israel Motion (own skills, not a project): row only", async () => {
     expect(
       await blockIn({ skills: [], projectCustomization: false, agentContext: "none" }),
     ).toEqual({ chatRows: 1, listWritten: false, watching: false });

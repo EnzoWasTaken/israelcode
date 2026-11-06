@@ -14,6 +14,7 @@ import { useFakeHome } from "../test-support/fake-home.js";
 import type { AgentNotificationQueue } from "./agent-notifications.js";
 import { NOTIFICATION_DRAIN_MAX_CHARS } from "./agent-notifications.js";
 import { NOTIFICATION_PREFIX, STEERING_PREFIX } from "./steering.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const agentLoopMock = vi.hoisted(() => vi.fn());
 
@@ -41,9 +42,9 @@ beforeEach(async () => {
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "agent-session-notify-project-"));
   restoreHome = useFakeHome(tmpHome);
   agentLoopMock.mockReset();
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test",

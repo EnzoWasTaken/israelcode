@@ -1,4 +1,4 @@
-# GG runtime inputs and assets
+# Israel Code runtime inputs and assets
 
 This is implementation support, not a creative workflow. Bind approved text,
 fonts, colours, logos and media without adding a second look-selection process.

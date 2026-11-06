@@ -54,7 +54,7 @@ describe("effectiveKenModel", () => {
     });
   });
 
-  it("pin identical to the build model still reports override=true (it survives GG switches)", () => {
+  it("pin identical to the build model still reports override=true (it survives Israel Code switches)", () => {
     expect(effectiveKenModel({ provider: "anthropic", model: "claude-opus-5-5" }, build)).toEqual({
       kenProvider: "anthropic",
       kenModel: "claude-opus-5-5",

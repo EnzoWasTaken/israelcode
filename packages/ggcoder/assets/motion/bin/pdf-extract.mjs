@@ -19,7 +19,7 @@ let unpdf;
 try {
   unpdf = await import("unpdf");
 } catch {
-  process.stderr.write("PDF support is missing from this GG install (unpdf not found).\n");
+  process.stderr.write("PDF support is missing from this Israel Code install (unpdf not found).\n");
   process.exit(1);
 }
 

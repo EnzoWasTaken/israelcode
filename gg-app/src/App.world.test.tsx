@@ -61,7 +61,7 @@ describe("World", () => {
     expect(document.querySelector(".home")).not.toBeNull();
   });
 
-  it("the in-game computer opens GG Coder's Home over World, and Stand up returns", async () => {
+  it("the in-game computer opens Israel Code's Home over World, and Stand up returns", async () => {
     mockWindows("main");
     mockIPC((command) => {
       switch (command) {

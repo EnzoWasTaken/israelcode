@@ -42,7 +42,7 @@ try {
   sharp = createRequire(hfPkg)("sharp");
 } catch {
   fail(
-    "Contact sheets need the HyperFrames bundled with GG. Reinstall GG Coder to restore Motion mode.",
+    "Contact sheets need the HyperFrames bundled with Israel Code. Reinstall Israel Code to restore Motion mode.",
   );
 }
 

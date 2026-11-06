@@ -1,4 +1,4 @@
-# ADR 0002: GG Motion adopts the onetake production method, rebuilt clean-room
+# ADR 0002: Israel Motion adopts the onetake production method, rebuilt clean-room
 
 **Status:** Accepted, 2026-10-03. The planning file, beat sheet, flow/look
 reports and `motion_check` are superseded by
@@ -7,7 +7,7 @@ apply.
 
 ## Context
 
-GG Motion's own designs were strong frame by frame, but too many read as
+Israel Motion's own designs were strong frame by frame, but too many read as
 slideshows: scenes swapped instead of growing out of each other, every shot
 lasted about as long as the last, and the frame never rested. The open-source
 `onetake` skill (by feitangyuan) documents a production method that fixes
@@ -24,7 +24,7 @@ not covered by copyright and is free to use.
 
 ## Decision
 
-GG Motion runs the same method, rebuilt clean-room on GG's own engine
+Israel Motion runs the same method, rebuilt clean-room on GG's own engine
 (HyperFrames, GSAP and Node with bundled ffmpeg), not ported from onetake's
 Python and canvas stack:
 

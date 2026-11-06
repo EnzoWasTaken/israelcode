@@ -103,7 +103,7 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
     if (!projectsRoot.trim() || busy) return;
     setBusy(true);
     try {
-      // Saved natively in Rust (writes ~/.gg/gg-app.json) — no sidecar round-trip,
+      // Saved natively in Rust (writes ~/.israelcode/gg-app.json) — no sidecar round-trip,
       // so this works even while the sidecar is still booting or has crashed.
       await saveSettings(projectsRoot.trim());
       onSaved?.(projectsRoot.trim());
@@ -123,7 +123,7 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
       <div className="settings-cols settings-grid">
         <div className="settings-col">
           {permissions?.applicable && (
-            <SettingsSection title="Permissions" description="Full Disk Access for GG Coder.">
+            <SettingsSection title="Permissions" description="Full Disk Access for Israel Code.">
               <div className="modal-row">
                 <button
                   className="modal-btn"

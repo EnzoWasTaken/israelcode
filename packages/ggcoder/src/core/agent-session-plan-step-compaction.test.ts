@@ -23,6 +23,7 @@ import {
 import type * as CompactorModule from "./compaction/compactor.js";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-ai", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -158,9 +159,9 @@ beforeEach(async () => {
     };
   });
 
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       openai: {
         accessToken: "test-openai-token",
@@ -171,7 +172,7 @@ beforeEach(async () => {
     }),
   );
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "settings.json"),
+    path.join(tmpHome, APP_DIR_NAME, "settings.json"),
     JSON.stringify({ autoCompact: true, idealReviewEnabled: false }),
   );
   await fs.writeFile(path.join(tmpProject, "notes.md"), "# Notes\nparser lives in src/parser.ts\n");

@@ -194,7 +194,10 @@ export function Deck(props: DeckProps): React.ReactElement {
         <div className="deck-status">
           {props.status}
           {planMode && (
-            <span className="deck-flag" title="Plan mode: GG reads and plans, and edits nothing">
+            <span
+              className="deck-flag"
+              title="Plan mode: Israel Code reads and plans, and edits nothing"
+            >
               Plan mode
             </span>
           )}

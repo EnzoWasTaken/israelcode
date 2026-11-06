@@ -35,7 +35,7 @@ export function KenPowerBanner({ mode, onDone }: Props): React.ReactElement {
         }}
       >
         <KenFace mood={mode} />
-        <span>{mode === "on" ? "Ken is on." : "Ken is off."}</span>
+        <span>{mode === "on" ? "Israel is on." : "Israel is off."}</span>
       </div>
     </div>
   );

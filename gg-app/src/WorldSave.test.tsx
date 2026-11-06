@@ -76,7 +76,7 @@ const agreeOnline = () => {
   localStorage.setItem(WORLD_CONSENT_KEY, JSON.stringify({ v: 1, on: true }));
   localStorage.setItem(WORLD_LIVE_CONSENT_KEY, JSON.stringify({ v: 1, on: false }));
 };
-const profile = { name: "Ken", look: { hat: 2 }, owned: ["cap"], spent: 9 };
+const profile = { name: "Israel", look: { hat: 2 }, owned: ["cap"], spent: 9 };
 
 describe("World online save", () => {
   it("asks once after ready, and makes no World call before agreeing", async () => {
@@ -100,15 +100,15 @@ describe("World online save", () => {
   });
 
   it("agreeing turns it on: fetches, hands an existing save to the game, uploads saves with ver", async () => {
-    vi.mocked(worldSaveGet).mockResolvedValue(saved(4, "Ken", ["boots"]));
+    vi.mocked(worldSaveGet).mockResolvedValue(saved(4, "Israel", ["boots"]));
     const { send, sent } = open();
     send({ t: "ready" });
     fireEvent.click(await screen.findByLabelText("I'm 18 or over"));
     fireEvent.click(screen.getByRole("button", { name: "Save online" }));
     await waitFor(() => expect(sent("profile")).toHaveLength(1));
-    expect(sent("profile")[0]?.profile).toMatchObject({ name: "Ken", owned: ["boots"] });
+    expect(sent("profile")[0]?.profile).toMatchObject({ name: "Israel", owned: ["boots"] });
 
-    vi.mocked(worldSavePut).mockResolvedValue(saved(5, "Ken"));
+    vi.mocked(worldSavePut).mockResolvedValue(saved(5, "Israel"));
     send({ t: "save", profile });
     await waitFor(() => expect(worldSavePut).toHaveBeenCalledOnce());
     // Same name as the server: not sent; owned keeps the server's items too.
@@ -135,7 +135,7 @@ describe("World online save", () => {
       .mockResolvedValueOnce(saved(3, "Old", ["sword"]));
     vi.mocked(worldSavePut)
       .mockResolvedValueOnce({ status: 409, body: { error: "stale" } })
-      .mockResolvedValueOnce(saved(4, "Ken"));
+      .mockResolvedValueOnce(saved(4, "Israel"));
     const { send } = open();
     send({ t: "ready" });
     await waitFor(() => expect(worldSaveGet).toHaveBeenCalledOnce());
@@ -145,7 +145,7 @@ describe("World online save", () => {
     expect(vi.mocked(worldSavePut).mock.calls[0]?.[0]).toBe(2);
     expect(vi.mocked(worldSavePut).mock.calls[1]).toEqual([
       3,
-      { look: { hat: 2 }, owned: ["cap", "sword"], spent: 9, level: 3, name: "Ken" },
+      { look: { hat: 2 }, owned: ["cap", "sword"], spent: 9, level: 3, name: "Israel" },
     ]);
   });
 
@@ -195,7 +195,7 @@ describe("World online save when the server can't be reached", () => {
     try {
       vi.mocked(worldSaveGet)
         .mockResolvedValueOnce({ status: 0, body: null })
-        .mockResolvedValueOnce(saved(3, "Ken"));
+        .mockResolvedValueOnce(saved(3, "Israel"));
       const { send, sent } = open();
       send({ t: "ready" });
       await act(async () => {
@@ -223,7 +223,7 @@ describe("World online save when the server can't be reached", () => {
       send({ t: "cloud-menu", rect: { x: 900, y: 700, w: 40, h: 40 } }); // the game's cloud button
       expect(screen.getByText("Can't reach the server right now. Trying again")).toBeTruthy();
       // back online: "Try again now" loads it
-      vi.mocked(worldSaveGet).mockResolvedValue(saved(2, "Ken"));
+      vi.mocked(worldSaveGet).mockResolvedValue(saved(2, "Israel"));
       fireEvent.click(screen.getByRole("button", { name: "Try again now" }));
       await waitFor(() => expect(sent("profile")).toHaveLength(1));
     } finally {

@@ -87,7 +87,7 @@ export function tailLines(text, count) {
 /**
  * Log files the packaged app and its sidecar wrote inside the throwaway
  * profile (Tauri's log plugin under LOCALAPPDATA, the sidecar log under
- * ~/.gg). These hold the real reason an app fails to start.
+ * ~/.israelcode). These hold the real reason an app fails to start.
  */
 export function findDiagnosticLogs(profileRoot) {
   return walkFiles(profileRoot)
@@ -383,7 +383,7 @@ export async function cleanupOwnedProcesses(options) {
 
 /**
  * A throwaway user profile so the smoke can never read or write the real
- * `~/.gg` (auth tokens, settings, session store) and never collides with a
+ * `~/.israelcode` (auth tokens, settings, session store) and never collides with a
  * GG Coder the developer already has open.
  */
 function isolatedEnvironment(root, projectDir) {

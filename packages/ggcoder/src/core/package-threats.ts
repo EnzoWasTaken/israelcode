@@ -1474,7 +1474,7 @@ function makeCtx(options: PackageCheckOptions, feed: ThreatFeedData, command = "
     options.cacheDir !== undefined
       ? options.cacheDir
       : process.env.VITEST
-        ? null // tests never write to the real GG dir
+        ? null // tests never write to the real Israel Code dir
         : getAppPaths().agentDir,
   );
   return {

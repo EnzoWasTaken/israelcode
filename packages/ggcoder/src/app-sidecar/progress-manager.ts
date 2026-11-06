@@ -11,9 +11,9 @@ import { rebuildFromSessions } from "../core/progress/rebuild.js";
 import type { ProgressFile, ProgressSnapshot } from "../core/progress/types.js";
 
 // ── Progress ("Ranks") ──────────────────────────────────────────────────
-// Daemon-level XP/rank manager: one durable file (~/.gg/progress.json), awards
+// Daemon-level XP/rank manager: one durable file (~/.israelcode/progress.json), awards
 // applied under a file lock, snapshots broadcast to EVERY session's SSE clients,
-// and an fs.watch on ~/.gg so writes from OTHER daemon processes (dev + packaged
+// and an fs.watch on ~/.israelcode so writes from OTHER daemon processes (dev + packaged
 // app side by side) re-broadcast here too — deduped by the lastEvent nonce.
 // XP failures are debug-log-only; progress must never break a run.
 
@@ -22,7 +22,7 @@ export interface ProgressManager {
   snapshot: () => ProgressSnapshot;
   /** Award XP for one successfully completed run (prompt + any new commits). */
   awardRun: (cwd: string, runStartedAt: number, originId?: string) => Promise<void>;
-  /** Close the ~/.gg fs.watch + clear any pending debounce (leak-free shutdown). */
+  /** Close the ~/.israelcode fs.watch + clear any pending debounce (leak-free shutdown). */
   dispose: () => void;
 }
 
@@ -91,7 +91,7 @@ export async function createProgressManager(
     }
   }
 
-  // Watch ~/.gg (dir watch survives the atomic tmp+rename) for progress.json
+  // Watch ~/.israelcode (dir watch survives the atomic tmp+rename) for progress.json
   // writes from other daemon processes; debounce, reload read-only, dedupe by nonce.
   let watchDebounce: NodeJS.Timeout | null = null;
   let progressWatcher: ReturnType<typeof fsWatch> | null = null;

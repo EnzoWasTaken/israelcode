@@ -87,7 +87,7 @@ describe("async subagent control tools", () => {
     expect(params.safeParse({ task_name: "a", task: "b" }).success).toBe(false);
   });
 
-  it("requires every task to name its agent when the team has a default (GG Goals)", () => {
+  it("requires every task to name its agent when the team has a default (Israel Goals)", () => {
     // Live runs: GG Goals left `agent` out and every task went to the default
     // builder, research included, so researchers never got web search.
     const spawn = createSubAgentControlTools(fakeManager(ROSTER, "owl")).find(

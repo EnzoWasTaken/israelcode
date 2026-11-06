@@ -6,7 +6,7 @@ const { openFolder } = vi.hoisted(() => ({ openFolder: vi.fn().mockResolvedValue
 vi.mock("./agent", () => ({
   openProjectPath: openFolder,
   openUrl: vi.fn(),
-  workspaceProductName: (mode: string) => (mode === "chat" ? "GG Chat" : "GG Coder"),
+  workspaceProductName: (mode: string) => (mode === "chat" ? "Israel Chat" : "Israel Code"),
 }));
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { PROJECT_ACCENTS, PROJECT_COLOUR_NAMES, projectAccent } from "./projectAccent";
@@ -231,8 +231,8 @@ describe("project colour picker in the shared header", () => {
           <WorkspaceHeader workspaceMode="chat" cwd={cwd} trailing={<button>New chat</button>} />
         </>,
       );
-      expect(screen.getByText("GG Coder")).toBeDefined();
-      expect(screen.getByText("GG Chat")).toBeDefined();
+      expect(screen.getByText("Israel Code")).toBeDefined();
+      expect(screen.getByText("Israel Chat")).toBeDefined();
       expect(screen.queryByRole("button", { name: /Project colour/ })).toBeNull();
       expect(localStorage.length).toBe(0);
     },

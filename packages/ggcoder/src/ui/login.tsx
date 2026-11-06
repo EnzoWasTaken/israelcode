@@ -24,7 +24,7 @@ const TEXT = "#e2e8f0";
 const TEXT_DIM = "#64748b";
 
 let _version = "";
-let _brand = "GG Coder";
+let _brand = "Israel Code";
 let _gradient: string[] = DEFAULT_GRADIENT;
 let _primary = DEFAULT_PRIMARY;
 let _accent = DEFAULT_ACCENT;
@@ -44,7 +44,7 @@ function renderScreen(selectedIndex: number): string {
       chalk.hex(_primary).bold(_brand) +
         (_version ? chalk.hex(TEXT_DIM)(` v${_version}`) : "") +
         chalk.hex(TEXT_DIM)(" · By ") +
-        chalk.hex(TEXT).bold("Ken Kai"),
+        chalk.hex(TEXT).bold("Israel"),
       chalk.hex(_accent)("Login"),
       chalk.hex(TEXT_DIM)("Select a provider"),
     ],
@@ -90,7 +90,7 @@ export function renderLoginSelector(
   const opts: LoginSelectorOptions =
     typeof optsOrVersion === "string" ? { version: optsOrVersion } : (optsOrVersion ?? {});
   _version = opts.version ?? "";
-  _brand = opts.brand ?? "GG Coder";
+  _brand = opts.brand ?? "Israel Code";
   _gradient = opts.gradient && opts.gradient.length > 0 ? opts.gradient : DEFAULT_GRADIENT;
   _primary = opts.primary ?? DEFAULT_PRIMARY;
   _accent = opts.accent ?? DEFAULT_ACCENT;

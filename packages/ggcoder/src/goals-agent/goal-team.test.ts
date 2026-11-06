@@ -9,8 +9,8 @@ const byName = (name: string) => {
   return agent;
 };
 
-describe("GG Goals' team", () => {
-  it("is its own roster: builder, scout, researcher and checker, none of GG Coder's agents", () => {
+describe("Israel Goals' team", () => {
+  it("is its own roster: builder, scout, researcher and checker, none of Israel Code's agents", () => {
     expect(GOAL_TEAM.map((a) => a.name)).toEqual(["builder", "scout", "researcher", "checker"]);
     // Nothing shared with GG Coder's bundled agents: a change to one never changes the other.
     for (const agent of GOAL_TEAM) {

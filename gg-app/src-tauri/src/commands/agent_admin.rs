@@ -551,7 +551,7 @@ async fn json_or_error(
     Ok(body)
 }
 
-/// Proxy: list Goals (the `~/.gg/goals` folders), newest activity first.
+/// Proxy: list Goals (the `~/.israelcode/goals` folders), newest activity first.
 #[tauri::command]
 pub(crate) async fn agent_goals(
     webview: WebviewWindow,

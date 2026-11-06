@@ -76,7 +76,7 @@ async function execute(name: string, args: Record<string, unknown>): Promise<str
   return content;
 }
 
-describe("GG App session asynchronous diagnostics", () => {
+describe("Israel Code session asynchronous diagnostics", () => {
   it("does not add another model turn for silent diagnostics after a real passing typecheck", async () => {
     await execute("write", { file_path: "a.ts", content: "export const value: number = 1;\n" });
     await internal.lspManager.flushDiagnostics();

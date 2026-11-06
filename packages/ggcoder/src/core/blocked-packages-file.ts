@@ -21,7 +21,7 @@ export const BLOCKLIST_START = "<!-- gg-safe:blocked-packages:start -->";
 export const BLOCKLIST_END = "<!-- gg-safe:blocked-packages:end -->";
 const HEADER = [
   "## Blocked packages",
-  "GG Coder's safety checks blocked these. Never install or run them; use another version or package.",
+  "Israel Code's safety checks blocked these. Never install or run them; use another version or package.",
 ];
 /** Newest entries kept; older ones fall off the top. */
 const MAX_ENTRIES = 30;

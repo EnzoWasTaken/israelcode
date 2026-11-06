@@ -124,7 +124,7 @@ Write or extend the register at the repo root:
 
 ```markdown
 # Compliance Register
-Snapshot: <date> · Commit: <sha> · Reviewed by: GG Coder compliance-guard · NOT LEGAL ADVICE
+Snapshot: <date> · Commit: <sha> · Reviewed by: Israel Code compliance-guard · NOT LEGAL ADVICE
 
 ## Assumed exposure profile
 <reach, jurisdictions, data classes, minors, money, domain, third parties — each Confirmed or Assumed>

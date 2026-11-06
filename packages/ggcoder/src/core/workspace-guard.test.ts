@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tempPaths from "./temp-paths.js";
 import { isCatastrophicCommand, resolveWriteGuard } from "./workspace-guard.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const cwd = path.join(os.tmpdir(), "guard-test-workspace");
 
@@ -24,8 +25,8 @@ describe("resolveWriteGuard", () => {
     }
   });
 
-  it("allows paths under the agent's own ~/.gg state dir", () => {
-    const target = path.join(os.homedir(), ".gg", "plans", "plan.md");
+  it("allows paths under the agent's own ~/.israelcode state dir", () => {
+    const target = path.join(os.homedir(), APP_DIR_NAME, "plans", "plan.md");
     expect(resolveWriteGuard(cwd, target).allowed).toBe(true);
   });
 

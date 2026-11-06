@@ -669,7 +669,7 @@ function actorItems(
       }
       if (actor.coordinator) {
         drawKenCrown(ctx, px, top, now);
-        drawNameplate(ctx, "KEN", px, py + 3);
+        drawNameplate(ctx, "ISRAEL", px, py + 3);
       }
       if (working && actor.doing) {
         drawFarmWork(ctx, actor.doing, px, py, facing, now, world.farm.lookAt[actor.station]);

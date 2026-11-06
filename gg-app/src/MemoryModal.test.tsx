@@ -44,7 +44,7 @@ const populatedMemories: MemorySnapshot = {
   memories: [
     {
       id: "memory-1",
-      text: "Ken prefers concise, scannable answers.",
+      text: "Israel prefers concise, scannable answers.",
       category: "preference",
       importance: 5,
       createdAt: "2026-07-01T00:00:00.000Z",
@@ -85,7 +85,7 @@ describe("MemoryModal", () => {
   it("presents memories and Jiwa as accessible Brain tabs", async () => {
     render(<MemoryModal onClose={vi.fn()} />);
 
-    expect(await screen.findByText("Ken prefers concise, scannable answers.")).toBeDefined();
+    expect(await screen.findByText("Israel prefers concise, scannable answers.")).toBeDefined();
     const title = document.querySelector(".memory-modal-title");
     expect(title?.textContent).toContain("Brain");
     expect(title?.querySelector(".badge")?.textContent).toBe("1");
@@ -99,7 +99,7 @@ describe("MemoryModal", () => {
 
   it("switches the table and total badge to Jiwa by click or arrow key", async () => {
     render(<MemoryModal onClose={vi.fn()} />);
-    await screen.findByText("Ken prefers concise, scannable answers.");
+    await screen.findByText("Israel prefers concise, scannable answers.");
     const memoriesTab = screen.getByRole("tab", { name: "Memories" });
 
     fireEvent.keyDown(memoriesTab, { key: "ArrowRight" });
@@ -112,7 +112,7 @@ describe("MemoryModal", () => {
 
   it("deletes exactly one entry from the active table", async () => {
     render(<MemoryModal onClose={vi.fn()} />);
-    await screen.findByText("Ken prefers concise, scannable answers.");
+    await screen.findByText("Israel prefers concise, scannable answers.");
     fireEvent.click(screen.getByRole("tab", { name: "Jiwa" }));
     const button = await screen.findByRole("button", {
       name: "Delete Jiwa instruction: Call yourself Blargo in chat.",
@@ -142,7 +142,7 @@ describe("MemoryModal", () => {
         {
           ...populatedMemories.memories[0]!,
           id: "memory-2",
-          text: "Ken is building durable chat memory.",
+          text: "Israel is building durable chat memory.",
           category: "project",
         },
       ],
@@ -164,10 +164,10 @@ describe("MemoryModal", () => {
       .mockResolvedValueOnce(refreshedMemories);
     listJiwaMock.mockResolvedValueOnce(populatedJiwa).mockResolvedValueOnce(refreshedJiwa);
     render(<MemoryModal onClose={vi.fn()} />);
-    await screen.findByText("Ken prefers concise, scannable answers.");
+    await screen.findByText("Israel prefers concise, scannable answers.");
 
     eventHandler?.({ type: "memory_change", data: { count: 2 } });
-    expect(await screen.findByText("Ken is building durable chat memory.")).toBeDefined();
+    expect(await screen.findByText("Israel is building durable chat memory.")).toBeDefined();
     expect(document.querySelector(".memory-modal .badge")?.textContent).toBe("2");
 
     eventHandler?.({ type: "jiwa_change", data: { count: 2 } });

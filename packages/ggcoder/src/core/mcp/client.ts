@@ -233,7 +233,7 @@ export class MCPClientManager {
   ) {
     this.catalogCache = opts.catalogCache ?? new McpCatalogCache();
     // Pins sit beside the catalog cache, so a test that isolates the cache
-    // isolates the pins too (and the real ~/.gg is never touched).
+    // isolates the pins too (and the real ~/.israelcode is never touched).
     this.toolGuard =
       opts.toolGuard ??
       new McpToolGuard(path.join(path.dirname(this.catalogCache.path), "mcp-tool-pins.json"));
@@ -664,7 +664,7 @@ export class MCPClientManager {
         return;
       }
       res.end(
-        "<html><body><h1>Login successful!</h1><p>You can close this tab and return to GG Coder.</p></body></html>",
+        "<html><body><h1>Login successful!</h1><p>You can close this tab and return to Israel Code.</p></body></html>",
       );
       codeResolve?.(reqUrl.searchParams);
     });

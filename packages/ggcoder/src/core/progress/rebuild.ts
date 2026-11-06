@@ -1,4 +1,4 @@
-// One-time retroactive seeding from the existing ~/.gg/sessions store. Runs only when
+// One-time retroactive seeding from the existing ~/.israelcode/sessions store. Runs only when
 // both progress.json and its backup are absent — existing users open the update already
 // ranked instead of starting at Lurker.
 

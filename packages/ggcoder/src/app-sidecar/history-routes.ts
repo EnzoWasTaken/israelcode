@@ -164,7 +164,7 @@ export function handleHistoryRoutes(
         if (!turns) return;
         kenByCount.delete(count);
         for (const turn of turns) {
-          history.push({ role: "user", text: `@Ken ${turn.question}`, ken: true });
+          history.push({ role: "user", text: `@Israel ${turn.question}`, ken: true });
           history.push({ role: "assistant", text: turn.reply, ken: true });
         }
       };
@@ -290,7 +290,7 @@ export function handleHistoryRoutes(
                 scope: "interrupted_run",
                 headline: "A run was interrupted",
                 message:
-                  "GG Coder stopped mid-run, so this turn is incomplete. Any files its tools already changed are still on disk.",
+                  "Israel Code stopped mid-run, so this turn is incomplete. Any files its tools already changed are still on disk.",
                 guidance: "Review the working tree, then re-send the request if you still want it.",
               },
             });

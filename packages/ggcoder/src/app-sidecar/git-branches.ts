@@ -127,7 +127,7 @@ async function validBranchName(dir: string, name: string): Promise<boolean> {
   }
 }
 
-/** `~/.gg/worktrees/<repo>-<hash>/<branch>`, outside the repo, never an existing path. */
+/** `~/.israelcode/worktrees/<repo>-<hash>/<branch>`, outside the repo, never an existing path. */
 export async function worktreePathFor(
   worktreesRoot: string,
   repoRoot: string,
@@ -193,7 +193,7 @@ export interface SwitchRequest {
   create: boolean;
   /** Other windows share this checkout: never switch it, use a worktree. */
   isolate: boolean;
-  /** Where new worktrees go (`~/.gg/worktrees`). */
+  /** Where new worktrees go (`~/.israelcode/worktrees`). */
   worktreesRoot: string;
 }
 

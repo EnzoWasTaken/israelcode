@@ -1,11 +1,11 @@
 name: Bug report
-description: Something in GG Coder isn't working right
+description: Something in Israel Code isn't working right
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Security problems go through [SECURITY.md](https://github.com/KenKaiii/gg-framework/blob/main/SECURITY.md), not here.
+        Thanks for reporting. Security problems go through [SECURITY.md](https://github.com/EnzoWasTaken/israelcode/blob/main/SECURITY.md), not here.
   - type: textarea
     id: what-happened
     attributes:
@@ -61,5 +61,5 @@ body:
     attributes:
       label: Logs or screenshots
       description: |
-        Desktop app logs are in `~/.gg/gg-app-sidecar.log`. Remove API keys, tokens and anything private before pasting.
+        Desktop app logs are in `~/.israelcode/gg-app-sidecar.log`. Remove API keys, tokens and anything private before pasting.
       render: text

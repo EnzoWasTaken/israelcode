@@ -137,7 +137,7 @@ describe("syncThreatFeed", () => {
     ]);
   });
 
-  it("a read-only GG dir rejects (caller logs) and leaves the old feed intact", async () => {
+  it("a read-only Israel Code dir rejects (caller logs) and leaves the old feed intact", async () => {
     if (process.platform === "win32") return;
     const rows = { npm: ["2026-10-18T00:00:00Z,MAL-2026-2"] };
     await syncThreatFeed({ dir, fetch: bucket(rows, []), now: () => NOW });

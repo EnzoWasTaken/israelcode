@@ -97,7 +97,7 @@ function parseEntry(value: unknown): CachedServerEntry | undefined {
 }
 
 /**
- * File-backed MCP tool catalog cache at `~/.gg/mcp-catalog.json`. Every read
+ * File-backed MCP tool catalog cache at `~/.israelcode/mcp-catalog.json`. Every read
  * re-reads the file so concurrent sidecars/windows see each other's writes;
  * writes are read-modify-write so two servers don't clobber one another.
  * Malformed files are treated as empty — a broken cache must never break a run.

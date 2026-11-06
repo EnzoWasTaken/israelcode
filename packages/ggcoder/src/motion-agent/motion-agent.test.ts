@@ -64,7 +64,7 @@ describe("Motion agent", () => {
     for (const skill of skills) {
       expect(skill.source).toBe("motion");
       expect(skill.root).toBe(path.join(bundle.skillsDir, skill.name));
-      expect(skill.content).not.toContain("## GG Motion scope");
+      expect(skill.content).not.toContain("## Israel Motion scope");
       expect(skill.description).not.toContain("Optional specialist reference.");
     }
   });
@@ -78,8 +78,8 @@ describe("Motion agent", () => {
       { skill: "motion" },
       { signal: new AbortController().signal, toolCallId: "motion-skill-test" },
     );
-    expect(result).toContain("GG Motion designs every video itself");
-    expect(result).not.toContain("## GG Motion scope");
+    expect(result).toContain("Israel Motion designs every video itself");
+    expect(result).not.toContain("## Israel Motion scope");
     expect(await fs.readFile(file, "utf8")).toBe(before);
   });
 
@@ -116,7 +116,7 @@ describe("Motion agent", () => {
     }
     // The idea pitch joins the one upfront card; it is not a second stop.
     expect(motion).toContain('"Which idea should we\ngo with?"');
-    expect(motion).toContain('"Let GG Motion choose"');
+    expect(motion).toContain('"Let Israel Motion choose"');
     expect(motion).toContain("at most four questions");
     // Real material only, and the build sheet replaces reading the kit's source.
     expect(motion).toContain("never invent UI, facts, prices or claims");
@@ -270,8 +270,8 @@ describe("Motion agent", () => {
     expect(motion).toContain("already settles it. Tailor the options to the source");
     expect(motion).toContain('1. "Where will people mostly watch this?"');
     // The music answer can't promise a library that only fits upbeat subjects.
-    expect(motion).toContain("GG's built-in tracks are all upbeat and cheerful.");
-    expect(motion).not.toContain("I'll pick a fitting track from GG's built-in music");
+    expect(motion).toContain("Israel Code's built-in tracks are all upbeat and cheerful.");
+    expect(motion).not.toContain("I'll pick a fitting track from Israel Code's built-in music");
     // Delivery reports what was actually looked at, in a final message no card can hide.
     expect(motion).toContain("Say what you looked at");
     expect(motion).not.toMatch(/call `ask_user` in the same reply/);
@@ -523,7 +523,7 @@ describe("Motion agent", () => {
       sessionsDir: "/tmp/gg/sessions",
     });
     const options = optionsOf(agent);
-    expect(options.agentPrompt).toContain("You are GG Motion");
+    expect(options.agentPrompt).toContain("You are Israel Motion");
     expect(options.agentRole).toBe("primary");
     expect(options.agentContext).toBe("none");
     expect(options.promptCacheKeyPrefix).toBe("ggmotion");

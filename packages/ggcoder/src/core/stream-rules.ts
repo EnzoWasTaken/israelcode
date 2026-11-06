@@ -2,7 +2,7 @@
  * Loads stream rules (regex guards matched against the model's streaming
  * output — see gg-agent `stream-rules.ts`) from markdown files:
  *
- *   ~/.gg/rules/*.md          user rules (trusted)
+ *   ~/.israelcode/rules/*.md          user rules (trusted)
  *   <cwd>/.gg/rules/*.md      project rules (untrusted; override user rules by name)
  *
  * No rules ship built in. Example `.gg/rules/no-console-log.md`:
@@ -29,6 +29,7 @@ import path from "node:path";
 import type { StreamRule, StreamRuleScope } from "@kenkaiiii/gg-agent";
 import { parseFrontmatter } from "./frontmatter.js";
 import { log } from "./logger.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export const MAX_STREAM_RULES = 50;
 export const MAX_STREAM_RULE_REMINDER_CHARS = 1000;
@@ -131,12 +132,12 @@ export async function loadStreamRules(
 ): Promise<StreamRule[]> {
   try {
     const byName = new Map<string, StreamRule>();
-    for (const rule of await loadDir(path.join(home, ".gg", "rules"), "user")) {
+    for (const rule of await loadDir(path.join(home, APP_DIR_NAME, "rules"), "user")) {
       byName.set(rule.name, rule);
     }
     const projectDir = path.join(cwd, ".gg", "rules");
     // cwd === home would load the same dir twice and apply untrusted limits to user rules.
-    if (path.resolve(projectDir) !== path.resolve(home, ".gg", "rules")) {
+    if (path.resolve(projectDir) !== path.resolve(home, APP_DIR_NAME, "rules")) {
       for (const rule of await loadDir(projectDir, "project")) {
         byName.delete(rule.name);
         byName.set(rule.name, rule);

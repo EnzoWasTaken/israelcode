@@ -36,7 +36,7 @@ describe("codeLanguage (button trigger detection)", () => {
   });
 });
 
-describe("codeNodeText (what actually gets sent to GG Coder)", () => {
+describe("codeNodeText (what actually gets sent to Israel Code)", () => {
   it("extracts a plain string body", () => {
     const code = createElement("code", { className: "language-prompt" }, "Add a footer");
     expect(codeNodeText(code)).toBe("Add a footer");

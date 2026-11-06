@@ -1,13 +1,13 @@
-# Contributing to GG Coder
+# Contributing to Israel Code
 
 Thanks for helping out. Bug reports, ideas, docs fixes and pull requests are all welcome.
 
 ## Before you start
 
-- **Bugs and ideas:** [open an issue](https://github.com/KenKaiii/gg-framework/issues/new/choose) using one of the templates. Search existing issues first.
+- **Bugs and ideas:** [open an issue](https://github.com/EnzoWasTaken/israelcode/issues/new/choose) using one of the templates. Search existing issues first.
 - **Security problems:** don't open a public issue. Follow [SECURITY.md](SECURITY.md).
 - **Bigger changes:** open an issue first so we can agree on the approach before you put time into it.
-- **First time?** Look for issues labelled [`good first issue`](https://github.com/KenKaiii/gg-framework/labels/good%20first%20issue).
+- **First time?** Look for issues labelled [`good first issue`](https://github.com/EnzoWasTaken/israelcode/labels/good%20first%20issue).
 
 By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -16,8 +16,8 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 You need Node.js 22+, pnpm 10 (the version comes from `packageManager` in `package.json`), and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for the desktop app.
 
 ```bash
-git clone https://github.com/KenKaiii/gg-framework.git
-cd gg-framework
+git clone https://github.com/EnzoWasTaken/israelcode.git
+cd israelcode
 pnpm install
 pnpm build
 pnpm --filter gg-app tauri dev
@@ -74,4 +74,4 @@ CI runs on Linux, macOS and Windows, and all three must pass. Don't skip or disa
 
 ## License
 
-GG Coder is licensed under [AGPL-3.0-only](LICENSE). By submitting a contribution you agree that it is licensed under the same terms.
+Israel Code is licensed under [AGPL-3.0-only](LICENSE). By submitting a contribution you agree that it is licensed under the same terms.

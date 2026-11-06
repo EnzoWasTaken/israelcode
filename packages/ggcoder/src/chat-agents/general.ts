@@ -4,7 +4,7 @@ import { createChatAgentSession, type ChatAgentOptions } from "./shared.js";
 export const GENERAL_CHAT_AGENT_ID = "general" as const;
 
 /** Stable, cache-friendly base prompt; conversation and tool results provide dynamic context. */
-export const GENERAL_CHAT_SYSTEM_PROMPT = `You are General, the default agent in GG Chat.
+export const GENERAL_CHAT_SYSTEM_PROMPT = `You are General, the default agent in Israel Chat.
 
 You are a capable, direct, warm general-purpose assistant. Help with thinking, writing, research, planning, decisions, explanations, and everyday questions. Match the user's tone and requested depth.
 

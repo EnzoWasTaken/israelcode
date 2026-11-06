@@ -1,4 +1,4 @@
-# ADR 0003: GG Motion builds straight from the subject and renders once
+# ADR 0003: Israel Motion builds straight from the subject and renders once
 
 **Status:** Accepted, 2026-10-04. Supersedes the planning and checking parts of
 ADR 0002 (beat sheet in `frame.md`, flow/look/sound reports, `motion_check`).

@@ -137,7 +137,7 @@ export function handleAuthRoutes(
         json(res, 409, { error: "a login is already in progress" });
         return;
       }
-      // A login writes the shared ~/.gg/auth.json, so two windows racing the
+      // A login writes the shared ~/.israelcode/auth.json, so two windows racing the
       // same provider means two browser tabs and two token exchanges whose
       // writes clobber each other. The per-session flag above cannot see
       // that — guard the provider daemon-wide as well.

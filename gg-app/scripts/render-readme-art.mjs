@@ -6,7 +6,7 @@
  * REAL app palette (`gg-app/src/theme.ts`) rather than hand-picked hex codes
  * that drift the moment the app is restyled.
  *
- * Nothing here reads `~/.gg`: every project name, model and number on these
+ * Nothing here reads `~/.israelcode`: every project name, model and number on these
  * panels is either fictional demo data or a fact taken from the repo itself.
  * Product screenshots live in `capture-screenshots.mjs`, next to this file.
  *
@@ -109,7 +109,7 @@ const panels = {
     html: shell(`
       <div class="pad" style="height:440px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px">
         <div class="eyebrow">📱 You don't have to be there</div>
-        <div style="font-size:104px;font-weight:800;letter-spacing:-.035em;line-height:1">GG CODER</div>
+        <div style="font-size:104px;font-weight:800;letter-spacing:-.035em;line-height:1">ISRAEL CODE</div>
         <div style="font-size:26px;color:${C.muted}">Text it from the pub. It codes. It checks itself.</div>
         <div class="rule" style="width:620px;margin-top:10px"></div>
         <div class="mono" style="font-size:15px;color:${C.muted};display:flex;gap:26px">

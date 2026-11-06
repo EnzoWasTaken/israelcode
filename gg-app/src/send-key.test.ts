@@ -8,12 +8,12 @@ describe("sendKeyAction", () => {
     expect(sendKeyAction(idle)).toBe("send");
   });
 
-  it("stops GG's run and Ken's autopilot review through the run's cancel", () => {
+  it("stops Israel Code's run and Israel's autopilot review through the run's cancel", () => {
     expect(sendKeyAction({ ...idle, running: true })).toBe("stop-run");
     expect(sendKeyAction({ ...idle, autopilotReviewing: true })).toBe("stop-run");
   });
 
-  it("stops a manual @Ken reply", () => {
+  it("stops a manual @Israel reply", () => {
     expect(sendKeyAction({ ...idle, kenRunning: true })).toBe("stop-ken");
   });
 

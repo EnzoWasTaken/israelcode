@@ -107,7 +107,7 @@ export class VerificationTracker {
     } else {
       this.gate.recordRejectedCheck(
         check.command,
-        "GG re-ran this check on its own and it did not pass",
+        "Israel Code re-ran this check on its own and it did not pass",
       );
     }
   }

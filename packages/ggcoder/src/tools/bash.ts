@@ -117,7 +117,7 @@ const GUESSED_WAIT_SECONDS = 10;
 /**
  * Render command output for the tool result. Over-limit output is compressed
  * (keeps errors + head/tail, collapses repeats) rather than blindly
- * tail-sliced, and the raw output is offloaded to `~/.gg/tool-output/` so the
+ * tail-sliced, and the raw output is offloaded to `~/.israelcode/tool-output/` so the
  * model can recover the lost portion with `read --offset` instead of
  * re-running the command. The offload is best-effort — a full disk or
  * permission error never fails the tool result.

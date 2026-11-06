@@ -29,7 +29,7 @@ const snapshot = (trophies: Trophy[], over: Partial<TrophySnapshot> = {}): Troph
   trophies,
   categories: [
     { id: "start", label: "Getting started" },
-    { id: "flow", label: "Working with GG" },
+    { id: "flow", label: "Working with Israel Code" },
   ],
   earned: trophies.filter((t) => t.unlockedAt).length,
   total: trophies.length,

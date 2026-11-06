@@ -23,7 +23,7 @@ export function handleMcpRoutes(
   // ── MCP server management (mirrors `ggcoder mcp`) ──────────────────
   // `targetCwd` (project scope) overrides the window cwd so a server can be
   // added/removed for ANY discovered project, not just this window's. Global
-  // scope ignores it (always ~/.gg/mcp.json).
+  // scope ignores it (always ~/.israelcode/mcp.json).
   if (method === "GET" && (url === "/mcp" || url.startsWith("/mcp?"))) {
     const targetCwd = new URL(url, `http://${ctx.host}`).searchParams.get("cwd") ?? ctx.cwd;
     void buildMcpRows(targetCwd, ctx.paths.settingsFile)

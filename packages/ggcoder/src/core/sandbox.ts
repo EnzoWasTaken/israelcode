@@ -10,6 +10,7 @@ import { getAppPaths } from "../config.js";
 import { DEFAULT_ALLOWED_DOMAINS } from "./sandbox-domains.js";
 import type { ShellResolution } from "./shell.js";
 import { getTempRoots } from "./temp-paths.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export interface SandboxPolicy {
   /**
@@ -84,7 +85,7 @@ interface SandboxSettings {
   };
 }
 
-const SANDBOX_CONFIG_DIR = path.join(os.homedir(), ".gg", "sandbox-configs");
+const SANDBOX_CONFIG_DIR = path.join(os.homedir(), APP_DIR_NAME, "sandbox-configs");
 const PROBE_TIMEOUT_MS = 20_000;
 let warnedUnsupported = false;
 let warnedDegraded = false;
@@ -116,6 +117,7 @@ function sensitiveReadPaths(home: string): string[] {
     path.join(home, ".config", "gcloud"),
     path.join(home, ".azure"),
     path.join(home, ".gg", "auth.json"),
+    path.join(home, APP_DIR_NAME, "auth.json"),
   ];
 }
 

@@ -144,7 +144,7 @@ export function PlanReviewModal({
                 <span className="activity-label-reveal">
                   {kenReviewing ? (
                     <ShimmerText base={theme.ken} bright={theme.text}>
-                      Ken is reviewing it. Your call still wins
+                      Israel is reviewing it. Your call still wins
                     </ShimmerText>
                   ) : (
                     <span style={{ color: theme.warning }}>Your call on the plan</span>
@@ -185,7 +185,7 @@ export function PlanReviewModal({
               rows={1}
               value={feedback}
               aria-label="Feedback on the plan"
-              placeholder="Tell GG what to change in the plan…"
+              placeholder="Tell Israel Code what to change in the plan…"
               readOnly={leaving !== null}
               data-modal-initial-focus
               onChange={(e) => setFeedback(e.target.value)}
@@ -212,7 +212,9 @@ export function PlanReviewModal({
       </div>
 
       <div className="footer plan-review-footer" style={{ color: theme.textMuted }}>
-        <span>Enter sends feedback and GG revises the plan · Shift+Enter for a new line</span>
+        <span>
+          Enter sends feedback and Israel Code revises the plan · Shift+Enter for a new line
+        </span>
       </div>
     </div>
   );

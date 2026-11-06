@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import {
-  ClockCounterClockwiseIcon,
-  GraduationCapIcon,
-  YoutubeLogoIcon,
-} from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, GithubLogoIcon } from "@phosphor-icons/react";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl, openWhatsNewWindow } from "./agent";
 import { Badge } from "./Badge";
@@ -27,17 +23,16 @@ import {
 import {
   aboutLines,
   GG_CODER_STARTED,
-  SKOOL_URL,
   SOURCE_URL,
-  YOUTUBE_URL,
+  UPSTREAM_URL,
   type KenSay,
 } from "./about-content";
 import "./AboutPage.css";
 
 /**
- * About: who makes GG Coder and where to find him. Ken rises behind his
- * storybook box (the Workers view's dialogue art) and says hello; beside him,
- * where GG Coder came from and the ways to learn with him. Under that, the
+ * About: what Israel Code is and where its source lives. Israel rises behind
+ * his storybook box (the Workers view's dialogue art) and says hello; beside
+ * him, where Israel Code came from. Under that, the
  * desktop app's releases by day, read from the changelog.
  */
 export function AboutPage(): React.ReactElement {
@@ -72,11 +67,11 @@ export function AboutPage(): React.ReactElement {
         <AboutKen lines={lines} start={versionRead} />
         <div className="about-maker-copy">
           <h2 id={nameId} className="about-name">
-            Ken Kai
+            Israel
           </h2>
           <p className="about-bio">
-            Ken builds GG Coder, a coding agent for your desktop. On Skool, he helps people learn to
-            build with AI.
+            Israel Code is a coding agent for your desktop, a modified version of GG Coder by Ken
+            Kai.
           </p>
           <p className="about-origin">
             {`CLI since ${formatLongDate(GG_CODER_STARTED)}. App since ${formatLongDate(log.firstDate)}.`}
@@ -84,25 +79,14 @@ export function AboutPage(): React.ReactElement {
           <div className="about-actions">
             <a
               className="btn btn-primary btn-lg about-cta"
-              href={SKOOL_URL}
+              href={SOURCE_URL}
               onClick={(e) => {
                 e.preventDefault();
-                void openUrl(SKOOL_URL);
+                void openUrl(SOURCE_URL);
               }}
             >
-              <GraduationCapIcon size={18} weight="bold" aria-hidden="true" />
-              Learn with Ken on Skool
-            </a>
-            <a
-              className="btn btn-ghost btn-lg about-cta"
-              href={YOUTUBE_URL}
-              onClick={(e) => {
-                e.preventDefault();
-                void openUrl(YOUTUBE_URL);
-              }}
-            >
-              <YoutubeLogoIcon size={18} weight="bold" aria-hidden="true" />
-              Watch on YouTube
+              <GithubLogoIcon size={18} weight="bold" aria-hidden="true" />
+              View on GitHub
             </a>
           </div>
         </div>
@@ -112,7 +96,18 @@ export function AboutPage(): React.ReactElement {
       <p className="about-credits">Pixel fonts: m5x7 by Daniel Linssen, Alagard by Hewett Tsoi.</p>
       {/* AGPL-3.0 "Appropriate Legal Notices": license, no warranty, where the source is. */}
       <p className="about-credits">
-        GG Coder is free software under the GNU AGPL-3.0, with no warranty.{" "}
+        Israel Code is free software under the GNU AGPL-3.0, with no warranty. It is a modified
+        version of{" "}
+        <a
+          href={UPSTREAM_URL}
+          onClick={(e) => {
+            e.preventDefault();
+            void openUrl(UPSTREAM_URL);
+          }}
+        >
+          GG Coder
+        </a>{" "}
+        by Ken Kai.{" "}
         <a
           href={SOURCE_URL}
           onClick={(e) => {
@@ -247,12 +242,12 @@ export function AboutKen({
         className="ken-dialogue-box"
         aria-label={
           line
-            ? `Ken, ${index + 1} of ${lines.length}: ${line.text} ${phase === "talking" ? action : ""}`
+            ? `Israel, ${index + 1} of ${lines.length}: ${line.text} ${phase === "talking" ? action : ""}`
             : undefined
         }
         onClick={onClick}
       >
-        <span className="ken-dialogue-name">Ken</span>
+        <span className="ken-dialogue-name">Israel</span>
         <span className="ken-dialogue-text" aria-hidden="true">
           {line?.text.slice(0, shown)}
         </span>
@@ -265,7 +260,7 @@ export function AboutKen({
       </div>
       {/* Read out once, whole, when he starts a line (not letter by letter). */}
       <p className="sr-only" aria-live="polite">
-        {line && phase === "talking" ? `Ken: ${line.text}` : ""}
+        {line && phase === "talking" ? `Israel: ${line.text}` : ""}
       </p>
     </div>
   );

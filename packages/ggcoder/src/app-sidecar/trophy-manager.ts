@@ -19,7 +19,7 @@ import type {
 } from "../core/trophies/types.js";
 
 // ── Trophies ────────────────────────────────────────────────────────────
-// Daemon-level, like progress: one file (~/.gg/trophies.json), writes under a
+// Daemon-level, like progress: one file (~/.israelcode/trophies.json), writes under a
 // file lock, and every snapshot broadcast to every window. A frame that earned
 // trophies carries their ids and a nonce, and is tagged `origin` for the window
 // whose action earned them, so that window alone plays the unlock.

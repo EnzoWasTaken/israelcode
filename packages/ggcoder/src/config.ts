@@ -39,7 +39,7 @@ export interface SavedSettings {
   idealReviewEnabled: boolean;
   /** Append LSP diagnostics to edit/write tool results. */
   lspDiagnostics: boolean;
-  /** Allow write/edit outside the workspace (cwd, tmpdir, ~/.gg). */
+  /** Allow write/edit outside the workspace (cwd, tmpdir, ~/.israelcode). */
   allowOutsideWorkspaceWrites: boolean;
   /** Connect MCP servers declared in the opened repo's .gg/mcp.json. That file
    *  is repo-controlled, so a malicious repo could run a command the moment
@@ -198,7 +198,7 @@ function isValidThemeSetting(value: string): value is "auto" | ThemeName {
 }
 
 /**
- * SHA-256 of every agent body ggcoder has ever seeded into `~/.gg/agents`.
+ * SHA-256 of every agent body ggcoder has ever seeded into `~/.israelcode/agents`.
  *
  * All of those names now ship as BUNDLED_AGENTS with richer prompts, and user-dir
  * agents take precedence — so a seeded copy silently shadows the bundled one
@@ -229,11 +229,11 @@ export const SHADOWING_SEEDED_AGENT_HASHES: Record<string, readonly string[]> = 
  *
  * Nothing is seeded anymore: bee/owl/researcher/worker/auditor/skeptic ship as
  * BUNDLED_AGENTS, which stay improvable across upgrades. A file written to
- * `~/.gg/agents` never would.
+ * `~/.israelcode/agents` never would.
  *
  * Exported for tests: `getAppPaths()` resolves `os.homedir()` inside gg-core's
  * prebuilt dist, which vitest does not transform, so a homedir spy would not
- * apply and the test would operate on the developer's real `~/.gg`. Tests must
+ * apply and the test would operate on the developer's real `~/.israelcode`. Tests must
  * call this with an explicit temp directory instead of going via ensureAppDirs.
  */
 export async function seedDefaultAgents(agentsDir: string): Promise<void> {
@@ -261,7 +261,7 @@ async function removeShadowingSeededAgents(agentsDir: string): Promise<void> {
 }
 
 /**
- * find-skills was seeded into `~/.gg/skills` by earlier versions and is no
+ * find-skills was seeded into `~/.israelcode/skills` by earlier versions and is no
  * longer shipped (nor is the /setup-skills command that drove it). Delete a
  * copy only when it is byte-identical to one we wrote, so a user who edited
  * it keeps theirs. Hashes cover every variant in `git log -p -- src/config.ts`.
@@ -275,7 +275,7 @@ export const RETIRED_SEEDED_SKILL_HASHES: Record<string, readonly string[]> = {
 
 /**
  * Exported for tests, which must pass a temp dir (see seedDefaultAgents for
- * why going through ensureAppDirs would touch the real `~/.gg`).
+ * why going through ensureAppDirs would touch the real `~/.israelcode`).
  */
 export async function removeRetiredSeededSkills(skillsDir: string): Promise<void> {
   for (const [filename, seededHashes] of Object.entries(RETIRED_SEEDED_SKILL_HASHES)) {

@@ -1,17 +1,17 @@
-// Centered "GG CODER" ASCII banner with a horizontal gradient + animated
+// Centered "ISRAEL CODE" ASCII banner with a horizontal gradient + animated
 // shimmer sweep. Set in the "Delta Corps Priest 1" FIGlet font. Every line is
 // padded to the same width: the home screen centres text, so ragged lines would
 // each centre on their own and shear the letters apart.
 const LOGO_LINES = [
-  "   ▄██████▄     ▄██████▄        ▄████████  ▄██████▄  ████████▄     ▄████████    ▄████████",
-  "  ███    ███   ███    ███      ███    ███ ███    ███ ███   ▀███   ███    ███   ███    ███",
-  "  ███    █▀    ███    █▀       ███    █▀  ███    ███ ███    ███   ███    █▀    ███    ███",
-  " ▄███         ▄███             ███        ███    ███ ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀",
-  "▀▀███ ████▄  ▀▀███ ████▄       ███        ███    ███ ███    ███ ▀▀███▀▀▀     ▀▀███▀▀▀▀▀  ",
-  "  ███    ███   ███    ███      ███    █▄  ███    ███ ███    ███   ███    █▄  ▀███████████",
-  "  ███    ███   ███    ███      ███    ███ ███    ███ ███   ▄███   ███    ███   ███    ███",
-  "  ████████▀    ████████▀       ████████▀   ▀██████▀  ████████▀    ██████████   ███    ███",
-  "                                                                               ███    ███",
+  " ▄█     ▄████████    ▄████████    ▄████████    ▄████████  ▄█             ▄████████  ▄██████▄  ████████▄     ▄████████",
+  "███    ███    ███   ███    ███   ███    ███   ███    ███ ███            ███    ███ ███    ███ ███   ▀███   ███    ███",
+  "███▌   ███    █▀    ███    ███   ███    ███   ███    █▀  ███            ███    █▀  ███    ███ ███    ███   ███    █▀ ",
+  "███▌   ███         ▄███▄▄▄▄██▀   ███    ███  ▄███▄▄▄     ███            ███        ███    ███ ███    ███  ▄███▄▄▄    ",
+  "███▌ ▀███████████ ▀▀███▀▀▀▀▀   ▀███████████ ▀▀███▀▀▀     ███            ███        ███    ███ ███    ███ ▀▀███▀▀▀    ",
+  "███           ███ ▀███████████   ███    ███   ███    █▄  ███            ███    █▄  ███    ███ ███    ███   ███    █▄ ",
+  "███     ▄█    ███   ███    ███   ███    ███   ███    ███ ███▌    ▄      ███    ███ ███    ███ ███   ▄███   ███    ███",
+  "█▀    ▄████████▀    ███    ███   ███    █▀    ██████████ █████▄▄██      ████████▀   ▀██████▀  ████████▀    ██████████",
+  "                    ███    ███                           ▀                                                           ",
 ];
 
 const LOGO_TEXT = LOGO_LINES.join("\n");
@@ -24,7 +24,7 @@ const LOGO_TEXT = LOGO_LINES.join("\n");
  */
 export function AsciiLogo(): React.ReactElement {
   return (
-    <div className="ascii-logo" role="img" aria-label="GG Coder">
+    <div className="ascii-logo" role="img" aria-label="Israel Code">
       <div className="ascii-logo-glitch" data-text={LOGO_TEXT} aria-hidden="true">
         {LOGO_LINES.map((line, i) => (
           <div className="ascii-logo-line" key={i}>

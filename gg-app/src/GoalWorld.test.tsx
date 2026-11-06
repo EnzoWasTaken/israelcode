@@ -95,11 +95,11 @@ describe("GoalWorld", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("complementary")).toBeNull();
     expect(view.querySelector(".goal-world-summary")?.textContent).toBe(
-      "GG Goals: Reading a.ts. researcher: Searching web for seo.",
+      "Israel Goals: Reading a.ts. researcher: Searching web for seo.",
     );
   });
 
-  it("hangs GG Goals' question over the farm until the user goes to answer it", () => {
+  it("hangs Israel Goals' question over the farm until the user goes to answer it", () => {
     const onAnswer = vi.fn();
     const { rerender } = render(
       <GoalWorld
@@ -113,7 +113,7 @@ describe("GoalWorld", () => {
       />,
     );
     const notice = screen.getByRole("alert");
-    expect(notice.textContent).toContain("Ken needs you");
+    expect(notice.textContent).toContain("Israel needs you");
     expect(notice.textContent).toContain("Which database should we use?");
     fireEvent.click(screen.getByRole("button", { name: "Answer in Chat" }));
     expect(onAnswer).toHaveBeenCalledTimes(1);
@@ -166,7 +166,7 @@ describe("GoalWorld", () => {
     expect(screen.getByRole("alert").textContent).toContain("Which one?");
   });
 
-  it("shows Ken's status, and steps it aside while a sign is up so only one thing shows", () => {
+  it("shows Israel's status, and steps it aside while a sign is up so only one thing shows", () => {
     const status = {
       key: "tool:1",
       tone: "work",
@@ -218,7 +218,7 @@ describe("GoalWorld", () => {
         {
           key: COORDINATOR_KEY,
           agentName: undefined,
-          name: "GG Goals",
+          name: "Israel Goals",
           coordinator: true,
           status: "idle",
           kind: null,
@@ -234,6 +234,6 @@ describe("GoalWorld", () => {
           detail: "Stopped",
         },
       ]),
-    ).toBe("GG Goals: Ready when you are. worker: stopped.");
+    ).toBe("Israel Goals: Ready when you are. worker: stopped.");
   });
 });

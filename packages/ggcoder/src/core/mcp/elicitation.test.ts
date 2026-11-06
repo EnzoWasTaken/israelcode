@@ -83,12 +83,12 @@ describe("MCP elicitation round-trip", () => {
         "count",
         "confirm",
       ]);
-      return { action: "accept", content: { name: "Ken", count: 3, confirm: true } };
+      return { action: "accept", content: { name: "Israel", count: 3, confirm: true } };
     }).connectAll([config()]);
 
     expect(JSON.parse(await callTool(tools, "ask"))).toEqual({
       action: "accept",
-      content: { name: "Ken", count: 3, confirm: true },
+      content: { name: "Israel", count: 3, confirm: true },
     });
     expect(seen).toEqual({ server: "elicit-fixture", message: "The server needs some details" });
   }, 30_000);

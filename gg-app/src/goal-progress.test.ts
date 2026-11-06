@@ -42,7 +42,7 @@ describe("tallyGoal", () => {
     expect(tallyGoal(tally, seen(["a", "working"]))).toBe(tally);
   });
 
-  it("counts GG Goals as working only while it does hands-on work itself", () => {
+  it("counts Israel Goals as working only while it does hands-on work itself", () => {
     // Hybrid: GG Goals edits and runs commands itself; the header shouldn't
     // read "0 working" while it does.
     expect(coordinatorAtWork([{ name: "edit", status: "running" }])).toBe(true);
@@ -75,7 +75,7 @@ describe("blockingAsk", () => {
     ...extra,
   });
 
-  it("finds the latest question GG Goals is still waiting on", () => {
+  it("finds the latest question Israel Goals is still waiting on", () => {
     expect(blockingAsk([ask("old"), ask("new")])).toEqual({
       id: "new",
       question: "Question new?",

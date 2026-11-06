@@ -13,7 +13,7 @@ interface Props {
 const TITLE: Readonly<Record<GoalFinish["outcome"], string>> = {
   done: "Job done",
   unverified: "Done, not all checked",
-  failed: "Ken got stuck",
+  failed: "Israel got stuck",
 };
 
 /**

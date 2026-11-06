@@ -227,10 +227,10 @@ export function KenDialogue({
         type="button"
         className="ken-dialogue-box"
         tabIndex={up ? 0 : -1}
-        aria-label={line ? `Ken: ${line.text}. ${lineOut ? "Dismiss" : "Show all"}` : undefined}
+        aria-label={line ? `Israel: ${line.text}. ${lineOut ? "Dismiss" : "Show all"}` : undefined}
         onClick={onClick}
       >
-        <span className="ken-dialogue-name">Ken</span>
+        <span className="ken-dialogue-name">Israel</span>
         <span className="ken-dialogue-text" aria-hidden="true">
           {line?.text.slice(0, shown)}
         </span>
@@ -238,7 +238,7 @@ export function KenDialogue({
       </button>
       {/* Read out once, whole, when he starts the line (not letter by letter). */}
       <p className="sr-only" aria-live="polite">
-        {line && phase !== "leaving" ? `Ken: ${line.text}` : ""}
+        {line && phase !== "leaving" ? `Israel: ${line.text}` : ""}
       </p>
     </div>
   );

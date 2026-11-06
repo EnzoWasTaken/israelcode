@@ -45,13 +45,13 @@ describe("KenDialogue", () => {
     expect(phase(container)).toBe("hidden");
   });
 
-  it("says Ken's new line, then leaves on its own", () => {
+  it("says Israel's new line, then leaves on its own", () => {
     const props = { workers: [], paused: false, reducedMotion: true } as const;
     const { container, rerender } = render(<KenDialogue said={null} {...props} />);
     rerender(<KenDialogue said={said(2, "Images done.")} {...props} />);
     wait(1000);
     expect(phase(container)).toBe("talking");
-    expect(screen.getByRole("button", { name: /Ken: Images done\./ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Israel: Images done\./ })).toBeTruthy();
     wait(10_000);
     expect(phase(container)).toBe("hidden");
   });

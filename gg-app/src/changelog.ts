@@ -25,7 +25,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.104.1",
     date: "2026-11-06",
     items: [
-      "A quick follow-up so your `Mac` gets this update too. The smarter `Plan Mode`, the one red Stop button and Ken's fresh look now land on Mac, Windows and Linux together.",
+      "A quick follow-up so your `Mac` gets this update too. The smarter `Plan Mode`, the one red Stop button and Israel's fresh look now land on Mac, Windows and Linux together.",
     ],
   },
   {
@@ -33,8 +33,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-11-06",
     items: [
       "`Plan Mode` got a full glow-up. It now kicks in on its own for the big, careful jobs and stays out of your way on quick fixes. It researches the real code first, asks you when something is unclear, and can send read-only helpers like `researcher` to dig in parallel. Plans land under a gold pixel title with crisp pixel ticks as each step is done.",
-      "Stopping is now one big red button. The send key turns red and pulses while GG, `Autopilot` or Ken is working, and one click stops whichever of them is busy. No more hunting for a tiny Stop link.",
-      "Ken has a fresh look. Your `@Ken` messages are solid teal bubbles, and his replies come with his little pixel face and name on top, so you always know who is talking.",
+      "Stopping is now one big red button. The send key turns red and pulses while Israel Code, `Autopilot` or Israel is working, and one click stops whichever of them is busy. No more hunting for a tiny Stop link.",
+      "Israel has a fresh look. Your `@Israel` messages are solid teal bubbles, and his replies come with his little pixel face and name on top, so you always know who is talking.",
     ],
   },
   {
@@ -64,7 +64,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.102.2",
     date: "2026-11-05",
     items: [
-      "Drop in a `PDF` or `EPUB` and GG Coder actually reads it now. I taught the agent to open books, papers and docs as plain text, raised the limit to `100 MB` per message, and if a file is ever too big you get a clear heads-up with your draft still waiting, instead of a message that silently goes nowhere.",
+      "Drop in a `PDF` or `EPUB` and Israel Code actually reads it now. I taught the agent to open books, papers and docs as plain text, raised the limit to `100 MB` per message, and if a file is ever too big you get a clear heads-up with your draft still waiting, instead of a message that silently goes nowhere.",
       "Your attachments finally show up where you sent them. Every file and video now sits right inside your message with its name, stays there when you reopen the chat, and the paperclip button happily picks any file type, not just pictures and videos.",
     ],
   },
@@ -73,7 +73,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-11-04",
     items: [
       "OpenRouter just got way more flexible. Point your key at any compatible gateway with an optional base URL, then hit `Sync models` to swap in exactly what that endpoint serves, complete with real context sizes, image support and effort levels. Pick `max` and you now get `max`, no sneaky downgrades.",
-      "Local models now run at their true size. Pin a `context length` on any custom endpoint in Local models, and llama.cpp servers tell GG Coder their real window by themselves, so long chats stop getting cut short.",
+      "Local models now run at their true size. Pin a `context length` on any custom endpoint in Local models, and llama.cpp servers tell Israel Code their real window by themselves, so long chats stop getting cut short.",
       "Radio finally knows when to stop. If the app crashes or gets force-quit, the next launch silences the leftover player, and on Windows hitting stop now really stops the music.",
       "The `Update` key looks sharp again. I lined its version number up perfectly with the label, so it sits neat and tidy right where it belongs.",
     ],
@@ -83,15 +83,15 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-11-04",
     items: [
       "MiniMax just got a serious upgrade. `MiniMax M3.1 Flash` is now the default, it works on MiniMax plan keys, and you pick how hard it thinks, from quick to `max`. Your key now finds its own region by itself, whether it came from the global or the China site, and plan problems finally say MiniMax instead of pretending to be Anthropic.",
-      "Xiaomi `Token Plan` keys from Europe and China now just work. I made GG Coder find the cluster that issued your key instead of rejecting it as invalid and throwing it away.",
-      "`GG Goals` now starts when you tell it to, even on small local models. Type `start the goal now` and it goes, a new window opens straight on your saved local model, and one bad setting can no longer wipe the rest of your preferences.",
+      "Xiaomi `Token Plan` keys from Europe and China now just work. I made Israel Code find the cluster that issued your key instead of rejecting it as invalid and throwing it away.",
+      "`Israel Goals` now starts when you tell it to, even on small local models. Type `start the goal now` and it goes, a new window opens straight on your saved local model, and one bad setting can no longer wipe the rest of your preferences.",
     ],
   },
   {
     version: "0.101.0",
     date: "2026-11-04",
     items: [
-      "Local models just grew up. The tile is now `Local models`, and LM Studio, llama.cpp, vLLM or any OpenAI-compatible gateway is one `Add endpoint` away, with or without a key. I made GG Coder learn the real context size each model runs with, bring your saved local model back after a restart, group the picker by server, and open your workspace even if local models are all you use.",
+      "Local models just grew up. The tile is now `Local models`, and LM Studio, llama.cpp, vLLM or any OpenAI-compatible gateway is one `Add endpoint` away, with or without a key. I made Israel Code learn the real context size each model runs with, bring your saved local model back after a restart, group the picker by server, and open your workspace even if local models are all you use.",
       "Long sessions got leaner and cheaper. On Claude, web search now runs off to the side so whole result pages stop piling into your chat, web pages are read in tidy chunks that can jump straight to a `#section`, and giant command output gets trimmed at `30 KB`. I also stopped busy tool loops from rebuilding the cache, so you wait less and spend less.",
     ],
   },
@@ -99,22 +99,22 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.100.1",
     date: "2026-11-03",
     items: [
-      "No more surprise crashes on `macOS 27`. A new macOS hiccup, often set off by the Siri button over selected text, could close GG Coder out of nowhere. I fixed it so the app shrugs it off and keeps running, and if anything ever does go wrong, the real reason now lands in the log so I can squash it fast.",
+      "No more surprise crashes on `macOS 27`. A new macOS hiccup, often set off by the Siri button over selected text, could close Israel Code out of nowhere. I fixed it so the app shrugs it off and keeps running, and if anything ever does go wrong, the real reason now lands in the log so I can squash it fast.",
     ],
   },
   {
     version: "0.100.0",
     date: "2026-11-02",
     items: [
-      "I put a terminal right inside the chat. Start your message with `!`, like `!git status`, and it runs in your project with live output, a Stop button and the exit code, while errors show up in their own colour. A picker lists the commands you use most and the ones that fit your project, GG Coder sees the output with your next message, and nothing ever runs without your OK unless you pick `Always allow` for that project.",
-      "Images in replies actually show up now. I fixed it so when GG Coder points at a screenshot or picture on your computer, you see the real image right in the chat instead of a broken question mark, and one click opens it full size.",
+      "I put a terminal right inside the chat. Start your message with `!`, like `!git status`, and it runs in your project with live output, a Stop button and the exit code, while errors show up in their own colour. A picker lists the commands you use most and the ones that fit your project, Israel Code sees the output with your next message, and nothing ever runs without your OK unless you pick `Always allow` for that project.",
+      "Images in replies actually show up now. I fixed it so when Israel Code points at a screenshot or picture on your computer, you see the real image right in the chat instead of a broken question mark, and one click opens it full size.",
     ],
   },
   {
     version: "0.99.1",
     date: "2026-11-01",
     items: [
-      "Picking up an old chat just works again. If GG Coder had searched the web earlier in a conversation, reopening it after the last update could bounce back with an `HTTP 400` error. I fixed it, so every saved chat continues right where you left off.",
+      "Picking up an old chat just works again. If Israel Code had searched the web earlier in a conversation, reopening it after the last update could bounce back with an `HTTP 400` error. I fixed it, so every saved chat continues right where you left off.",
       "Helpers report back once, cleanly. After you collect a helper's result, you no longer get a second \"it's done\" ping, and the app now clears out checkpoint folders older than `30 days` on startup, freeing up to `51 MB` on a busy machine.",
     ],
   },
@@ -123,16 +123,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-11-01",
     items: [
       "Long sessions just got a lot snappier. I now tidy conversations up at `400k` tokens instead of letting them balloon toward a million, and pulling in a new tool mid-chat no longer throws away the prompt cache, so replies start sooner and cost less.",
-      "Really long sessions keep their memory now. When a giant conversation gets summarized, I shrink and retry instead of falling back to a thin file list, so GG Coder still knows your goal and everything it already did.",
+      "Really long sessions keep their memory now. When a giant conversation gets summarized, I shrink and retry instead of falling back to a thin file list, so Israel Code still knows your goal and everything it already did.",
       "Everyday tools are faster. `find` runs up to `49x` quicker in big repos, helpers spin up sooner, and their reports land with the answer on top instead of cut off at the end.",
-      "GG Coder now cleans up after itself. Old checkpoints, diagnostics and helper leftovers clear out after `30 days`, logs are about a third smaller, and your prompts never get written into debug logs.",
+      "Israel Code now cleans up after itself. Old checkpoints, diagnostics and helper leftovers clear out after `30 days`, logs are about a third smaller, and your prompts never get written into debug logs.",
     ],
   },
   {
     version: "0.98.2",
     date: "2026-11-01",
     items: [
-      "Signing in with your Claude account just got sturdier. GG Coder now always speaks to Anthropic as a current Claude Code, even on a first launch with no internet, so `Opus 5.5` never gets turned away for an outdated version.",
+      "Signing in with your Claude account just got sturdier. Israel Code now always speaks to Anthropic as a current Claude Code, even on a first launch with no internet, so `Opus 5.5` never gets turned away for an outdated version.",
     ],
   },
   {
@@ -146,8 +146,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.98.0",
     date: "2026-10-31",
     items: [
-      "GG Coder now runs on `Linux`. Grab the `.deb` for Ubuntu and Debian or the `.rpm` for Fedora, install it, and you get the exact same app as on Mac and Windows, with updates landing right inside the app.",
-      "Ken's activity bar now looks just like the main one, with the same `Stop` key and the tool panel toggle right beside it, so keeping an eye on him or cutting him off takes one click.",
+      "Israel Code now runs on `Linux`. Grab the `.deb` for Ubuntu and Debian or the `.rpm` for Fedora, install it, and you get the exact same app as on Mac and Windows, with updates landing right inside the app.",
+      "Israel's activity bar now looks just like the main one, with the same `Stop` key and the tool panel toggle right beside it, so keeping an eye on him or cutting him off takes one click.",
       "Home feels right at every size. The mode plates and tagline grow together in big windows and all `five` modes stay on one tidy row even in the smallest window.",
       "`Notes` in the side panel now wrap properly instead of running off the edge, so long notes stay readable.",
     ],
@@ -192,7 +192,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.97.0",
     date: "2026-10-28",
     items: [
-      "Say hello to `GG World`, the brand-new hangout that replaces GG Royale. Walk around a living 3D world with up to `50` real players, chat, emote, grab a drink and code at an in-game PC that opens your own GG Coder. Every mini-game was rebuilt from scratch, it runs a buttery `60 fps`, and an optional online save keeps your progress, wardrobe and level wherever you play.",
+      "Say hello to `GG World`, the brand-new hangout that replaces GG Royale. Walk around a living 3D world with up to `50` real players, chat, emote, grab a drink and code at an in-game PC that opens your own Israel Code. Every mini-game was rebuilt from scratch, it runs a buttery `60 fps`, and an optional online save keeps your progress, wardrobe and level wherever you play.",
       "Your agent got leaner and smarter about when to slow down. I benchmarked every built-in skill on and off and kept only the ones that actually change results: `durable` for anything that could lose data and `compliance-guard` for privacy, consent and tracking. The rest just made runs slower, so they're gone. GPT models also stopped loading skills they don't need, cutting wasted steps on everyday tasks.",
     ],
   },
@@ -201,22 +201,22 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-25",
     items: [
       "The little critter that greets you on a fresh window got a glow-up. Its speech bubble is now proper chunky pixel art in the same `m5x7` lettering and stepped tail the `GG Royale` critters talk in, and the critter itself stands at its true size with a shadow underneath instead of looking squished.",
-      "Your built-in malware guard now stays sharp on `Windows` too. I fixed a sneaky case where a quick refresh of the daily threat feed could leave GG holding yesterday's list, so freshly flagged bad packages get caught the moment they land.",
+      "Your built-in malware guard now stays sharp on `Windows` too. I fixed a sneaky case where a quick refresh of the daily threat feed could leave Israel Code holding yesterday's list, so freshly flagged bad packages get caught the moment they land.",
     ],
   },
   {
     version: "0.96.2",
     date: "2026-10-25",
     items: [
-      "This is a whole new level for GG Coder. I raced it against `19` other coding agents on the same model, `Claude Code` included, and GG finished first on speed and used the least of every single one of them. Your agent now makes each change in one clean move and already knows your project's files before it starts, so a typical task lands about `21%` faster than last version while burning less of your plan. The fastest coding agent I have ever tested.",
+      "This is a whole new level for Israel Code. I raced it against `19` other coding agents on the same model, `Claude Code` included, and Israel Code finished first on speed and used the least of every single one of them. Your agent now makes each change in one clean move and already knows your project's files before it starts, so a typical task lands about `21%` faster than last version while burning less of your plan. The fastest coding agent I have ever tested.",
     ],
   },
   {
     version: "0.96.1",
     date: "2026-10-24",
     items: [
-      "Heads up on `Gemini`: Google is suspending accounts for using their Gemini subscription through third-party harnesses. That's any third-party tool, not just GG Coder. I'm not supporting that trash here, so Gemini is gone from the login list, the model picker and startup. If you were signed in, GG simply moves you to another provider and your account stays safe.",
-      "Grok subscription chats are back. xAI started rejecting older clients with an `HTTP 426` error, so I updated GG to speak their latest `Grok CLI` version and your Grok plan works again right away.",
+      "Heads up on `Gemini`: Google is suspending accounts for using their Gemini subscription through third-party harnesses. That's any third-party tool, not just Israel Code. I'm not supporting that trash here, so Gemini is gone from the login list, the model picker and startup. If you were signed in, Israel Code simply moves you to another provider and your account stays safe.",
+      "Grok subscription chats are back. xAI started rejecting older clients with an `HTTP 426` error, so I updated Israel Code to speak their latest `Grok CLI` version and your Grok plan works again right away.",
       "Your agent now reads routine command output in far fewer tokens. Long `git log` and `git status` output, folder listings and all-green test runs get trimmed down to just the facts, so every session runs a little cheaper and a little faster. Failures always come through in full.",
     ],
   },
@@ -224,25 +224,25 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.96.0",
     date: "2026-10-24",
     items: [
-      "Welcome to `GG Royale`, an online blackjack table built right into GG Coder. You play with chips you earn by actually coding: finished runs, commits, bugs you squash and deploys that go live all pay out, and you can sit at a table with other players and chat. There is no real money anywhere. Linking only shares that something happened, never your code, files or prompts, and you can wipe all your Royale data any time.",
-      "Home got a full pixel-art makeover. A hand-lettered gold `GG Coder` title now sits over an evening clearing in the pines that follows your local time of day, with drifting mist, sunbeams and fireflies, plus chunky new plate buttons and tooltips to match. Even this `What's new` window now opens beside a little campfire.",
-      "No more two-minute stalls when the AI goes quiet. If a reply hasn't started when it should, GG quietly fires a backup request and takes whichever answers first, so a stuck request costs you seconds instead of a long `Retrying…`, and a slow but healthy reply is never cut off.",
-      "I sharpened the built-in skills GG leans on for security, privacy law, databases, UI design, speed and debugging. They are leaner, more up to date and kick in at the right moments, so you get better answers with less wasted effort.",
+      "Welcome to `GG Royale`, an online blackjack table built right into Israel Code. You play with chips you earn by actually coding: finished runs, commits, bugs you squash and deploys that go live all pay out, and you can sit at a table with other players and chat. There is no real money anywhere. Linking only shares that something happened, never your code, files or prompts, and you can wipe all your Royale data any time.",
+      "Home got a full pixel-art makeover. A hand-lettered gold `Israel Code` title now sits over an evening clearing in the pines that follows your local time of day, with drifting mist, sunbeams and fireflies, plus chunky new plate buttons and tooltips to match. Even this `What's new` window now opens beside a little campfire.",
+      "No more two-minute stalls when the AI goes quiet. If a reply hasn't started when it should, Israel Code quietly fires a backup request and takes whichever answers first, so a stuck request costs you seconds instead of a long `Retrying…`, and a slow but healthy reply is never cut off.",
+      "I sharpened the built-in skills Israel Code leans on for security, privacy law, databases, UI design, speed and debugging. They are leaner, more up to date and kick in at the right moments, so you get better answers with less wasted effort.",
     ],
   },
   {
     version: "0.95.0",
     date: "2026-10-21",
     items: [
-      "Trophies are here, and there are `144` of them to hunt. Every one you earn teaches you something GG can do, from your first slash command and a polished `Enhance` prompt all the way up to a `365`-day streak. Each unlock lands in the corner as a card that charges up, crackles with light and spins over, with its own sound, then files itself away. Open the context key on the deck and hit the trophy button beside your level to see what you've won, what's still out there and exactly how to get it. Everyone starts from zero today, so the race is wide open.",
+      "Trophies are here, and there are `144` of them to hunt. Every one you earn teaches you something Israel Code can do, from your first slash command and a polished `Enhance` prompt all the way up to a `365`-day streak. Each unlock lands in the corner as a card that charges up, crackles with light and spins over, with its own sound, then files itself away. Open the context key on the deck and hit the trophy button beside your level to see what you've won, what's still out there and exactly how to get it. Everyone starts from zero today, so the race is wide open.",
     ],
   },
   {
     version: "0.94.3",
     date: "2026-10-21",
     items: [
-      "No more surprise sign-outs. When several windows refreshed your login at the same moment, one could wipe out the fresh login another had just saved, and every chat suddenly said `Not logged in`. Now GG notices the newer login and keeps using it, so your sessions stay connected through the night.",
-      "GG keeps its flight recorder running no matter how long the app stays open. It used to go quiet after just `15 minutes` when the log file was nearly full, so when something went wrong a day later there was nothing to look at. Now it rolls over to a fresh file and keeps recording, so I can track down real problems fast.",
+      "No more surprise sign-outs. When several windows refreshed your login at the same moment, one could wipe out the fresh login another had just saved, and every chat suddenly said `Not logged in`. Now Israel Code notices the newer login and keeps using it, so your sessions stay connected through the night.",
+      "Israel Code keeps its flight recorder running no matter how long the app stays open. It used to go quiet after just `15 minutes` when the log file was nearly full, so when something went wrong a day later there was nothing to look at. Now it rolls over to a fresh file and keeps recording, so I can track down real problems fast.",
     ],
   },
   {
@@ -256,33 +256,33 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.94.1",
     date: "2026-10-19",
     items: [
-      "Your agent stops installing old versions with serious security holes. AI models love pinning ancient releases like `axios@0.21.1`, so when a version has a known high or critical flaw and a fixed release exists in the same line, GG quietly moves it there instead, straight to `axios@0.34.0`. Nothing breaks, nothing asks you anything, and everyday installs stay exactly as fast as before.",
+      "Your agent stops installing old versions with serious security holes. AI models love pinning ancient releases like `axios@0.21.1`, so when a version has a known high or critical flaw and a fixed release exists in the same line, Israel Code quietly moves it there instead, straight to `axios@0.34.0`. Nothing breaks, nothing asks you anything, and everyday installs stay exactly as fast as before.",
     ],
   },
   {
     version: "0.94.0",
     date: "2026-10-19",
     items: [
-      "Your agent can no longer install a hijacked package. Every big npm hijack of the last two years was live for only a few hours, so GG now skips any release younger than `2 days` and checks every install against the public malware list, which refreshes itself daily. If a package already in your project gets flagged later, GG spots it, swaps it out and writes it into your `CLAUDE.md` so every future session steers clear. No pop-ups, no questions. It just handles it.",
-      "Poisoned skills, sneaky `MCP` servers and booby-trapped web pages can't turn your agent against you anymore. Skills carrying malware never load, MCP tools with hidden orders get quietly hidden, and if a README tries to make your agent leak your keys or switch off its own safety, GG stops it cold.",
-      "You always know what got stopped. Every block lands in your chat as one plain line, repeats fold into a single row, and your agent tells you what it did instead. I ran all of it against over `100,000` of my own real coding actions to make sure it stays out of your way, and GG starts just as fast as before.",
+      "Your agent can no longer install a hijacked package. Every big npm hijack of the last two years was live for only a few hours, so Israel Code now skips any release younger than `2 days` and checks every install against the public malware list, which refreshes itself daily. If a package already in your project gets flagged later, Israel Code spots it, swaps it out and writes it into your `CLAUDE.md` so every future session steers clear. No pop-ups, no questions. It just handles it.",
+      "Poisoned skills, sneaky `MCP` servers and booby-trapped web pages can't turn your agent against you anymore. Skills carrying malware never load, MCP tools with hidden orders get quietly hidden, and if a README tries to make your agent leak your keys or switch off its own safety, Israel Code stops it cold.",
+      "You always know what got stopped. Every block lands in your chat as one plain line, repeats fold into a single row, and your agent tells you what it did instead. I ran all of it against over `100,000` of my own real coding actions to make sure it stays out of your way, and Israel Code starts just as fast as before.",
     ],
   },
   {
     version: "0.93.6",
     date: "2026-10-18",
     items: [
-      "GG Coder just got leaner again. I only load web search when you actually need the web, slimmed down what searches hand back to your agent, and moved a startup check out of your way. On `Claude Haiku 5.5` that's `24%` fewer tokens per task with more tasks passing, and in a fresh race against `9` other agents GG came out cheapest of all and level with the fastest. Your plan now stretches to about `2.2x` the coding you'd get from Claude Code.",
+      "Israel Code just got leaner again. I only load web search when you actually need the web, slimmed down what searches hand back to your agent, and moved a startup check out of your way. On `Claude Haiku 5.5` that's `24%` fewer tokens per task with more tasks passing, and in a fresh race against `9` other agents Israel Code came out cheapest of all and level with the fastest. Your plan now stretches to about `2.2x` the coding you'd get from Claude Code.",
       "A search that hits minified files can no longer flood your chat. One unlucky search could dump `135k` tokens into a single reply and burn through your usage, so I now hold oversized output to its `50 KB` cap no matter how it's shaped.",
-      "The titlebar stops calling your project `not a git repo` just because git was slow to answer on a busy machine. GG now waits it out in the background and shows the real state.",
+      "The titlebar stops calling your project `not a git repo` just because git was slow to answer on a busy machine. Israel Code now waits it out in the background and shows the real state.",
     ],
   },
   {
     version: "0.93.5",
     date: "2026-10-18",
     items: [
-      "GG Coder is now the leanest coding agent I've tested. I raced it against `9` other agents on the same model, `Claude Haiku 5.5`, and GG finished every task, tied the two fastest and came out cheapest of the lot. Against Claude Code it was 14% faster and burned 47% less usage, and against Oh My Pi it was 23% faster and burned 34% less. On a subscription, that stretches your plan to roughly `1.9x` the coding you'd get from Claude Code. The trick: after it changes code, GG now gives you a tight summary instead of an essay, while answers and reviews keep their full length.",
-      "Work whose tests passed now shows as verified. Your agent often runs tests inside a bigger command, and GG couldn't count that as proof, so finished work could still look `incomplete`. Now GG quietly re-checks those tests itself in under a second, so the badge tells you the truth.",
+      "Israel Code is now the leanest coding agent I've tested. I raced it against `9` other agents on the same model, `Claude Haiku 5.5`, and Israel Code finished every task, tied the two fastest and came out cheapest of the lot. Against Claude Code it was 14% faster and burned 47% less usage, and against Oh My Pi it was 23% faster and burned 34% less. On a subscription, that stretches your plan to roughly `1.9x` the coding you'd get from Claude Code. The trick: after it changes code, Israel Code now gives you a tight summary instead of an essay, while answers and reviews keep their full length.",
+      "Work whose tests passed now shows as verified. Your agent often runs tests inside a bigger command, and Israel Code couldn't count that as proof, so finished work could still look `incomplete`. Now Israel Code quietly re-checks those tests itself in under a second, so the badge tells you the truth.",
     ],
   },
   {
@@ -347,7 +347,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.91.1",
     date: "2026-10-14",
     items: [
-      "The `About` tab now looks the way I built it. Little Ken sits beside his intro instead of stretching across the whole page, with your buttons right next to him.",
+      "The `About` tab now looks the way I built it. Little Israel sits beside his intro instead of stretching across the whole page, with your buttons right next to him.",
       "The `CI` status in your Git panel finally matches everything around it. It is the same size as `Open on GitHub` and lines up neatly beside it.",
     ],
   },
@@ -356,7 +356,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-14",
     items: [
       "Updates now arrive like a level up in an arcade. A pixel `Update` key pops up on your home screen and along the bottom of your window, turns into an XP bar with the little builder running across it while it downloads, and bursts into pixels at `100%`. I also fixed the old button going see-through when you pressed it.",
-      "Say hi in the new `About` tab at the end of Settings. Little Ken introduces himself, and a calendar shows every desktop release so far, one square per day. Point at any day to see what changed, and find me on `Skool` and YouTube right there.",
+      "Say hi in the new `About` tab at the end of Settings. Little Israel introduces himself, and a calendar shows every desktop release so far, one square per day. Point at any day to see what changed, and find me on `Skool` and YouTube right there.",
       "Settings feels a whole lot smoother. The tabs glide over in one easy motion instead of hopping around, and every page opens fully loaded, so you never catch it flickering half-ready first.",
       "The `What's new` window now matches your theme. Its stories sit on the same cards as the rest of the app, so everything reads clearly in both `Light` and `Dark`.",
       "Home got a tidy up. `Goals` wears a little Beta tag, and your version number now sits right beside What's new.",
@@ -366,7 +366,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.90.1",
     date: "2026-10-14",
     items: [
-      "Tables and code finally get room to breathe. `Tables`, `code blocks` and Ken's prompt blocks now stretch across the whole chat, so columns stop squishing and long lines stop wrapping into a mess, while your reading text stays at a comfy width.",
+      "Tables and code finally get room to breathe. `Tables`, `code blocks` and Israel's prompt blocks now stretch across the whole chat, so columns stop squishing and long lines stop wrapping into a mess, while your reading text stays at a comfy width.",
     ],
   },
   {
@@ -376,7 +376,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Meet the `Deck`, a brand new home for everything at the bottom of your window. Your model, usage, background tasks, radio, notes and checklist now open right where you type instead of floating over your chat, so even a tiny window keeps the whole conversation in view. And whatever you were typing stays safe while you look around.",
       "Your project's Git story now lives one tap away. The new `Git` panel shows every changed file with its line counts, plus your open pull requests and issues on GitHub, and opens the repo in a single click.",
       "Picking a model is now instant and fun. Type something like `opus55` or `kimi code` and the right one pops up from the whole list, and you can jump straight to any thinking level with a simple row of dots instead of clicking through them one by one.",
-      "GG Coder now comes in `Light` and `Dark`, or `Auto` to follow your Mac or PC. Flip it once and every open window switches with you, all wearing a crisp new font.",
+      "Israel Code now comes in `Light` and `Dark`, or `Auto` to follow your Mac or PC. Flip it once and every open window switches with you, all wearing a crisp new font.",
       "Everything just feels smoother. Your project, chat and goal lists show up instantly on every return visit, numbered steps keep counting right past code blocks, typed arrows turn into real ones, and a goal running on your phone never gets started twice on your desktop.",
     ],
   },
@@ -424,8 +424,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.87.1",
     date: "2026-10-12",
     items: [
-      "`Goals` now end every stretch of work with a proper end-of-level card right on the farm. You get Ken's face, his parting line and the score: time, workers, turns and tokens written, plus one tap to `Read summary in Chat`. Goal windows also show the branch, CI and Project Health of the project you attached, so you always know where the work landed.",
-      "Updates now arrive with a little parade. A frog, a bee and an axolotl hop on a strip of meadow beside `Ken just updated GG Coder!`, then march along the grass as the download fills. The ready chime plays once per update instead of once per window, and a run that fails now plays the error cue instead of the happy done sound, so you can tell what happened without looking.",
+      "`Goals` now end every stretch of work with a proper end-of-level card right on the farm. You get Israel's face, his parting line and the score: time, workers, turns and tokens written, plus one tap to `Read summary in Chat`. Goal windows also show the branch, CI and Project Health of the project you attached, so you always know where the work landed.",
+      "Updates now arrive with a little parade. A frog, a bee and an axolotl hop on a strip of meadow beside `Israel just updated Israel Code!`, then march along the grass as the download fills. The ready chime plays once per update instead of once per window, and a run that fails now plays the error cue instead of the happy done sound, so you can tell what happened without looking.",
       "Changing your projects folder in Settings no longer wipes everything else. Your saved models, `Autopilot` picks, hidden projects and local endpoints all stay exactly where you left them.",
       "Switch languages mid-chat and the agent keeps up. The moment a new language shows up in your project, it picks up the right coding style, and its helper agents get the same guidance, all without throwing away the conversation's cache.",
       "Sending a message feels calmer. File chips and the cache notice now clear in the same beat as your send, so the chat stops jumping up and back down.",
@@ -435,7 +435,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.87.0",
     date: "2026-10-12",
     items: [
-      "Say hello to `Goals`, my brand new mode, now in `Beta`. Tap `New goal` on the home screen, name it, describe the outcome you want, and attach any folders it should know about. GG Goals agrees the plan with you up front, then owns the whole thing end to end, doing the work itself or sending out a little team of critter workers to build, scout, research and check while you walk away. You can watch them get busy on a cozy farm, and any question it asks you waits safely even if you reload. It is fresh out of the oven, so I would love to hear how it goes for you.",
+      "Say hello to `Goals`, my brand new mode, now in `Beta`. Tap `New goal` on the home screen, name it, describe the outcome you want, and attach any folders it should know about. Israel Goals agrees the plan with you up front, then owns the whole thing end to end, doing the work itself or sending out a little team of critter workers to build, scout, research and check while you walk away. You can watch them get busy on a cozy farm, and any question it asks you waits safely even if you reload. It is fresh out of the oven, so I would love to hear how it goes for you.",
       "Rewriting files is smoother now. When the agent needs to replace a file it just does it instead of stalling, and it backs up any lines it had not looked at yet so nothing you care about quietly disappears.",
     ],
   },
@@ -444,7 +444,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-10",
     items: [
       "Meet the built-in `/commit`, in every project. One command runs your checks and tests, reviews the change, then commits and pushes it. Because the commit is now where your work gets proven, plain replies stop nagging you with `Unverified` badges.",
-      "Claude just got a lot cheaper and quicker in GG Coder. I rebuilt the caching and handed Claude a simpler edit tool, so long agent runs reuse more and break fewer edits. In my benchmarks, Sonnet runs cost up to `45%` less.",
+      "Claude just got a lot cheaper and quicker in Israel Code. I rebuilt the caching and handed Claude a simpler edit tool, so long agent runs reuse more and break fewer edits. In my benchmarks, Sonnet runs cost up to `45%` less.",
       "Fewer runs die on a bad network day. When a provider hiccups with a Cloudflare `520` to `524` error, I now retry it for you automatically instead of stopping your task cold.",
     ],
   },
@@ -452,7 +452,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.85.0",
     date: "2026-10-09",
     items: [
-      "The engine under GG Coder just learned to search by meaning. I built `embeddings` and `reranking` right into it, working across OpenAI, OpenRouter, Gemini and your own local models, so it now has the foundation for smarter, privacy-first retrieval without a single extra moving part on your machine.",
+      "The engine under Israel Code just learned to search by meaning. I built `embeddings` and `reranking` right into it, working across OpenAI, OpenRouter, Gemini and your own local models, so it now has the foundation for smarter, privacy-first retrieval without a single extra moving part on your machine.",
     ],
   },
   {
@@ -489,7 +489,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-07",
     items: [
       "Plans never get stuck in limbo again. Whether `Autopilot` approves, hands a plan back to you or hits a snag, the `Accept` box now shows up the moment the plan is truly yours, and it even comes back after a reload. If an accept can't go through, I tell you why and let you try again instead of silently doing nothing.",
-      "Planning got sharper and safer. If your agent drafts a plan but forgets to submit it, I nudge it to finish the job, and when you or Ken send feedback it revises in `read-only` mode, so no code gets touched until you approve.",
+      "Planning got sharper and safer. If your agent drafts a plan but forgets to submit it, I nudge it to finish the job, and when you or Israel send feedback it revises in `read-only` mode, so no code gets touched until you approve.",
     ],
   },
   {
@@ -535,7 +535,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.81.0",
     date: "2026-10-05",
     items: [
-      "I put GG head to head with OpenAI's own `Codex` on the same model and tasks, then tuned until it won. GG now finishes the whole run about `5%` faster than Codex and roughly `20%` faster than before, with every task still passing.",
+      "I put Israel Code head to head with OpenAI's own `Codex` on the same model and tasks, then tuned until it won. Israel Code now finishes the whole run about `5%` faster than Codex and roughly `20%` faster than before, with every task still passing.",
       "Big changes land in one sweep. The agent can now edit `10` files in a single step instead of crawling through them one at a time, so renames and refactors across your project finish way sooner.",
       "Bug fixes are quicker and they stick. When the cause is clear, I have the agent ship the fix together with a small regression test and run it once, so the same bug can't sneak back.",
       "Less busywork before the real work. The agent stops hunting for instruction files it already knows about, skips loading extra skills for everyday fixes, and reads the files it needs in one go.",
@@ -577,7 +577,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.77.0",
     date: "2026-10-02",
     items: [
-      "GG Coder just got a whole lot more personality. A fresh `app icon`, a little robot face that reacts to how each task went, and tiny critters that greet you on an empty chat, munch your old messages when the chat gets compacted, and narrate every safety check. Click one and it hops and says hi.",
+      "Israel Code just got a whole lot more personality. A fresh `app icon`, a little robot face that reacts to how each task went, and tiny critters that greet you on an empty chat, munch your old messages when the chat gets compacted, and narrate every safety check. Click one and it hops and says hi.",
       "Never pay full price by surprise again. If you step away long enough for the AI's memory of your chat to go cold, a heads-up appears before you send, with a one-click `Compact first` so the next message stays cheap.",
       "Your helper agents now come with proof. Every report carries a receipt of the files they really read and changed and the commands they really ran, so the main agent can spot claims that don't add up.",
       "Interrupt the agent mid-command and it listens instantly. Send a new message while a tool runs and it stops right there and picks up your note, while file edits always finish cleanly so nothing is left half-written.",
@@ -588,7 +588,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.76.1",
     date: "2026-10-02",
     items: [
-      "Less waiting on your videos. I sped up `GG Motion` checks by letting up to `4` parts run at once, with the workload matched to your computer. You get back to creating sooner.",
+      "Less waiting on your videos. I sped up `Israel Motion` checks by letting up to `4` parts run at once, with the workload matched to your computer. You get back to creating sooner.",
       "Long chats full of `screenshots` now make better use of what the AI already remembers. I changed how old images are tidied up, so each new picture doesn't keep forcing the AI to reread the same history. Less repeated work as you keep building.",
     ],
   },
@@ -607,9 +607,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.75.0",
     date: "2026-10-02",
     items: [
-      "Ken finally has a face. His replies now open with a little animated pixel portrait of me that blinks and talks while he types. Flip `Autopilot` on and he wakes up with a happy hop, flip it off and he nods off with a sleepy `z`.",
+      "Israel finally has a face. His replies now open with a little animated pixel portrait of me that blinks and talks while he types. Flip `Autopilot` on and he wakes up with a happy hop, flip it off and he nods off with a sleepy `z`.",
       "Your home screen is alive. The whole critter crew now beams in along the bottom on a fresh world every visit, from a sunny `meadow` to a beach, a desert, snow or deep `space`. Watch them wander, meet up and play, and give one a click to make it jump.",
-      "`Autopilot` reviews are sharper and never quietly stall. Ken now sees exactly which files changed before he signs off, and he tells you plainly when he couldn't double-check against real-world code. I also fixed a check that could leave finished work stuck on `Unverified` and stop him reviewing altogether.",
+      "`Autopilot` reviews are sharper and never quietly stall. Israel now sees exactly which files changed before he signs off, and he tells you plainly when he couldn't double-check against real-world code. I also fixed a check that could leave finished work stuck on `Unverified` and stop him reviewing altogether.",
     ],
   },
   {
@@ -617,7 +617,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-01",
     items: [
       "Your helper agents now come to life as little pixel `critters`. Watch them beam in above the chat, wander around, hop with every new task and tell you what they're up to, then wave goodbye when the job is done. Give one a click and see how it reacts.",
-      "`GG Motion` now gets to know your video before it starts. It asks up to `3` plain questions, like where people will mostly watch it, then builds the whole thing without bugging you again. Every render is also screened for harmful flashing, so your videos stay safe for people with photosensitive epilepsy.",
+      "`Israel Motion` now gets to know your video before it starts. It asks up to `3` plain questions, like where people will mostly watch it, then builds the whole thing without bugging you again. Every render is also screened for harmful flashing, so your videos stay safe for people with photosensitive epilepsy.",
       "Your project list is clean again. I stopped it from filling up with hidden tool folders and projects you opened once but never actually worked in, so only your real work shows up.",
       "On `Windows` and `Linux`, the window layout menu no longer hides behind your chat. Every option is right there and ready to click.",
     ],
@@ -629,7 +629,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "No more mystery freezes. A command like `npm run dev &` could leave the AI stuck waiting for a full `2 minutes`, and now it's back in about a second. With the sandbox switched on, the Stop button now truly stops a command too.",
       "Your big files are safe with the AI. If it has only read the first `2,000 lines` of a huge file, I now stop it from rewriting the whole thing and quietly losing the lines it never saw. It has to read the rest first, every single time.",
       "Your passwords stay private. Some database links, like the ones `Redis` uses, could sneak a password right past my secret filter. I sealed those gaps, so your passwords never reach the AI or land in your saved chats.",
-      "Signed in with `ChatGPT`? Long answers no longer stop mid-sentence and pretend they're finished. GG Coder now picks right back up when a reply gets cut off, and a dropped connection simply retries instead of running a half-written command.",
+      "Signed in with `ChatGPT`? Long answers no longer stop mid-sentence and pretend they're finished. Israel Code now picks right back up when a reply gets cut off, and a dropped connection simply retries instead of running a half-written command.",
       "Opening someone else's project is safer than ever. Sneaky repos can hide instructions in invisible text inside files like `AGENTS.md`, and I now scrub it out before the AI reads a word. I also gave the optional `sandbox` the latest security upgrades.",
     ],
   },
@@ -638,7 +638,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-30",
     items: [
       "Scrolling finally listens to you. I fixed the chat yanking you back to the bottom while the AI is still typing, so scroll up to reread anything and it stays exactly where you put it. Scroll back down and `auto-scroll` picks right back up.",
-      "`GG Motion` now turns your tweaks around faster. I taught it to check just the moments it changed, skip re-checking anything that stayed the same, and see far more of what needs fixing in one go. Your finished video still gets the same careful full check.",
+      "`Israel Motion` now turns your tweaks around faster. I taught it to check just the moments it changed, skip re-checking anything that stayed the same, and see far more of what needs fixing in one go. Your finished video still gets the same careful full check.",
       "Helpers that hit their time limit now bring back what they found. One could work for `10 minutes` and still come back empty-handed, and the reviewer that double-checks your bigger changes could get cut off before giving its verdict. I fixed both, so no effort goes to waste.",
       "I gave the whole app a silkier feel. Tooltips now fade away gently instead of blinking out, buttons and links glide into their hover colors, and in a narrow window the `uncommitted` count shrinks to just its number so your project name stays readable.",
     ],
@@ -647,14 +647,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.73.1",
     date: "2026-09-30",
     items: [
-      "`GPT-6.1 Sol` now works when you sign in with your ChatGPT account. OpenAI only hands it out to the newest Codex apps, so I brought GG Coder right up to date. Your new default model is ready to roll.",
+      "`GPT-6.1 Sol` now works when you sign in with your ChatGPT account. OpenAI only hands it out to the newest Codex apps, so I brought Israel Code right up to date. Your new default model is ready to roll.",
     ],
   },
   {
     version: "0.73.0",
     date: "2026-09-30",
     items: [
-      "Meet `GG Motion`, my brand new video studio. Hit the Motion button on the home screen, describe the video you want, and it plans, designs and renders a real `MP4` for you with its own fonts, music and sound effects. It's still a work in progress, so expect it to keep getting better with every update. For the best results, switch to `Thinking max`: it takes longer, but the videos come out noticeably better.",
+      "Meet `Israel Motion`, my brand new video studio. Hit the Motion button on the home screen, describe the video you want, and it plans, designs and renders a real `MP4` for you with its own fonts, music and sound effects. It's still a work in progress, so expect it to keep getting better with every update. For the best results, switch to `Thinking max`: it takes longer, but the videos come out noticeably better.",
       "Fresh brains just landed. `GPT-6.1 Sol` is the new OpenAI default and `Claude Sonnet 5.5` takes over for Anthropic, both sharper than the models they replace. Just pick them and go.",
       "Helpers that report back honestly. When a helper agent got stuck partway through a task, its half-finished notes could come back looking like a finished answer. Now a stuck helper clearly reports that it failed, so the main agent never builds on work that didn't happen.",
     ],
@@ -663,7 +663,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.72.1",
     date: "2026-09-28",
     items: [
-      "The `Radio` is ready the moment GG Coder opens. I fixed a startup hiccup where it could ask for your stations before the app had fully woken up, so your music is there from the very first click.",
+      "The `Radio` is ready the moment Israel Code opens. I fixed a startup hiccup where it could ask for your stations before the app had fully woken up, so your music is there from the very first click.",
       "Typing and sending feels smoother. I tidied up how the chat box resizes itself, so it glides to the right size without tripping over its own feet every time you hit send.",
     ],
   },
@@ -682,7 +682,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "Four fresh brains just landed in your model picker. Sign in with Kimi and you get `Kimi K2.8 Preview` with a huge 1M memory and video support, `DeepSeek V4.1 Flash` can now look at your screenshots, Sakana's new `Fugu Max` joins the lineup, and OpenRouter now starts on the mighty `Qwen3.8 Max`. Pick the one that fits the job and keep right on going.",
       "Your Kimi sign-in now stays fresh on its own. When your login quietly expired, the new Kimi model could fail out of nowhere. I made it renew in the background, so you just keep chatting.",
-      "GG Coder stops nagging you after simple housekeeping. Quick commands like `git status` could trick it into thinking your work still needed re-checking. I taught it the difference, so it only asks for proof when something actually changed.",
+      "Israel Code stops nagging you after simple housekeeping. Quick commands like `git status` could trick it into thinking your work still needed re-checking. I taught it the difference, so it only asks for proof when something actually changed.",
     ],
   },
   {
@@ -712,10 +712,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.70.2",
     date: "2026-09-23",
     items: [
-      "GG Coder feels alive now. Your messages rise into the chat, tool steps slide in as they run, popups and menus fade away instead of vanishing, and every screen change glides with a soft `crossfade`. Hit `Show full output` on a long code block and it grows open smoothly instead of jumping.",
+      "Israel Code feels alive now. Your messages rise into the chat, tool steps slide in as they run, popups and menus fade away instead of vanishing, and every screen change glides with a soft `crossfade`. Hit `Show full output` on a long code block and it grows open smoothly instead of jumping.",
       "Reviewing a plan is a proper moment now. The `YOUR PLAN` banner draws itself in line by line, your plan rises in underneath, and a stray Enter can never approve it by accident. It's fully keyboard friendly, so Tab stays right where your decision is.",
       "Errors wait for you now. They stay on screen until you close them, and any notice holds still while you hover it, so nothing important slips past while you're looking away.",
-      "A calmer, cleaner look. The top bar keeps `/commit` as the one standout action, Ken's replies read in easy normal text with his signature teal stripe, and your project list is tidier with neat, lined-up times.",
+      "A calmer, cleaner look. The top bar keeps `/commit` as the one standout action, Israel's replies read in easy normal text with his signature teal stripe, and your project list is tidier with neat, lined-up times.",
     ],
   },
   {
@@ -723,7 +723,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-23",
     items: [
       "Every button now tells you what it does. I built slick new `tooltips` across the whole app that actually show up on Mac, pop in instantly as you glide between buttons, and never appear when you didn't ask for them.",
-      "GG Coder got a serious polish pass. Faint grey text is crisper and easier on the eyes, menus and popups now float in smoothly, and keyboard users get a clear `focus ring` so you always know where you are. Got `Reduce Motion` switched on? I calm every animation down for you now.",
+      "Israel Code got a serious polish pass. Faint grey text is crisper and easier on the eyes, menus and popups now float in smoothly, and keyboard users get a clear `focus ring` so you always know where you are. Got `Reduce Motion` switched on? I calm every animation down for you now.",
       "Squeeze your windows as small as you like. At narrow sizes the header buttons neatly wrap instead of sliding off the edge, your issue and PR counts stay fully readable, and the logo shrinks to fit.",
     ],
   },
@@ -799,7 +799,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-20",
     items: [
       "Know what's happening without reading the whole chat. I rebuilt the `activity bar` with short, color-coded statuses and smooth transitions, so `Needs you` and `Not verified` stand out even after the work stops.",
-      "I tightened `Ken` and `Autopilot` reviews around what you actually asked for. Your latest decisions stay in focus, and reviews check for unfinished work without chasing endless optional improvements.",
+      "I tightened `Israel` and `Autopilot` reviews around what you actually asked for. Your latest decisions stay in focus, and reviews check for unfinished work without chasing endless optional improvements.",
       "Your `slash commands` now listen to what you ask this time. I fixed custom instructions getting lost behind template defaults, so your chosen scope and format take priority.",
     ],
   },
@@ -815,7 +815,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.65.1",
     date: "2026-09-16",
     items: [
-      "Get the answer without digging through a checklist. I rewrote how `GG Coder` replies so you get a clear takeaway first, followed by a natural explanation that fits your question or coding task.",
+      "Get the answer without digging through a checklist. I rewrote how `Israel Code` replies so you get a clear takeaway first, followed by a natural explanation that fits your question or coding task.",
       "Changed your mind about a queued message? I fixed `queue cancellation` so older updates stay out of your way and cancelling one of two identical messages removes the right one. Your chat stays in step with what is actually waiting to run.",
     ],
   },
@@ -837,7 +837,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.64.4",
     date: "2026-09-15",
     items: [
-      "You can spot active work at a glance now. I gave `Agent is working…` and `Ken` animated orbs and shimmering labels, plus a moving glow around your input and `Stop` button while the action happens.",
+      "You can spot active work at a glance now. I gave `Agent is working…` and `Israel` animated orbs and shimmering labels, plus a moving glow around your input and `Stop` button while the action happens.",
       "I gave `Send`, `Enhance?`, and your New and Commit actions a liquid-metal finish. Your New and Commit buttons keep their familiar colors, with a little extra shine where you reach most.",
     ],
   },
@@ -845,14 +845,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.64.3",
     date: "2026-09-15",
     items: [
-      "I refreshed `GG Coder`'s AI and voice engines and trimmed the code it ships with. Your desktop app and command-line tools get the same updated engine, with no new workflows to learn.",
+      "I refreshed `Israel Code`'s AI and voice engines and trimmed the code it ships with. Your desktop app and command-line tools get the same updated engine, with no new workflows to learn.",
     ],
   },
   {
     version: "0.64.2",
     date: "2026-09-14",
     items: [
-      "A little housekeeping for your `GG Coder`. I refreshed the desktop foundations in this update, with no new buttons or workflows for you to learn.",
+      "A little housekeeping for your `Israel Code`. I refreshed the desktop foundations in this update, with no new buttons or workflows for you to learn.",
     ],
   },
   {
@@ -867,7 +867,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-12",
     items: [
       "Your existing projects now get a dedicated `refactoring` skill. I built in guidance for small, test-checked changes and older code without tests, so you can ask for a cleanup with clearer safeguards around what already works.",
-      "Tell GG Coder what matters before shrinking a long conversation. I added `/compact [focus]` so you can name the decisions or topics you want the summary to prioritize, instead of leaving that choice entirely to the agent.",
+      "Tell Israel Code what matters before shrinking a long conversation. I added `/compact [focus]` so you can name the decisions or topics you want the summary to prioritize, instead of leaving that choice entirely to the agent.",
     ],
   },
   {
@@ -916,7 +916,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-08",
     items: [
       "Stay in your flow across windows and the `CLI`. I fixed a sneaky login glitch that could leave one session using an old login after another refreshed it, so you get fewer surprise interruptions.",
-      "A little less baggage every time you open `GG Coder`. I moved `What's new` out of your workspace's startup load and stopped hidden input animations from ticking away, so the app does less busywork while you focus elsewhere.",
+      "A little less baggage every time you open `Israel Code`. I moved `What's new` out of your workspace's startup load and stopped hidden input animations from ticking away, so the app does less busywork while you focus elsewhere.",
     ],
   },
   {
@@ -969,7 +969,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "More models for you to try. I added `Gemini 3.8 Flash`, `Gemini 3.5 Flash Lite`, and experimental `DeepSeek V4 Flash Vision` to the picker. The new Gemini options still depend on Google enabling access for your account, so your working default stays put.",
       "Show `Qwen3.6-Plus` what you mean. I unlocked image and video input through `OpenRouter`, so you can bring screenshots and clips into the conversation instead of describing everything by hand.",
       "Your thinking controls now do what they promise. I lined up `DeepSeek` with its real reasoning levels and unlocked `max` for `Fugu Ultra`, so you can choose how hard they work on your problem.",
-      "Long local chats have a better safety net. I made GG Coder respect the memory you actually gave `Ollama` or `LM Studio`, not the model's advertised maximum, so it can summarize before your loaded model runs out of room.",
+      "Long local chats have a better safety net. I made Israel Code respect the memory you actually gave `Ollama` or `LM Studio`, not the model's advertised maximum, so it can summarize before your loaded model runs out of room.",
     ],
   },
   {
@@ -985,7 +985,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-05",
     items: [
       "`GPT-6 Astra` actually runs now. OpenAI quietly gates Astra behind a newer client handshake, so the first build got bounced with a cryptic error. I upgraded the handshake, and Astra answers on your ChatGPT login with the full reasoning dial up to `ultra`. I also retired `GPT-5.5` from the picker so your OpenAI list is just the current lineup.",
-      "Error messages finally talk to you like an app, not a terminal. Every provider hint now tells you to use the model selector or update GG Coder, never to upgrade some CLI you have never seen. The `AI Providers` sign-in page lists the real models for every provider too, Astra and Fable 5.1 included.",
+      "Error messages finally talk to you like an app, not a terminal. Every provider hint now tells you to use the model selector or update Israel Code, never to upgrade some CLI you have never seen. The `AI Providers` sign-in page lists the real models for every provider too, Astra and Fable 5.1 included.",
       "Two chats compacting at the same moment on Windows could trip over each other. I fixed the lock so they take turns cleanly, and a real permission problem now surfaces instead of hanging forever.",
     ],
   },
@@ -993,43 +993,43 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.58.0",
     date: "2026-09-05",
     items: [
-      "`GPT-6 Astra` is here, the day OpenAI shipped it. Pick it from the model selector with your ChatGPT login and you get OpenAI's most capable model yet, with a `1M` token memory and the full reasoning dial from low all the way up to `ultra`, where it proactively splits big jobs across helper agents and runs them in parallel. I wired it into the same caching and streaming path as the 5.6 family, so it feels instant from the first message. Astra is still rolling out on OpenAI's side, so if your account is not in yet, GG Coder tells you plainly and points you at what works today.",
+      "`GPT-6 Astra` is here, the day OpenAI shipped it. Pick it from the model selector with your ChatGPT login and you get OpenAI's most capable model yet, with a `1M` token memory and the full reasoning dial from low all the way up to `ultra`, where it proactively splits big jobs across helper agents and runs them in parallel. I wired it into the same caching and streaming path as the 5.6 family, so it feels instant from the first message. Astra is still rolling out on OpenAI's side, so if your account is not in yet, Israel Code tells you plainly and points you at what works today.",
     ],
   },
   {
     version: "0.57.5",
     date: "2026-09-04",
     items: [
-      "Squashed a crash that could take the whole app down. If GG Coder tried to run a command in the background and the program behind it was not installed, the failure escaped and killed everything instead of being reported. Now it just tells you the command could not start and carries on like nothing happened.",
+      "Squashed a crash that could take the whole app down. If Israel Code tried to run a command in the background and the program behind it was not installed, the failure escaped and killed everything instead of being reported. Now it just tells you the command could not start and carries on like nothing happened.",
     ],
   },
   {
     version: "0.57.4",
     date: "2026-09-04",
     items: [
-      "No more watching GG Coder nap. When it starts a build, a test run or an install in the background, it used to guess how long that would take and just sleep, sometimes a full `30 seconds` after the job already finished. Now it waits on the real finish line and picks straight back up the moment your command is done, so long jobs feel dramatically snappier and it can no longer talk itself into an idle loop.",
+      "No more watching Israel Code nap. When it starts a build, a test run or an install in the background, it used to guess how long that would take and just sleep, sometimes a full `30 seconds` after the job already finished. Now it waits on the real finish line and picks straight back up the moment your command is done, so long jobs feel dramatically snappier and it can no longer talk itself into an idle loop.",
     ],
   },
   {
     version: "0.57.3",
     date: "2026-09-03",
     items: [
-      "Every question GG Coder asks you now fits neatly in its card. Long options used to spill off the right edge of the chat and get cut in half, so you were picking between answers you could not fully read. Now they wrap cleanly, the `Recommended` tag stays pinned where it belongs, and nothing hides past the edge no matter how narrow your window is.",
-      "I refreshed the engine room under the app and made the Windows build tell me the truth when something goes wrong. You get the same GG Coder, on fresher parts, with one more class of startup crash caught before it can ever reach you.",
+      "Every question Israel Code asks you now fits neatly in its card. Long options used to spill off the right edge of the chat and get cut in half, so you were picking between answers you could not fully read. Now they wrap cleanly, the `Recommended` tag stays pinned where it belongs, and nothing hides past the edge no matter how narrow your window is.",
+      "I refreshed the engine room under the app and made the Windows build tell me the truth when something goes wrong. You get the same Israel Code, on fresher parts, with one more class of startup crash caught before it can ever reach you.",
     ],
   },
   {
     version: "0.57.2",
     date: "2026-09-03",
     items: [
-      "GG Coder now builds from proof, not memory. Before it plans or writes anything nontrivial, it checks `Agent Steroids`, your local library of real, current open-source code, and copies the patterns that actually ship. If your library has no match, it goes and finds the right repos, asks you once, indexes them, and then builds from what it read. I ran it `16` times back to back on `GLM-5.3` to make sure it never skips this step. And if you have not installed Steroids yet, it will tell you exactly where the button is.",
+      "Israel Code now builds from proof, not memory. Before it plans or writes anything nontrivial, it checks `Agent Steroids`, your local library of real, current open-source code, and copies the patterns that actually ship. If your library has no match, it goes and finds the right repos, asks you once, indexes them, and then builds from what it read. I ran it `16` times back to back on `GLM-5.3` to make sure it never skips this step. And if you have not installed Steroids yet, it will tell you exactly where the button is.",
     ],
   },
   {
     version: "0.57.1",
     date: "2026-09-03",
     items: [
-      "Your Mac can breathe again. A user sent me a profile showing GG Coder's graphics process chewing `468%` CPU with `7` windows open, and I found the culprit: the ambient glow behind every window was being re-blurred by hand on every single repaint, cursor blink included. I rebuilt the glow so it costs almost nothing, keeps its soft look, and still shifts colour per window. Same vibe, a fraction of the power.",
+      "Your Mac can breathe again. A user sent me a profile showing Israel Code's graphics process chewing `468%` CPU with `7` windows open, and I found the culprit: the ambient glow behind every window was being re-blurred by hand on every single repaint, cursor blink included. I rebuilt the glow so it costs almost nothing, keeps its soft look, and still shifts colour per window. Same vibe, a fraction of the power.",
     ],
   },
   {
@@ -1037,7 +1037,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-02",
     items: [
       "Your agent stops writing last year's code. I plugged in `Agent Steroids`: a corpus of real, current open-source repos on your own disk that it reads before it writes, offline and with no rate limits. Hit the new `Steroids` button on Home to install it in one click, then run `/steroids` and I profile your project, hunt down the repos that match it, and index only the ones you pick.",
-      "GG Coder now knows which platform CLIs you already have. It spots `31` tools like `railway`, `vercel` and `gh` in your project and drives them for logs, deploys and env vars instead of sending you off to a dashboard.",
+      "Israel Code now knows which platform CLIs you already have. It spots `31` tools like `railway`, `vercel` and `gh` in your project and drives them for logs, deploys and env vars instead of sending you off to a dashboard.",
       "Background windows finally sit still. Every decorative animation and canvas loop pauses the moment a window loses focus, so a stack of open projects no longer burns CPU and battery while you work in one of them.",
     ],
   },
@@ -1093,7 +1093,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-08-29",
     items: [
       "I can finally just ask you a question. When I hit a real fork in the road, a question band opens right inside the reply with the options laid out, and I wait on your call instead of guessing and getting it wrong. Click an option, press its number, or hit `Something else` and type your own answer straight into the composer. No more coming back to find I picked the thing you did not want.",
-      "GG Coder got a new look. Deeper, near black surfaces, a soft periwinkle accent, and a gentle glow that shifts with every window so no two ever feel like the same template. The glow also breathes while I work, so you can tell I am busy from across the room without reading a word.",
+      "Israel Code got a new look. Deeper, near black surfaces, a soft periwinkle accent, and a gentle glow that shifts with every window so no two ever feel like the same template. The glow also breathes while I work, so you can tell I am busy from across the room without reading a word.",
       "The composer feels like a real writing space now. `Send` lives in its own round button that becomes stop the instant I start running, and the box grows with your draft instead of jumping around under your cursor. I also dropped the bundled fonts for the ones your system already loves, so there is less to ship and less to load.",
     ],
   },
@@ -1109,7 +1109,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.53.12",
     date: "2026-08-27",
     items: [
-      "No new buttons this time, just fresher foundations. I updated the core libraries GG Coder runs on, including `tokio` and `serde`, so the app stays current and steady underneath you while I build the next batch.",
+      "No new buttons this time, just fresher foundations. I updated the core libraries Israel Code runs on, including `tokio` and `serde`, so the app stays current and steady underneath you while I build the next batch.",
     ],
   },
   {
@@ -1151,7 +1151,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.53.7",
     date: "2026-08-24",
     items: [
-      "Downloading models from `Hugging Face` finally just works. Loads of models used to refuse to install, and the ones that did could quietly hand you the wrong file: a vision add-on or a tiny helper model instead of the real thing. I fixed how GG Coder finds and picks the file, then checked it against the `66` most popular model repos. Every single one installs now, and it lands in your model dropdown the moment it finishes.",
+      "Downloading models from `Hugging Face` finally just works. Loads of models used to refuse to install, and the ones that did could quietly hand you the wrong file: a vision add-on or a tiny helper model instead of the real thing. I fixed how Israel Code finds and picks the file, then checked it against the `66` most popular model repos. Every single one installs now, and it lands in your model dropdown the moment it finishes.",
       "The download progress is smooth as glass. That percentage and speed readout used to flicker and jump backwards while you watched it. Now it only ever moves forward, in one clean line: `161 MB / 18 GB`, speed, time left. When something does go wrong you get a straight answer, like being told you hit a rate limit and should wait a minute, instead of a wall of terminal gibberish.",
     ],
   },
@@ -1159,41 +1159,41 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.53.6",
     date: "2026-08-23",
     items: [
-      "GG Coder just went on a diet. I found `3.4 MB` of test code riding along inside every install for no reason at all, and cut it clean out. Same power, lighter download, faster updates from here on.",
+      "Israel Code just went on a diet. I found `3.4 MB` of test code riding along inside every install for no reason at all, and cut it clean out. Same power, lighter download, faster updates from here on.",
     ],
   },
   {
     version: "0.53.5",
     date: "2026-08-23",
     items: [
-      "A booby-trapped web page can no longer hijack your agent. Attackers hide instructions inside characters that are completely invisible to you, then wait for GG Coder to read them and obey. I now scrub every one of those out of web pages and `MCP` tool results before GG Coder ever sees them, and it tells you when it caught someone trying.",
+      "A booby-trapped web page can no longer hijack your agent. Attackers hide instructions inside characters that are completely invisible to you, then wait for Israel Code to read them and obey. I now scrub every one of those out of web pages and `MCP` tool results before Israel Code ever sees them, and it tells you when it caught someone trying.",
       "The safety sandbox finally keeps the promise it makes. It used to leave the `Docker` socket reachable by sandboxed commands, which is a straight shot at your whole machine, and on Linux it would quietly run with protections missing while still calling itself safe. Both are shut now, and your dev servers keep working exactly as they always did.",
-      "No more hunting bugs you never caused. When GG Coder edits a file it now says plainly whether it `introduced` those errors or whether they were `already present`, so you stop chasing ghosts through code that was never the problem.",
-      "Long sessions stop dying on you. When a provider rejects a request for being too big, GG Coder now learns the real limit and quietly fits inside it for the next `24 hours` instead of failing the exact same way on every turn after.",
+      "No more hunting bugs you never caused. When Israel Code edits a file it now says plainly whether it `introduced` those errors or whether they were `already present`, so you stop chasing ghosts through code that was never the problem.",
+      "Long sessions stop dying on you. When a provider rejects a request for being too big, Israel Code now learns the real limit and quietly fits inside it for the next `24 hours` instead of failing the exact same way on every turn after.",
     ],
   },
   {
     version: "0.53.4",
     date: "2026-08-23",
     items: [
-      "GG Coder gets to the point now. Its answers had quietly grown into walls of text you stopped reading, because the length limit let bullet lists slide straight past it. I closed that loophole with one hard `120 word` budget nothing escapes, capped every bullet at a single line, and told it to skip the file names and jargon unless you actually need to open something. Same answers, a third of the reading.",
-      "`Ken` now catches bad plans before a single line gets written. He used to wave through anything that looked reasonable, so a wonky design only showed itself once the code existed and cost you real time to unpick. Now he asks what you would ask: does every step deserve to be there, is anything split in the wrong place, does that order actually matter, and what happens on the paths nobody thought about. He still refuses to nitpick taste, so he only speaks up when something is genuinely off.",
+      "Israel Code gets to the point now. Its answers had quietly grown into walls of text you stopped reading, because the length limit let bullet lists slide straight past it. I closed that loophole with one hard `120 word` budget nothing escapes, capped every bullet at a single line, and told it to skip the file names and jargon unless you actually need to open something. Same answers, a third of the reading.",
+      "`Israel` now catches bad plans before a single line gets written. He used to wave through anything that looked reasonable, so a wonky design only showed itself once the code existed and cost you real time to unpick. Now he asks what you would ask: does every step deserve to be there, is anything split in the wrong place, does that order actually matter, and what happens on the paths nobody thought about. He still refuses to nitpick taste, so he only speaks up when something is genuinely off.",
     ],
   },
   {
     version: "0.53.3",
     date: "2026-08-23",
     items: [
-      "`Autopilot` is back, and it is bulletproof. Yesterday's build had a bug that killed every single review the instant it started, so Ken never got to check your work and you just got an error. I found it, crushed it, and locked it down with a test so it can never come back.",
-      "Your settings no longer lie to you mid task. The `Ken` model picker and the `Thinking` level looked clickable while GG Coder was working, but changing them did nothing to the run you were watching. Now they dim politely and tell you exactly why, so what you see is always what you get.",
+      "`Autopilot` is back, and it is bulletproof. Yesterday's build had a bug that killed every single review the instant it started, so Israel never got to check your work and you just got an error. I found it, crushed it, and locked it down with a test so it can never come back.",
+      "Your settings no longer lie to you mid task. The `Israel` model picker and the `Thinking` level looked clickable while Israel Code was working, but changing them did nothing to the run you were watching. Now they dim politely and tell you exactly why, so what you see is always what you get.",
     ],
   },
   {
     version: "0.53.2",
     date: "2026-08-23",
     items: [
-      "GG Coder stops repeating itself at the end of a task. It used to hand you an answer, quietly send itself back to work, then hand you a second and even a third version of the same thing. Now you get one answer, once, and a clear `Hook engaged` note whenever it goes back to double-check its work.",
-      "Answers land a lot faster too. GG Coder ran your tests with commands like `cd project && npm test` and then failed to notice it had run them at all, so it kept re-checking work it had already proven. That blind spot is gone, and the wait at the end of every task went with it.",
+      "Israel Code stops repeating itself at the end of a task. It used to hand you an answer, quietly send itself back to work, then hand you a second and even a third version of the same thing. Now you get one answer, once, and a clear `Hook engaged` note whenever it goes back to double-check its work.",
+      "Answers land a lot faster too. Israel Code ran your tests with commands like `cd project && npm test` and then failed to notice it had run them at all, so it kept re-checking work it had already proven. That blind spot is gone, and the wait at the end of every task went with it.",
     ],
   },
   {
@@ -1201,7 +1201,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-08-21",
     items: [
       "Your model picker never gets stuck again. If the model list lost a race while the app was booting, the dropdown could stay greyed out for the whole session with no way back. Now I retry until it loads, and if it ever is locked I tell you exactly why instead of just ignoring your click.",
-      "Windows just got a lot smoother. I taught GG Coder to read the `Git Bash` style paths Windows hands back, so files it finds are files it can actually open. No more mystery failures on paths that looked perfectly fine.",
+      "Windows just got a lot smoother. I taught Israel Code to read the `Git Bash` style paths Windows hands back, so files it finds are files it can actually open. No more mystery failures on paths that looked perfectly fine.",
       "Reading the web is now dramatically cheaper. The new `outline` mode turns a page into a tight numbered map and follows links by number, cutting a six page research run from `16,402` tokens down to `1,936`. That is money straight back in your pocket.",
       "I hardened the sandbox. A sneaky repo could plant a shortcut in a cache folder and trick a later run into handing over write access to your whole machine, including your `SSH` keys. That door is now shut and locked.",
     ],
@@ -1228,7 +1228,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.51.0",
     date: "2026-08-19",
     items: [
-      "GG Coder just got five new built-in superpowers, and they switch on by themselves. When a plan is fuzzy it reaches for `clarify`, builds test-first with `tdd` when you ask for it, chases stubborn bugs from red repro to real fix with `root-cause`, keeps your project's vocabulary tight with `shared-language`, and checks both what you asked for and how well it's built with `code-review`. No setup, no config, they just show up when the work needs them.",
+      "Israel Code just got five new built-in superpowers, and they switch on by themselves. When a plan is fuzzy it reaches for `clarify`, builds test-first with `tdd` when you ask for it, chases stubborn bugs from red repro to real fix with `root-cause`, keeps your project's vocabulary tight with `shared-language`, and checks both what you asked for and how well it's built with `code-review`. No setup, no config, they just show up when the work needs them.",
       "It asks you better questions, way less often. I taught it the difference between facts and decisions: facts it now digs up on its own, and real decisions come to you as one batched list with a recommended answer next to each. The one-question-at-a-time interrogation drip is dead.",
     ],
   },
@@ -1236,15 +1236,15 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.50.3",
     date: "2026-08-18",
     items: [
-      "GG Coder got a fresh set of guardrails, and it shows. It now treats your git history like the precious thing it is: no surprise commits, no force pushes, and it stops to ask instead of touching changes it doesn't recognize. It also refuses to make a failing test pass by weakening it, reproduces a bug before fixing it, and knows the difference between you asking a question and asking for a fix.",
-      "The `kencode` superpower is now front and center. When building something nontrivial, GG Coder reaches for real code from `millions of GitHub repos` to see how it's actually done before writing a single line, instead of guessing from memory.",
+      "Israel Code got a fresh set of guardrails, and it shows. It now treats your git history like the precious thing it is: no surprise commits, no force pushes, and it stops to ask instead of touching changes it doesn't recognize. It also refuses to make a failing test pass by weakening it, reproduces a bug before fixing it, and knows the difference between you asking a question and asking for a fix.",
+      "The `kencode` superpower is now front and center. When building something nontrivial, Israel Code reaches for real code from `millions of GitHub repos` to see how it's actually done before writing a single line, instead of guessing from memory.",
     ],
   },
   {
     version: "0.50.2",
     date: "2026-08-18",
     items: [
-      "GG Coder just dropped `120 MB` of dead weight. I found the installer quietly shipping a pile of files nothing ever reads and cut every last one, so each download is smaller and the app takes up way less room on your disk. Same power, way lighter on its feet.",
+      "Israel Code just dropped `120 MB` of dead weight. I found the installer quietly shipping a pile of files nothing ever reads and cut every last one, so each download is smaller and the app takes up way less room on your disk. Same power, way lighter on its feet.",
     ],
   },
   {
@@ -1282,14 +1282,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.48.2",
     date: "2026-08-15",
     items: [
-      "No more prompts that just vanish into thin air. Once in a while a model would come back with literally nothing, and GG Coder would quietly stop like nothing happened, leaving you staring at a dead chat. Now I retry it for you, and if the model truly ghosts, you get a clear `empty response` warning instead of silence. Even better, that blank reply used to poison the whole session so every message after it came back empty too. That is gone for good.",
+      "No more prompts that just vanish into thin air. Once in a while a model would come back with literally nothing, and Israel Code would quietly stop like nothing happened, leaving you staring at a dead chat. Now I retry it for you, and if the model truly ghosts, you get a clear `empty response` warning instead of silence. Even better, that blank reply used to poison the whole session so every message after it came back empty too. That is gone for good.",
     ],
   },
   {
     version: "0.48.1",
     date: "2026-08-15",
     items: [
-      "Edits that used to kill a run now recover on the spot. Roughly `1%` of file edits came back garbled, and GG Coder would resend the exact same broken payload until `three strikes` ended your whole turn. I made the error tell it precisely what broke, so a long task stops collapsing seconds from the finish line.",
+      "Edits that used to kill a run now recover on the spot. Roughly `1%` of file edits came back garbled, and Israel Code would resend the exact same broken payload until `three strikes` ended your whole turn. I made the error tell it precisely what broke, so a long task stops collapsing seconds from the finish line.",
     ],
   },
   {
@@ -1304,8 +1304,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.47.4",
     date: "2026-08-14",
     items: [
-      "GG Coder now writes dramatically less code to do the exact same job. I taught it to think like a lazy senior dev getting paged at 3am: reuse what your repo already has, reach for the standard library, never bolt on a dependency for something a few lines can do. I benchmarked it head to head against the old brain with every single result executed against real tests, and it holds a `100%` pass rate while shipping `50-76%` less code and up to `38%` fewer output tokens. Smaller diffs, cheaper runs, far less to review. The one thing it will never trim is your safety net: validation, error handling, security and accessibility stay untouchable.",
-      "No more watching an answer appear and then vanish. When GG Coder decides to double check its own work, it now knows that before it starts typing, so you only ever see the final reviewed answer land whole. `Zero` ghost drafts.",
+      "Israel Code now writes dramatically less code to do the exact same job. I taught it to think like a lazy senior dev getting paged at 3am: reuse what your repo already has, reach for the standard library, never bolt on a dependency for something a few lines can do. I benchmarked it head to head against the old brain with every single result executed against real tests, and it holds a `100%` pass rate while shipping `50-76%` less code and up to `38%` fewer output tokens. Smaller diffs, cheaper runs, far less to review. The one thing it will never trim is your safety net: validation, error handling, security and accessibility stay untouchable.",
+      "No more watching an answer appear and then vanish. When Israel Code decides to double check its own work, it now knows that before it starts typing, so you only ever see the final reviewed answer land whole. `Zero` ghost drafts.",
       "Your queued messages now glide into the conversation instead of snapping into place, and the view stays pinned to your newest message while everything settles. I also fixed the chat box landing at the wrong height when you zoom with `Cmd +/-` or resize the window.",
     ],
   },
@@ -1329,7 +1329,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.47.1",
     date: "2026-08-13",
     items: [
-      "Your agent now has a locked front door. I sealed the internal connection between GG Coder and its engine so no other app or website on your machine can silently drive it, run commands, or touch your keys. What happens in your workspace stays in your workspace.",
+      "Your agent now has a locked front door. I sealed the internal connection between Israel Code and its engine so no other app or website on your machine can silently drive it, run commands, or touch your keys. What happens in your workspace stays in your workspace.",
       "Opening a project is now safe from booby-trapped repos. A repo's config files can no longer launch commands the moment you open them. If a project needs that kind of power, you flip it on yourself with `trustProjectMcpServers`.",
     ],
   },
@@ -1354,7 +1354,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.46.0",
     date: "2026-08-11",
     items: [
-      "Find out what you're legally missing *before* you launch, not after a demand letter. Ask GG Coder if your app is safe to ship and the new `compliance-guard` skill reads your actual code \u2014 your schema, your tracking scripts, your checkout, your uploads \u2014 then tells you what you owe in plain English, fixes what code can fix, and ranks the rest by what really gets small apps sued.",
+      "Find out what you're legally missing *before* you launch, not after a demand letter. Ask Israel Code if your app is safe to ship and the new `compliance-guard` skill reads your actual code \u2014 your schema, your tracking scripts, your checkout, your uploads \u2014 then tells you what you owe in plain English, fixes what code can fix, and ranks the rest by what really gets small apps sued.",
       "It tells you straight when something can't legally ship. An `AI vet` that prescribes medication, cash prizes for spins, cashing out a wallet balance, cloning someone's voice without asking \u2014 these are licensed or banned, not to-do items, and you get told before the code gets written, with the version you *can* build.",
       "Skills stay out of your way now. They used to jump in whenever a task merely sounded like their topic; they now match the actual work, skip routine changes, and never reload themselves mid-conversation.",
     ],
@@ -1416,7 +1416,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-08-08",
     items: [
       "You can now sign in to `Grok` with your SuperGrok or `X Premium` subscription. No API key, no per-token bill, just log in and start building. Add a key as well and I will always spend your subscription first, then slide over to the key the moment your plan usage runs dry, and back again once it resets.",
-      "Long sessions stay rock solid. I sealed a slow leak that ate system resources every time GG Coder reopened your archived chats, and background logs in `~/.gg` now tidy up after themselves instead of quietly growing on your disk forever.",
+      "Long sessions stay rock solid. I sealed a slow leak that ate system resources every time Israel Code reopened your archived chats, and background logs in `~/.gg` now tidy up after themselves instead of quietly growing on your disk forever.",
     ],
   },
   {
@@ -1460,7 +1460,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.40.0",
     date: "2026-08-06",
     items: [
-      "GG Coder just got dramatically lighter. I used to spin up a private set of background helpers for every single window, so four projects open meant four copies of everything doing identical work. Now they all share, and a four window session on my machine dropped from `3.3 GB` to about `900 MB`. Same speed, same features, far more room for everything else you are running.",
+      "Israel Code just got dramatically lighter. I used to spin up a private set of background helpers for every single window, so four projects open meant four copies of everything doing identical work. Now they all share, and a four window session on my machine dropped from `3.3 GB` to about `900 MB`. Same speed, same features, far more room for everything else you are running.",
       "Projects you walk away from now hand their memory back. Leave one alone for `5 minutes` and I quietly release the code intelligence holding it, then spin it straight back up the moment you return. No more watching the app get heavier all day just because you opened something once this morning.",
     ],
   },
@@ -1502,14 +1502,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.39.1",
     date: "2026-08-03",
     items: [
-      "Your phone remote and other `ACP` clients now show a live context meter. I report exactly how full the window is as the conversation moves, so you can see the room you have left instead of guessing. Best part: when GG Coder compacts a long session, you watch the usage drop on the spot, and a resumed chat shows its context the moment it opens rather than after the first reply.",
+      "Your phone remote and other `ACP` clients now show a live context meter. I report exactly how full the window is as the conversation moves, so you can see the room you have left instead of guessing. Best part: when Israel Code compacts a long session, you watch the usage drop on the spot, and a resumed chat shows its context the moment it opens rather than after the first reply.",
     ],
   },
   {
     version: "0.39.0",
     date: "2026-08-03",
     items: [
-      "GG Coder can no longer tell you a check passed when it did not. I taught it to judge every command it runs, so a `--watch` that never finishes, a build that rewrites files, or a `--help` that proves nothing all get rejected as evidence. Only real, finished checks like `tsc --noEmit` count now.",
+      "Israel Code can no longer tell you a check passed when it did not. I taught it to judge every command it runs, so a `--watch` that never finishes, a build that rewrites files, or a `--help` that proves nothing all get rejected as evidence. Only real, finished checks like `tsc --noEmit` count now.",
       "Your long sessions stay sharper for longer. When the conversation gets trimmed, I now pick what to keep based on what you just asked, so the error, the file, and the decision that actually matter survive instead of whatever happened to be most recent.",
       "You can install `Agent Plugins` straight from Settings. One portable file adds new commands and abilities, and I check every bundle before it lands so a bad one cannot touch anything outside its own folder.",
       "Gemini usage finally reads true. Its thinking tokens were quietly missing from your totals, so every long reasoning run looked cheaper than it was. Now the number you see is the number you pay.",
@@ -1519,7 +1519,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.38.0",
     date: "2026-08-01",
     items: [
-      "Your phone remote and other `ACP` clients now know every command GG Coder can run the instant a session opens. I wired in built-ins plus project favorites like `/commit`, with the exact descriptions and inputs you need, so command pickers are complete without brittle file scanning.",
+      "Your phone remote and other `ACP` clients now know every command Israel Code can run the instant a session opens. I wired in built-ins plus project favorites like `/commit`, with the exact descriptions and inputs you need, so command pickers are complete without brittle file scanning.",
     ],
   },
   {
@@ -1540,14 +1540,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.37.3",
     date: "2026-07-30",
     items: [
-      "Big autonomous jobs can now run longer without drowning in their own history. I taught `GG Coder` to clear away old research and bulky working scraps as it goes, so you get more useful context, fewer interruptions and a steadier finish on massive tasks.",
+      "Big autonomous jobs can now run longer without drowning in their own history. I taught `Israel Code` to clear away old research and bulky working scraps as it goes, so you get more useful context, fewer interruptions and a steadier finish on massive tasks.",
     ],
   },
   {
     version: "0.37.2",
     date: "2026-07-30",
     items: [
-      "GG Coder now plugs straight into `ACP` editors like `Zed`. Run `ggcoder acp` and you get your real sessions, model controls, thinking levels, plan mode, streaming answers and clean cancellation right inside the tools you already use.",
+      "Israel Code now plugs straight into `ACP` editors like `Zed`. Run `ggcoder acp` and you get your real sessions, model controls, thinking levels, plan mode, streaming answers and clean cancellation right inside the tools you already use.",
       "Your longest chats are now much harder to lose or scramble. I rebuilt conversation compaction so your original request, newest work and approved plan stay together, reopening an old checkpoint always lands on the latest one, and two windows can no longer race each other into duplicate histories.",
     ],
   },
@@ -1566,7 +1566,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "MCP servers can now ask you questions mid-task, and you answer right in the app. When a server needs a name, a choice, or a quick confirmation, a clean little form pops up instead of the whole task stalling out. You decide, it keeps going.",
       "Connecting a model now updates every open window instantly. Drop in an API key or finish a login and the new models show up in the picker right away, no more closing and reopening your session to see them. Disconnecting cleans them up just as fast.",
-      "A crash no longer eats your work. I now save your session at every step, so if GG Coder dies mid-task everything it already did is still there when you come back, and it tells you exactly where things stopped.",
+      "A crash no longer eats your work. I now save your session at every step, so if Israel Code dies mid-task everything it already did is still there when you come back, and it tells you exactly where things stopped.",
       "Images and screenshots just got a lot cheaper to send. A big `2000x2000` shot now costs about a third of the tokens it used to, with zero difference in what the model actually sees.",
       "Background tasks learned some manners. A chatty dev server used to burn around `2,000 tokens a minute` repeating that it was still running. Now it checks in early, then goes quiet, so your context stays free for real work.",
     ],
@@ -1575,7 +1575,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.36.0",
     date: "2026-07-28",
     items: [
-      "GG Coder now lives in your menu bar, so it is one click away even when every window is buried behind a fullscreen editor. Hit the little `G` and start a chat or a code session, flip `Remote` on and off, or jump straight into settings. It knows what you already have open: one window and it uses that one, several and it opens a fresh one instead of hijacking the work you are watching. When an update is ready, `Update now` appears right at the top.",
+      "Israel Code now lives in your menu bar, so it is one click away even when every window is buried behind a fullscreen editor. Hit the little `G` and start a chat or a code session, flip `Remote` on and off, or jump straight into settings. It knows what you already have open: one window and it uses that one, several and it opens a fresh one instead of hijacking the work you are watching. When an update is ready, `Update now` appears right at the top.",
       "Every project gets its own colour now. A stack of identical dark windows turns into something you can read at a glance, with a coloured dot beside the project name and a matching tint along the top edge. The colour comes from the project itself, so it is the same on every window, every launch, every machine, and there is nothing to set up.",
     ],
   },
@@ -1590,7 +1590,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.34.0",
     date: "2026-07-28",
     items: [
-      "Bring your old conversations with you. `/import` pulls a Claude Code, Codex or Cursor thread straight into GG Coder and you carry on where you left off, full history intact. I tested it on a real `44` message thread and it picked up mid sentence.",
+      "Bring your old conversations with you. `/import` pulls a Claude Code, Codex or Cursor thread straight into Israel Code and you carry on where you left off, full history intact. I tested it on a real `44` message thread and it picked up mid sentence.",
       "I stopped saying done when I was not. If I kick off your tests or a build in the background and never actually read the result, I now go back and check before I hand the work over. No more cheerful all good sitting on top of a failed build.",
       "Ask me what I can do and get a straight answer instantly. Your tools used to look missing for the first few seconds while everything booted up, so I would tell you a capability did not exist when it did. I remember them between launches now, so the answer is right from the very first message.",
     ],
@@ -1599,7 +1599,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.33.1",
     date: "2026-07-28",
     items: [
-      "Reopen a chat and everything sits exactly where it happened. Errors, `Ken` verdicts and plan banners used to pile up at the bottom of long conversations, sometimes `900` messages below where they belong. I went through every one of your saved chats and fixed the lot, old ones included.",
+      "Reopen a chat and everything sits exactly where it happened. Errors, `Israel` verdicts and plan banners used to pile up at the bottom of long conversations, sometimes `900` messages below where they belong. I went through every one of your saved chats and fixed the lot, old ones included.",
       "No more seeing the same thing twice. When `Autopilot` hands me a job, reopening that chat used to show its instruction again as raw text underneath. Now you get the one clean handoff, exactly like you saw it live.",
       "Your slash commands stay looking like commands. Reopen a chat and `/release` is still a neat little chip instead of the giant prompt hiding behind it, even after you have edited that command since.",
     ],
@@ -1627,7 +1627,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-27",
     items: [
       "Big jobs now run all the way to the finish. When I hit the turn limit but I am still making real progress, I get handed more turns and carry on from exactly where I was instead of stopping halfway through your task. If I am just spinning my wheels, I still stop, so you never pay for a loop.",
-      "GG Coder remembers your project between sessions. When a long chat gets compacted I write down what happened in `.gg/memory.md`, so next time I already know what you asked for and what I changed. It is plain text right in your repo, so you can read it, fix it, or delete any line you disagree with. Turn it off any time in `Settings` or with `/memory-off`.",
+      "Israel Code remembers your project between sessions. When a long chat gets compacted I write down what happened in `.gg/memory.md`, so next time I already know what you asked for and what I changed. It is plain text right in your repo, so you can read it, fix it, or delete any line you disagree with. Turn it off any time in `Settings` or with `/memory-off`.",
       "No more waiting on background work. Finished helper agents and long builds now tap me on the shoulder the second they are done, so I react immediately instead of stopping to go check on them and burning your tokens doing it.",
       "Switching models mid-chat is clean now. I keep a proper record of which model did what, and I hold onto the cached part of your conversation right through the switch, so your next reply stays fast and cheap.",
     ],
@@ -1739,8 +1739,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.27.1",
     date: "2026-07-23",
     items: [
-      "Long builds no longer stall out waiting for you to type `Continue`. I taught GG Coder to catch runaway tool calls, retry them `2 times`, and keep your conversation moving without losing its place.",
-      "GG's built-in coding senses are fully loaded again. I restored `TypeScript diagnostics` and `source inspection` inside the desktop app, then made search more forgiving, so it catches mistakes sooner and digs through dependencies without missing a beat.",
+      "Long builds no longer stall out waiting for you to type `Continue`. I taught Israel Code to catch runaway tool calls, retry them `2 times`, and keep your conversation moving without losing its place.",
+      "Israel Code's built-in coding senses are fully loaded again. I restored `TypeScript diagnostics` and `source inspection` inside the desktop app, then made search more forgiving, so it catches mistakes sooner and digs through dependencies without missing a beat.",
     ],
   },
   {
@@ -1749,7 +1749,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "The `model picker` and `Arrange` button now open real native menus while keeping the exact clean controls you already know. They feel faster, behave properly with your keyboard, and look right at home on your machine.",
       "Reading while several `subagents` work in parallel just got silky smooth. I cut the pointless background chatter and keep every real activity update, so you can scroll through the conversation without fighting the app.",
-      "Updates now show their work. Tap the new `Install` badge and both the footer and home screen turn into live percentage progress, with zero jumping around while GG Coder downloads the good stuff.",
+      "Updates now show their work. Tap the new `Install` badge and both the footer and home screen turn into live percentage progress, with zero jumping around while Israel Code downloads the good stuff.",
       "The idle footer finally developed a personality. I added `10` dry little status lines, from professional napping to token polishing, so waiting around is at least mildly entertaining.",
     ],
   },
@@ -1759,7 +1759,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "Every answer now arrives whole. If your provider's connection drops mid-reply, I catch the cut-off and `retry` cleanly instead of quietly handing you half an answer dressed up as a finished one. No more silent half-answers.",
       "Random error popups, evicted. I hunted down a sneaky class of `400` rejections that could crash a chat out of nowhere, so your conversations just keep flowing.",
-      "GG now runs lighter for longer. I capped runaway memory at `10 MB` per request and `50k` files per search, and plugged a background leak, so marathon sessions stay snappy instead of slowly bloating.",
+      "Israel Code now runs lighter for longer. I capped runaway memory at `10 MB` per request and `50k` files per search, and plugged a background leak, so marathon sessions stay snappy instead of slowly bloating.",
     ],
   },
   {
@@ -1775,7 +1775,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-21",
     items: [
       "Kimi `K3` now lets you dial its brainpower with a full `low / high / max` thinking ladder, and you can switch thinking off entirely for quick asks. On the Kimi Code plan it starts at the friendlier `high` default, so your usage stretches further without you lifting a finger.",
-      "GG now just gets on with it. I retuned its marching orders so it stops asking permission for safe, reversible steps and powers through to a verified finish. Fewer pauses, more done.",
+      "Israel Code now just gets on with it. I retuned its marching orders so it stops asking permission for safe, reversible steps and powers through to a verified finish. Fewer pauses, more done.",
       "Giant sessions stay on the rails. I fixed a compaction bug that could overshoot the context window on monster turns, so long hauls now compress cleanly instead of derailing mid-task.",
       "Resuming a project tells the truth now. If a session cannot resume, the `project picker` shows the real reason right there instead of leaving you staring at a loading screen that never arrives.",
     ],
@@ -1784,21 +1784,21 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.24.5",
     date: "2026-07-21",
     items: [
-      "Every interface GG Coder builds now starts with accessibility as a hard requirement. I made `WCAG 2.2 AA` and `ADA-aligned` design non-negotiable across keyboard navigation, screen readers, contrast, motion, forms, media, zoom, and complete user flows. Better UI now means more people can actually use it.",
+      "Every interface Israel Code builds now starts with accessibility as a hard requirement. I made `WCAG 2.2 AA` and `ADA-aligned` design non-negotiable across keyboard navigation, screen readers, contrast, motion, forms, media, zoom, and complete user flows. Better UI now means more people can actually use it.",
     ],
   },
   {
     version: "0.24.4",
     date: "2026-07-21",
     items: [
-      "GG Coder's `UI skill` just got pickier about color. I taught it to reject the muddy red-on-red and green-on-green `status pills` AI loves to repeat, then choose styling that actually fits your product instead of forcing another template. Your interfaces get cleaner without all looking the same.",
+      "Israel Code's `UI skill` just got pickier about color. I taught it to reject the muddy red-on-red and green-on-green `status pills` AI loves to repeat, then choose styling that actually fits your product instead of forcing another template. Your interfaces get cleaner without all looking the same.",
     ],
   },
   {
     version: "0.24.3",
     date: "2026-07-21",
     items: [
-      "Interfaces GG Coder builds just got a serious taste upgrade. I taught the `UI skill` to lock navigation and content to one clean rail, give `dropdowns` proper breathing room, and kill sticky click outlines without sacrificing `keyboard focus`. The tiny details finally behave like they belong together.",
+      "Interfaces Israel Code builds just got a serious taste upgrade. I taught the `UI skill` to lock navigation and content to one clean rail, give `dropdowns` proper breathing room, and kill sticky click outlines without sacrificing `keyboard focus`. The tiny details finally behave like they belong together.",
     ],
   },
   {
@@ -1806,7 +1806,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-20",
     items: [
       "Your conversations now clean up after themselves without disappearing. I keep the last `30 days`, squeeze quiet sessions after `7 days`, and cap runaway saved tool output at `40,000 characters`. You get your disk space back and every archived chat still resumes right where you left it.",
-      "GG Coder refuses to melt down in the background now. I give the engine `5 retries`, then stop it cleanly, and cap each run's logs at `10 MB` so a bad crash can never spiral into a process or disk-space storm.",
+      "Israel Code refuses to melt down in the background now. I give the engine `5 retries`, then stop it cleanly, and cap each run's logs at `10 MB` so a bad crash can never spiral into a process or disk-space storm.",
     ],
   },
   {
@@ -1821,9 +1821,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-20",
     items: [
       "Long answers no longer vanish at the finish line. When a model hits its output limit, I now resume it automatically up to `2 times` and warn you plainly if anything is still incomplete.",
-      "GG Coder knows when it is stuck now. I taught it to spot repeating tool cycles up to `5 steps` long, break the pattern once, then stop cleanly and tell you exactly what is blocking it instead of burning time on endless retries.",
+      "Israel Code knows when it is stuck now. I taught it to spot repeating tool cycles up to `5 steps` long, break the pattern once, then stop cleanly and tell you exactly what is blocking it instead of burning time on endless retries.",
       "Your workspace has a real safety rail. I now block writes outside your project by default and stop catastrophic commands like `rm -rf /` before they run, while keeping normal cleanup commands flowing.",
-      "Project rules land in the right order every time. I added `AGENTS.override.md`, nearest-folder precedence, a smart `32 KiB` budget, and tougher plan checks so GG Coder follows the instructions you actually meant without silently losing them.",
+      "Project rules land in the right order every time. I added `AGENTS.override.md`, nearest-folder precedence, a smart `32 KiB` budget, and tougher plan checks so Israel Code follows the instructions you actually meant without silently losing them.",
     ],
   },
   {
@@ -1844,7 +1844,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.23.5",
     date: "2026-07-19",
     items: [
-      "When GG Coder hits a snag, I can see it faster now. I wired in `Error Mom` monitoring so startup failures and unexpected crashes reach me automatically, helping me squash problems before they derail you again.",
+      "When Israel Code hits a snag, I can see it faster now. I wired in `Error Mom` monitoring so startup failures and unexpected crashes reach me automatically, helping me squash problems before they derail you again.",
     ],
   },
   {
@@ -1865,8 +1865,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.23.2",
     date: "2026-07-17",
     items: [
-      "Long chats just got another serious efficiency boost. I taught GG Coder to learn each model's real token footprint, wait until `85%` before compacting, then carry a leaner `8K` recent tail forward. In my live torture test, total input fell `31%` with the answer intact.",
-      "Monster command output is no longer a dead end. I save the full result for `48 hours` and point GG Coder straight to the missing slice, so it can recover one buried line without rerunning the whole command or stuffing your context twice.",
+      "Long chats just got another serious efficiency boost. I taught Israel Code to learn each model's real token footprint, wait until `85%` before compacting, then carry a leaner `8K` recent tail forward. In my live torture test, total input fell `31%` with the answer intact.",
+      "Monster command output is no longer a dead end. I save the full result for `48 hours` and point Israel Code straight to the missing slice, so it can recover one buried line without rerunning the whole command or stuffing your context twice.",
     ],
   },
   {
@@ -1875,7 +1875,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "Your token bill on OpenAI models just took a serious haircut. I capped how much raw tool output a single turn can dump into context, so those runaway `400K` token spikes from parallel file reads are gone for good.",
       "Long sessions now clean up after themselves. I quietly drop stale file reads and ancient command output the moment newer versions exist, keeping conversations lean, cutting rebilled context by up to `60%`, and pushing full compaction much further away.",
-      "`Autopilot` stopped double-checking itself. When Ken reviews your work he now owns the whole verification, so runs finish faster with one clean verdict instead of two overlapping reviews.",
+      "`Autopilot` stopped double-checking itself. When Israel reviews your work he now owns the whole verification, so runs finish faster with one clean verdict instead of two overlapping reviews.",
     ],
   },
   {
@@ -1895,7 +1895,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "`Kimi K3` is here, and I made Moonshot's new flagship your default from day one. You get maximum reasoning, a massive `1M-token` brain, and native image plus video understanding, while `Kimi K2.7 Code` stays ready when you want the lean coding specialist.",
       "Your workspace tells you the truth at a glance now. I moved the project, `branch`, and live `uncommitted` file count into the title bar, so every window shows exactly where you are without stealing space from your tools.",
       "Your recent sessions stop multiplying and losing their names after long chats. I made titles and conversation identity survive `compaction`, then collapsed old checkpoints into one clean, resumable session.",
-      "`Plan Steps` finally stays locked to the real plan while GG Coder works. I made it follow live edits, count completed steps honestly, and disappear the instant the run ends, so stale progress never hangs around pretending work is still moving.",
+      "`Plan Steps` finally stays locked to the real plan while Israel Code works. I made it follow live edits, count completed steps honestly, and disappear the instant the run ends, so stale progress never hangs around pretending work is still moving.",
       "Your specialist crew now shows where every token really went, including fresh input, cached input, and output. I also tightened `Codex` tool results so oversized reads stop devouring the context your agents need to finish strong.",
     ],
   },
@@ -1907,7 +1907,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Cancel means cancelled now. I made `Esc` wait for the active run to settle before the app returns to idle, with a clear `Cancelling...` state and honest recovery if the provider refuses to stop.",
       "`Autopilot` now proves it actually checked every changed file. I tightened final review around real reads, edits, and diagnostics, so a green finish means the work earned it.",
       "Provider failures are cleaner and safer. I scrub secrets before they reach logs or sessions and replace broken `HTML` error pages with a useful status-aware message, so support is easier and your credentials stay out of the mess.",
-      "`Context` tracking got sharper across every route and model. I taught GG Coder to use the right limits and timing evidence, so long sessions compact at the right moment instead of guessing.",
+      "`Context` tracking got sharper across every route and model. I taught Israel Code to use the right limits and timing evidence, so long sessions compact at the right moment instead of guessing.",
     ],
   },
   {
@@ -1915,7 +1915,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-15",
     items: [
       "Your chat agents finally have a soul. I built `Jiwa` so they remember how you want them to speak, behave, and even what name to use, then tucked it beside Memories inside one clean `Brain` switcher where you can inspect or clear every instruction.",
-      "Beautiful interfaces are no longer a lucky roll. I bundled `Evidence-Led UI` into every install, so GG Coder now checks real design craft, accessibility, and responsive behavior before it touches your frontend.",
+      "Beautiful interfaces are no longer a lucky roll. I bundled `Evidence-Led UI` into every install, so Israel Code now checks real design craft, accessibility, and responsive behavior before it touches your frontend.",
       "Long jobs stay focused without getting slapped by a false alarm. I stopped healthy `background tasks` and iterative edits from tripping the stuck detector, while genuine no-progress loops still get snapped out fast.",
       "Chat gives you more room and more awareness. I added a collapsible `Chat` header and brought the `context meter` into view, so you can reclaim space and see exactly how much conversation room remains.",
     ],
@@ -1940,7 +1940,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.19.0",
     date: "2026-07-13",
     items: [
-      "Chat just became a whole new side of GG Coder. I built `General`, `Therapist`, and `Research` companions with their own conversation history, then gave them durable memory you can inspect and clean up anytime.",
+      "Chat just became a whole new side of Israel Code. I built `General`, `Therapist`, and `Research` companions with their own conversation history, then gave them durable memory you can inspect and clean up anytime.",
       "Your windows now wake up exactly where you left them. I hardened restored sessions, rapid project switches, and reused window slots, so even a `4 window` workspace opens cleanly with every chat attached to the right place.",
       "Web research is faster, cleaner, and much harder to knock over. I made `Web Search` share fresh results across windows and gave `Web Fetch` smarter extraction, strict download guards, and quicker document discovery.",
       "Image batches finally deliver what you asked for. I fixed `Generate Image` so requests for up to `4 images` produce the full set instead of getting rejected by the provider.",
@@ -1959,7 +1959,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-12",
     items: [
       "Long sessions and `/compact` now bounce back faster instead of getting buried under giant old file edits. I slimmed down oversized history and cut off stalled cleanup attempts fast, so you spend less time waiting and more time shipping.",
-      "`Apple silicon` is cleaner and ready for what comes next. I stripped unused Intel baggage out of the app bundle, cutting roughly `180 MB` before compression and keeping GG Coder fully native as macOS moves beyond Rosetta.",
+      "`Apple silicon` is cleaner and ready for what comes next. I stripped unused Intel baggage out of the app bundle, cutting roughly `180 MB` before compression and keeping Israel Code fully native as macOS moves beyond Rosetta.",
     ],
   },
   {
@@ -1974,7 +1974,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-11",
     items: [
       "`Ultra` now runs a real specialist crew. I made every expert visible while it works, steerable mid-job, and ready to pick up another mission with full context intact.",
-      "`Radio` finally behaves like part of the app. I added a volume slider, made your level stick across windows, and guaranteed the music stops when GG Coder closes, even after a force quit.",
+      "`Radio` finally behaves like part of the app. I added a volume slider, made your level stick across windows, and guaranteed the music stops when Israel Code closes, even after a force quit.",
       "`What's new` is easier to scan. I put the latest release in one clean card, grouped each feature into a single story, and gave the details just enough emphasis to pop.",
     ],
   },
@@ -2004,7 +2004,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.15.1",
     date: "2026-07-10",
     items: [
-      "Apps you launch through GG Coder can finally hear you. I unlocked microphone access for recorders, voice tools, and every other project you run, so testing audio now just works.",
+      "Apps you launch through Israel Code can finally hear you. I unlocked microphone access for recorders, voice tools, and every other project you run, so testing audio now just works.",
     ],
   },
   {
@@ -2041,7 +2041,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-09",
     items: [
       "Big sessions no longer hit a wall. When a chat grew too large for the model, the app used to just stop with an error. Now I catch it, quietly trim the history, and keep the conversation rolling so you never lose your flow.",
-      "Error messages read like a human wrote them. Everything now says GG Coder in plain, friendly language, and points you to the exact button to click instead of some command you'd never type.",
+      "Error messages read like a human wrote them. Everything now says Israel Code in plain, friendly language, and points you to the exact button to click instead of some command you'd never type.",
     ],
   },
   {
@@ -2084,8 +2084,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.14.9",
     date: "2026-07-06",
     items: [
-      "Your session list is yours again. Ken's silent autopilot reviews were quietly leaving behind a fake 2-message session every few minutes, burying your real work under a wall of clones. I plugged the leak for good, so what you see in the picker is exactly what you built. Nothing else.",
-      "`Autopilot` got tougher to derail. I made Ken's handoffs land even when they arrive wrapped in chatter, then tightened his reviews so cycles run leaner and stall less.",
+      "Your session list is yours again. Israel's silent autopilot reviews were quietly leaving behind a fake 2-message session every few minutes, burying your real work under a wall of clones. I plugged the leak for good, so what you see in the picker is exactly what you built. Nothing else.",
+      "`Autopilot` got tougher to derail. I made Israel's handoffs land even when they arrive wrapped in chatter, then tightened his reviews so cycles run leaner and stall less.",
     ],
   },
   {
@@ -2099,15 +2099,15 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.14.7",
     date: "2026-07-05",
     items: [
-      "Your machine breathes easier now. `GG Coder` hunts down leftover built-in and custom tool helpers on startup, so closed projects stop quietly eating your memory for days.",
-      "Ken gives sharper advice. He now knows exactly what GG Coder can do under the hood, so his guidance is grounded in the real tools at hand instead of guesses, and his handoffs back to the agent come through clean.",
+      "Your machine breathes easier now. `Israel Code` hunts down leftover built-in and custom tool helpers on startup, so closed projects stop quietly eating your memory for days.",
+      "Israel gives sharper advice. He now knows exactly what Israel Code can do under the hood, so his guidance is grounded in the real tools at hand instead of guesses, and his handoffs back to the agent come through clean.",
     ],
   },
   {
     version: "0.14.6",
     date: "2026-07-05",
     items: [
-      "`Autopilot` just got more independent. GG Coder now proves its own work and handles the obvious safe next step without asking for a human who is not there, so more jobs finish in one run.",
+      "`Autopilot` just got more independent. Israel Code now proves its own work and handles the obvious safe next step without asking for a human who is not there, so more jobs finish in one run.",
     ],
   },
   {
@@ -2132,7 +2132,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Big tool catalogs no longer slow down your first reply. I keep the essentials ready, then pull in the heavy stuff only when you actually need it.",
       "Connection hiccups feel way less annoying now. If a reply gets cut off after real progress, I keep what you already saw and continue instead of making you watch the same answer again.",
       "Streaming feels calmer and lighter. I tuned the live text updates so long answers stay smooth without making your machine work so hard.",
-      "I trimmed the instruction stack again. GG Coder spends less attention on boilerplate and more attention on your code.",
+      "I trimmed the instruction stack again. Israel Code spends less attention on boilerplate and more attention on your code.",
     ],
   },
   {
@@ -2154,7 +2154,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-03",
     items: [
       "`Autopilot` can handle plans on its own now. I review, approve, revise, and launch them without making you babysit a popup, while manual mode keeps the normal review screen.",
-      "I got better at spotting fake blockers. If GG Coder asks permission for safe work that is already implied by your request, I tell it to keep going instead of dragging you back in.",
+      "I got better at spotting fake blockers. If Israel Code asks permission for safe work that is already implied by your request, I tell it to keep going instead of dragging you back in.",
     ],
   },
   {
@@ -2185,8 +2185,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.12.2",
     date: "2026-07-02",
     items: [
-      "`Autopilot` is calmer and harder to fool. I judge GG Coder against your original request, stop inventing work after the job is done, and call you in instead of answering real questions or plan decisions on your behalf.",
-      "Ken gets his own model switch. Pin me to a different brain or let me follow GG Coder, right from the footer.",
+      "`Autopilot` is calmer and harder to fool. I judge Israel Code against your original request, stop inventing work after the job is done, and call you in instead of answering real questions or plan decisions on your behalf.",
+      "Israel gets his own model switch. Pin me to a different brain or let me follow Israel Code, right from the footer.",
       "Queued messages land cleaner now. If you send one while I am reviewing and there is no live run to steer, I treat it as a fresh turn instead of mixing it into the next unrelated job.",
     ],
   },
@@ -2194,14 +2194,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.12.1",
     date: "2026-07-02",
     items: [
-      "The `KEN IS ON` banner now lands over exactly what you are viewing, even deep in a session, with full edge-to-edge coverage and no chat text peeking through.",
+      "The `ISRAEL IS ON` banner now lands over exactly what you are viewing, even deep in a session, with full edge-to-edge coverage and no chat text peeking through.",
     ],
   },
   {
     version: "0.12.0",
     date: "2026-07-02",
     items: [
-      "`Autopilot` got sharper and clearer. I skip pointless reviews for small talk and routine chores, lock the switch during active work, and flash `KEN IS ON` or `KEN IS OFF` so you always know who is watching.",
+      "`Autopilot` got sharper and clearer. I skip pointless reviews for small talk and routine chores, lock the switch during active work, and flash `ISRAEL IS ON` or `ISRAEL IS OFF` so you always know who is watching.",
     ],
   },
   {
@@ -2216,9 +2216,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.11.0",
     date: "2026-07-02",
     items: [
-      "Meet `Autopilot`. I review every finished job, send broken work straight back with a sharp fix, call clear work done, and tap you for real judgment calls, all while a live Ken status and in-chat verdict show exactly what I am doing.",
+      "Meet `Autopilot`. I review every finished job, send broken work straight back with a sharp fix, call clear work done, and tap you for real judgment calls, all while a live Israel status and in-chat verdict show exactly what I am doing.",
       "Your workspace tidies itself. The second a task is done it slips out of your Tasks list on its own, so all you ever see is what still needs doing. No more hunting for the checkbox.",
-      "Un-minimizing one window now brings the whole crew back. Click a single GG Coder window back up and its siblings rise with it, so you are never left digging through the dock for the rest.",
+      "Un-minimizing one window now brings the whole crew back. Click a single Israel Code window back up and its siblings rise with it, so you are never left digging through the dock for the rest.",
     ],
   },
   {
@@ -2226,14 +2226,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-02",
     items: [
       "Your helper agents just got more capable and safer. They can run `5 times` longer, report clearly if they hit a limit, and read-only scouts physically cannot change your code.",
-      "The tips GG Coder gives you now actually match the app. No more being told to press some terminal shortcut that does not exist here. It points you at the real buttons you can see and click.",
+      "The tips Israel Code gives you now actually match the app. No more being told to press some terminal shortcut that does not exist here. It points you at the real buttons you can see and click.",
     ],
   },
   {
     version: "0.10.2",
     date: "2026-07-01",
     items: [
-      "Rare empty tool calls from `Anthropic` no longer kill your session. GG Coder quietly picks the work back up, and real failures now name the actual culprit instead of blaming itself.",
+      "Rare empty tool calls from `Anthropic` no longer kill your session. Israel Code quietly picks the work back up, and real failures now name the actual culprit instead of blaming itself.",
     ],
   },
   {
@@ -2270,21 +2270,21 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.7.2",
     date: "2026-06-30",
     items: [
-      "GG Coder just got faster at the boring part. When it needs to read a few files or search around, it now grabs them all at once instead of one at a time. Less waiting on every step, more time actually building.",
+      "Israel Code just got faster at the boring part. When it needs to read a few files or search around, it now grabs them all at once instead of one at a time. Less waiting on every step, more time actually building.",
     ],
   },
   {
     version: "0.7.1",
     date: "2026-06-30",
     items: [
-      "`@Ken` is easier to remember and stays in sync. Helpful hints rotate into the input, and every model switch carries over so his advice comes from the same brain you chose for GG Coder.",
+      "`@Israel` is easier to remember and stays in sync. Helpful hints rotate into the input, and every model switch carries over so his advice comes from the same brain you chose for Israel Code.",
     ],
   },
   {
     version: "0.7.0",
     date: "2026-06-30",
     items: [
-      "Say hey to `@Ken`, your research-first mentor inside the app. I check real code and live docs, challenge shaky plans, recommend tools with taste, turn advice into one-click `Send to GG Coder` prompts, and keep our chats waiting for you after a restart.",
+      "Say hey to `@Israel`, your research-first mentor inside the app. I check real code and live docs, challenge shaky plans, recommend tools with taste, turn advice into one-click `Send to Israel Code` prompts, and keep our chats waiting for you after a restart.",
     ],
   },
   {

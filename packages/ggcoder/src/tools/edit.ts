@@ -92,7 +92,7 @@ const coerceStringifiedEdits = (v: unknown): unknown => {
 // broke, whose `new_text` key went missing, or that was truncated mid-write.
 //
 // A lenient repair stage (the `jsonrepair` package, as used by several agent
-// runtimes) was measured against 41 real failures from ~/.gg session logs: it
+// runtimes) was measured against 41 real failures from ~/.israelcode session logs: it
 // parses 11, but only 2 faithfully. The rest pass this schema while silently
 // dropping content -- it closes the JSON at the first error, so a truncated
 // stream yields a short `new_text` and one 8.8KB payload came back with 11% of
@@ -419,7 +419,7 @@ export function createEditTool(
     const resolved = resolvePath(cwd, file_path);
     await rejectSymlink(resolved);
 
-    // Workspace write guard: outside cwd/tmp/~/.gg requires user approval.
+    // Workspace write guard: outside cwd/tmp/~/.israelcode requires user approval.
     const guard = resolveWriteGuard(cwd, resolved, getWriteGuardSettings?.());
     if (!guard.allowed) {
       return `Error: ${guard.reason}`;

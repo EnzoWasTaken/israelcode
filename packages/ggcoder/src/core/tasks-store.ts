@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
-const TASKS_BASE = join(homedir(), ".gg-tasks", "projects");
+const TASKS_BASE = join(homedir(), ".israelcode-tasks", "projects");
 
 export interface TaskRecord {
   id: string;

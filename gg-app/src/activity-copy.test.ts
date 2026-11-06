@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { OUTCOME_PHRASES, outcomePhrase } from "./activity-copy";
 
-describe("GG outcome wording", () => {
+describe("Israel Code outcome wording", () => {
   it.each(Object.entries(OUTCOME_PHRASES))(
     "keeps %s concise, varied and stable",
     (label, phrases) => {
@@ -29,7 +29,7 @@ describe("GG outcome wording", () => {
       "Checks failed",
       "Verification incomplete",
       "Task failed",
-      "Ken’s review failed",
+      "Israel’s review failed",
     ]) {
       for (const phrase of OUTCOME_PHRASES[label]!)
         expect(phrase).not.toMatch(/passed|green|ready|success/i);

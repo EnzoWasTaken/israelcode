@@ -25,6 +25,7 @@ import { registerPalsuProvider, type PalsuProviderHandle } from "@kenkaiiii/gg-a
 import type { Message } from "@kenkaiiii/gg-ai";
 import { useFakeHome } from "../test-support/fake-home.js";
 import type * as CompactorModule from "./compaction/compactor.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const shouldCompactMock = vi.hoisted(() => vi.fn());
 const compactMock = vi.hoisted(() => vi.fn());
@@ -47,9 +48,9 @@ beforeEach(async () => {
   shouldCompactMock.mockReset().mockReturnValue(false);
   compactMock.mockReset();
 
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       palsu: { accessToken: "t", refreshToken: "r", expiresAt: Date.now() + 3_600_000 },
     }),
@@ -103,7 +104,7 @@ describe("session log reconstructs exactly what the model received", () => {
     const finalRequest = capturedRequests[capturedRequests.length - 1];
 
     // Re-derive history exactly as resume does.
-    const manager = new SessionManager(path.join(tmpHome, ".gg", "sessions"));
+    const manager = new SessionManager(path.join(tmpHome, APP_DIR_NAME, "sessions"));
     const { entries } = await manager.load(sessionPath);
     const derived = manager.getMessages(entries);
 

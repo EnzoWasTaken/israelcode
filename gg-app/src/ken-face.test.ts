@@ -4,7 +4,7 @@ import { KEN_FACE_PALETTE, kenFaceRows, renderKenFace, type KenFaceFrame } from 
 
 const FRAMES: readonly KenFaceFrame[] = ["base", "blink", "talk", "happy", "sleepy"];
 
-describe("Ken's face", () => {
+describe("Israel's face", () => {
   it.each(FRAMES)("%s is a full 18×18 grid with every colour defined", (frame) => {
     const rows = kenFaceRows(frame);
     expect(rows).toHaveLength(CRITTER_CELLS);

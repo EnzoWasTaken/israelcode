@@ -135,7 +135,7 @@ function printHelp(): void {
   // Banner — matches the interactive TUI banner layout
   console.log();
   for (const row of renderLogoBlock([
-    primary.bold("GG Coder") + dim(` v${CLI_VERSION}`) + dim(" · By ") + bold("Ken Kai"),
+    primary.bold("Israel Code") + dim(` v${CLI_VERSION}`) + dim(" · By ") + bold("Israel"),
     dim("AI coding agent"),
   ])) {
     console.log(row);
@@ -956,9 +956,9 @@ async function runInkTUI(opts: {
         }
       })
       .catch(() => {});
-    // Sweep recoverable full tool outputs (~/.gg/tool-output/) older than 48h.
+    // Sweep recoverable full tool outputs (~/.israelcode/tool-output/) older than 48h.
     void cleanupToolOutputs().catch(() => {});
-    // ~/.gg/checkpoints/<session> folders untouched for 30 days (best-effort, non-blocking).
+    // ~/.israelcode/checkpoints/<session> folders untouched for 30 days (best-effort, non-blocking).
     void pruneCheckpointSessions()
       .then(({ removed }) => {
         if (removed > 0) {
@@ -966,7 +966,7 @@ async function runInkTUI(opts: {
         }
       })
       .catch(() => {});
-    // ~/.gg/diagnostics/sessions records older than 30 days (best-effort, non-blocking).
+    // ~/.israelcode/diagnostics/sessions records older than 30 days (best-effort, non-blocking).
     void pruneDiagnosticsRecords()
       .then(({ removed, freedBytes }) => {
         if (removed > 0) {
@@ -1096,10 +1096,10 @@ async function runTelegramSetup(): Promise<void> {
   // Banner
   console.log();
   for (const row of renderLogoBlock([
-    chalk.hex("#60a5fa").bold("GG Coder") +
+    chalk.hex("#60a5fa").bold("Israel Code") +
       chalk.hex("#6b7280")(` v${CLI_VERSION}`) +
       chalk.hex("#6b7280")(" · By ") +
-      chalk.white.bold("Ken Kai"),
+      chalk.white.bold("Israel"),
     chalk.hex("#a78bfa")("Telegram Setup"),
     chalk.hex("#6b7280")("Remote Control"),
   ])) {
@@ -1371,10 +1371,10 @@ async function runAgentHomeLogin(): Promise<void> {
   // Banner
   console.log();
   for (const row of renderLogoBlock([
-    chalk.hex("#60a5fa").bold("GG Coder") +
+    chalk.hex("#60a5fa").bold("Israel Code") +
       chalk.hex("#6b7280")(` v${CLI_VERSION}`) +
       chalk.hex("#6b7280")(" \u00b7 By ") +
-      chalk.white.bold("Ken Kai"),
+      chalk.white.bold("Israel"),
     chalk.hex("#a78bfa")("Agent Home Setup"),
     chalk.hex("#6b7280")("Remote Control via iOS"),
   ])) {

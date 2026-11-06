@@ -45,7 +45,7 @@ export function KenActivityBar({
       <div className="statusrow running ken-statusrow">
         <div className="activity-summary">
           <span className="statusrow-left" role="status" aria-live="polite" aria-atomic="true">
-            {/* Tint the canvas alpha with Ken's colour; the package has no color prop. */}
+            {/* Tint the canvas alpha with Israel's colour; the package has no color prop. */}
             <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
               <defs>
                 <filter id={orbTintId} colorInterpolationFilters="sRGB">
@@ -63,9 +63,9 @@ export function KenActivityBar({
               aria-hidden="true"
               style={{ flexShrink: 0, filter: `url(#${orbTintId})` }}
             />
-            <span className="activity-label-reveal" title="Ken is thinking…">
+            <span className="activity-label-reveal" title="Israel is thinking…">
               <ShimmerText base={theme.ken} bright={theme.text}>
-                {"Ken is thinking…"}
+                {"Israel is thinking…"}
               </ShimmerText>
             </span>
           </span>

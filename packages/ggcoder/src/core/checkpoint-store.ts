@@ -3,6 +3,7 @@ import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 /** How a rewind restores state. Mirrors Claude Code's `/rewind` modes. */
 export type RestoreMode = "code" | "conversation" | "both";
@@ -48,7 +49,7 @@ export interface RestoreResult {
 export interface CheckpointStoreOptions {
   sessionId: string;
   cwd: string;
-  /** Root for checkpoint storage. Defaults to ~/.gg/checkpoints. Injectable for tests. */
+  /** Root for checkpoint storage. Defaults to ~/.israelcode/checkpoints. Injectable for tests. */
   baseDir?: string;
   /** Max checkpoints retained per session; older ones are pruned. Default 50. */
   maxCheckpoints?: number;
@@ -70,7 +71,7 @@ function summarizeFiles(files: readonly CheckpointFileEntry[]): string {
  * that the agent edits through the `write`/`edit` tools so `/rewind` can restore
  * earlier on-disk state and/or conversation position.
  *
- * Snapshots live under `~/.gg/checkpoints/<sessionId>/` (never in the project
+ * Snapshots live under `~/.israelcode/checkpoints/<sessionId>/` (never in the project
  * tree): a manifest JSON per checkpoint plus content-hash-deduped file blobs.
  * Changes made by `bash` (sed/rm/codegen) are NOT tracked — same documented
  * limitation as Claude Code's `/rewind`.
@@ -85,7 +86,7 @@ export class CheckpointStore {
   private current: CheckpointManifest | null = null;
 
   constructor(options: CheckpointStoreOptions) {
-    const base = options.baseDir ?? path.join(os.homedir(), ".gg", "checkpoints");
+    const base = options.baseDir ?? path.join(os.homedir(), APP_DIR_NAME, "checkpoints");
     this.sessionDir = path.join(base, options.sessionId);
     this.blobsDir = path.join(this.sessionDir, "blobs");
     this.checkpointsDir = path.join(this.sessionDir, "checkpoints");
@@ -272,7 +273,7 @@ async function newestFileMtime(dir: string): Promise<number> {
 }
 
 /**
- * Delete whole per-session checkpoint folders (`~/.gg/checkpoints/<sessionId>/`)
+ * Delete whole per-session checkpoint folders (`~/.israelcode/checkpoints/<sessionId>/`)
  * whose newest file is older than `maxAgeDays`. Per-session pruning only caps
  * manifests; folders of finished sessions (and their blobs) were never removed.
  * Guarded: only real directories directly inside the root (symlinks skipped,
@@ -285,7 +286,9 @@ export async function pruneCheckpointSessions(
   const result = { removed: 0 };
   const maxAgeDays = options.maxAgeDays ?? CHECKPOINT_RETENTION_DAYS;
   if (maxAgeDays <= 0) return result;
-  const root = path.resolve(options.baseDir ?? path.join(os.homedir(), ".gg", "checkpoints"));
+  const root = path.resolve(
+    options.baseDir ?? path.join(os.homedir(), APP_DIR_NAME, "checkpoints"),
+  );
   const cutoff = (options.now ?? Date.now()) - maxAgeDays * 86_400_000;
   let entries: Dirent[];
   try {

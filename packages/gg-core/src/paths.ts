@@ -24,8 +24,11 @@ export interface AppPaths {
   trophiesFile: string;
 }
 
+// Kept apart from GG Coder's ~/.israelcode so both apps can be installed side by side.
+export const APP_DIR_NAME = ".israelcode";
+
 export function getAppPaths(): AppPaths {
-  const agentDir = path.join(os.homedir(), ".gg");
+  const agentDir = path.join(os.homedir(), APP_DIR_NAME);
   return {
     agentDir,
     sessionsDir: path.join(agentDir, "sessions"),

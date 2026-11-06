@@ -34,8 +34,8 @@ function isToolAllowed(name: string): boolean {
   return KEN_ALLOWED_TOOLS.includes(name);
 }
 
-describe("Ken allowedTools filter", () => {
-  it("excludes every mutating tool from the Ken set", async () => {
+describe("Israel allowedTools filter", () => {
+  it("excludes every mutating tool from the Israel set", async () => {
     const { tools, processManager, lspManager } = await createTools(os.tmpdir(), {
       lspDiagnostics: false,
       steroidsBin: "/nonexistent/steroids",
@@ -152,7 +152,7 @@ describe("buildKenDigest", () => {
     }
     const digest = buildKenDigest({ ...base, messages });
     // Older user requests survive separately; recent activity stays bounded.
-    const recent = digest.split("## Recent activity (GG Coder and user)")[1];
+    const recent = digest.split("## Recent activity (Israel Code and user)")[1];
     expect(recent).not.toContain("msg-0");
     expect(recent).not.toContain("msg-5");
     expect(digest).toContain("**User:** msg-0");
@@ -415,7 +415,7 @@ describe("buildKenDigest", () => {
       expect(listed).not.toContain("src/r.ts");
     });
 
-    it("does not restart the turn at Ken's injected prompt that quotes the request", () => {
+    it("does not restart the turn at Israel's injected prompt that quotes the request", () => {
       const messages: Message[] = [
         { role: "user", content: "add a login form" },
         edit("first", "src/form.ts"),
@@ -564,11 +564,11 @@ describe("buildKenDigest", () => {
       "mechanically implied by the user's original ask",
     );
     expect(AUTOPILOT_REVIEW_INSTRUCTION).toContain(
-      "safe for GG Coder to do without new information",
+      "safe for Israel Code to do without new information",
     );
     expect(AUTOPILOT_REVIEW_INSTRUCTION).toContain("use PROMPT with the next concrete follow-up");
     expect(AUTOPILOT_REVIEW_INSTRUCTION).toContain("Original user request");
-    expect(AUTOPILOT_REVIEW_INSTRUCTION).toContain("Ken autopilot (injected)");
+    expect(AUTOPILOT_REVIEW_INSTRUCTION).toContain("Israel autopilot (injected)");
   });
 
   it("buildKenAutopilotPlanContext inlines the plan section + plan instruction", () => {
@@ -677,7 +677,7 @@ describe("buildKenDigest — original request pinning", () => {
     expect(pinned).toContain("x".repeat(3000));
   });
 
-  it("omits the section when there is no original request (chat Ken)", () => {
+  it("omits the section when there is no original request (chat Israel)", () => {
     const digest = buildKenDigest({ ...base, messages: [] });
     expect(digest).not.toContain("## Original user request");
   });
@@ -691,7 +691,7 @@ describe("buildKenDigest — injected-prompt labeling", () => {
     platform: "darwin",
   };
 
-  it("labels autopilot-injected prompts as Ken's, never **User:**", () => {
+  it("labels autopilot-injected prompts as Israel's, never **User:**", () => {
     const injected = "Fix the failing auth test and prove it by running it.";
     const messages: Message[] = [
       { role: "user", content: "add auth" },

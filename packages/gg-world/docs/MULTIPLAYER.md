@@ -73,7 +73,7 @@ app  -> game: { gg:'world', t:'live-status', state: 'off'|'connecting'|'online',
 
 GG Royale is being retired. World must stand alone:
 - **Sign-up moves to gg-world**: `POST /api/world/device/register` `{ client: "gg-coder", version }` -> `201 { playerId, deviceToken }`. Same as Royale's (`gg-royale/apps/server/src/device.ts register`): rate limits 10/h per IP + 600/h global, inserts `players` (fill the legacy NOT NULL columns exactly as Royale does) + `devices`, name `Builder-XXXX`.
-- **Identity stays the same file**: the sidecar keeps `~/.gg/royale.json`. A link whose `serverUrl` is the old live Royale URL (or missing) is VALID for the live World server (same database). New links are made against the World server. Never re-register an existing player.
+- **Identity stays the same file**: the sidecar keeps `~/.israelcode/royale.json`. A link whose `serverUrl` is the old live Royale URL (or missing) is VALID for the live World server (same database). New links are made against the World server. Never re-register an existing player.
 - **Full account delete**: `DELETE /api/world/account` (device auth): kicks the live socket (4004), WorldMod.forget(player), then deletes D1 rows in order: devices, world_profiles, D1 reports by/about them if that table exists, rate_limits for them if keyed, players. Bans stay (keyed by player id).
 - **Delete online save** (`DELETE /api/world/me`) also: WorldMod.forget(player) (presence, tickets, mutes, reports they SENT) and closes their live socket with 4003. Reports ABOUT them and bans stay.
 

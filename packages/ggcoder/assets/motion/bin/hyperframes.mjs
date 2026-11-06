@@ -22,7 +22,7 @@ const bundleRoot = fileURLToPath(new URL("../", import.meta.url));
 function bundledVersion() {
   const manifest = JSON.parse(readFileSync(join(bundleRoot, "plugin.json"), "utf8"));
   if (manifest.name !== "hyperframes" || typeof manifest.version !== "string") {
-    throw new Error(`Invalid GG Motion manifest: ${join(bundleRoot, "plugin.json")}`);
+    throw new Error(`Invalid Israel Motion manifest: ${join(bundleRoot, "plugin.json")}`);
   }
   return manifest.version;
 }
@@ -35,7 +35,7 @@ function resolveCli() {
     pkgPath = require.resolve("hyperframes/package.json");
   } catch {
     throw new Error(
-      "The HyperFrames CLI bundled with GG is missing. Reinstall GG Coder to restore Motion mode.",
+      "The HyperFrames CLI bundled with Israel Code is missing. Reinstall Israel Code to restore Motion mode.",
     );
   }
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
@@ -68,7 +68,7 @@ function main(rawArgs) {
   const args = withPrivacyDefaults(rawArgs);
   if (args[0] === "skills") {
     throw new Error(
-      "HyperFrames skills are bundled with GG Motion and update with GG releases. Do not install or update them.",
+      "HyperFrames skills are bundled with Israel Motion and update with Israel Code releases. Do not install or update them.",
     );
   }
   const version = bundledVersion();

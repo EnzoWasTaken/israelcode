@@ -395,7 +395,8 @@ function finaliseBySource(
         headline: "Network error — couldn't reach the provider.",
         source,
         message,
-        guidance: hint ?? "Check your internet connection. Not a GG Coder issue — retry shortly.",
+        guidance:
+          hint ?? "Check your internet connection. Not an Israel Code issue — retry shortly.",
         ...(requestId ? { requestId } : {}),
       };
     case "auth":
@@ -427,10 +428,10 @@ function finaliseBySource(
       };
     case "ggcoder":
       return {
-        headline: "GG Coder hit an unexpected error.",
+        headline: "Israel Code hit an unexpected error.",
         source,
         message,
-        guidance: hint ?? "This looks like a GG Coder bug — please report it to the developer.",
+        guidance: hint ?? "This looks like an Israel Code bug — please report it to the developer.",
         ...(requestId ? { requestId } : {}),
       };
   }
@@ -505,7 +506,7 @@ function formatMiniMaxError(err: ProviderError, cleanMessage: string): Formatted
       ...base,
       headline: "MiniMax didn't accept this API key.",
       guidance:
-        "A MiniMax key only works in the region that issued it (Global: platform.minimax.io, Mainland China: platform.minimaxi.com). Connect MiniMax again with the key so GG Coder can detect its region, and check the key is active.",
+        "A MiniMax key only works in the region that issued it (Global: platform.minimax.io, Mainland China: platform.minimaxi.com). Connect MiniMax again with the key so Israel Code can detect its region, and check the key is active.",
     };
   }
   if (code === "2061") {
@@ -521,7 +522,7 @@ function formatMiniMaxError(err: ProviderError, cleanMessage: string): Formatted
       ...base,
       headline: "MiniMax has no balance for this request.",
       guidance:
-        "Check this key's plan is active, or its pay-as-you-go balance, at platform.minimax.io (platform.minimaxi.com for Mainland China keys). Plan keys only cover MiniMax M3.1 Flash. Not a GG Coder issue.",
+        "Check this key's plan is active, or its pay-as-you-go balance, at platform.minimax.io (platform.minimaxi.com for Mainland China keys). Plan keys only cover MiniMax M3.1 Flash. Not an Israel Code issue.",
     };
   }
   return undefined;
@@ -549,10 +550,10 @@ function providerGuidance(
   // The provider's own text says "upgrade the app or CLI", which reads as a
   // user problem; it is really GG Coder that needs updating for this model.
   if (lower.includes("requires a newer version")) {
-    return `${name} needs a newer GG Coder to serve this model. Update GG Coder to the latest version and retry, or switch to another ${name} model via the model selector.`;
+    return `${name} needs a newer Israel Code to serve this model. Update Israel Code to the latest version and retry, or switch to another ${name} model via the model selector.`;
   }
   if (lower.includes("overloaded") || lower.includes("engine_overloaded")) {
-    return `${name}'s servers are overloaded right now. Retry in a moment — not a GG Coder issue.`;
+    return `${name}'s servers are overloaded right now. Retry in a moment — not an Israel Code issue.`;
   }
   if (
     lower.includes("insufficient balance") ||
@@ -560,22 +561,22 @@ function providerGuidance(
     lower.includes("recharge") ||
     lower.includes("no resource package")
   ) {
-    return `Your ${name} account has a billing or quota issue — check your balance. Not a GG Coder issue.`;
+    return `Your ${name} account has a billing or quota issue — check your balance. Not an Israel Code issue.`;
   }
   if (statusCode === 429 || lower.includes("rate limit") || lower.includes("too many requests")) {
-    return `${name} rate limit hit. Wait a moment then retry — not a GG Coder issue.`;
+    return `${name} rate limit hit. Wait a moment then retry — not an Israel Code issue.`;
   }
   if (statusCode === 502 || lower.includes("bad gateway")) {
-    return `${name} returned a bad gateway. Retry — this is on their side, not GG Coder.`;
+    return `${name} returned a bad gateway. Retry — this is on their side, not Israel Code.`;
   }
   if (statusCode === 503 || lower.includes("service unavailable")) {
-    return `${name} is temporarily unavailable. Retry shortly — not a GG Coder issue.`;
+    return `${name} is temporarily unavailable. Retry shortly — not an Israel Code issue.`;
   }
   if (
     statusCode === 507 ||
     lower.includes("exceeded request buffer limit while retrying upstream")
   ) {
-    return `${name}'s proxy could not retry this large request. GG Coder already retried automatically — compact the conversation, then retry.`;
+    return `${name}'s proxy could not retry this large request. Israel Code already retried automatically — compact the conversation, then retry.`;
   }
   if (
     statusCode === 500 ||
@@ -583,11 +584,11 @@ function providerGuidance(
     (lower.includes("500") && lower.includes("internal server error"))
   ) {
     return status
-      ? `This is an error from ${name}, not GG Coder. Retry — if it keeps happening, check ${status}.`
-      : `This is an error from ${name}, not GG Coder. Retry — if it keeps happening, try a different model via the model selector.`;
+      ? `This is an error from ${name}, not Israel Code. Retry — if it keeps happening, check ${status}.`
+      : `This is an error from ${name}, not Israel Code. Retry — if it keeps happening, try a different model via the model selector.`;
   }
   if (lower.includes("timeout") || lower.includes("timed out")) {
-    return `Request to ${name} timed out. Their servers may be slow — retry. Not a GG Coder issue.`;
+    return `Request to ${name} timed out. Their servers may be slow — retry. Not an Israel Code issue.`;
   }
   if (
     lower.includes("does not recognize the requested model") ||
@@ -603,7 +604,7 @@ function providerGuidance(
     lower.includes("many-image request") ||
     (lower.includes("image dimensions") && lower.includes("max allowed size"))
   ) {
-    return `An image in conversation history exceeds ${name}'s many-image limit. Restart GG Coder so restored images are resized, then retry; if it persists, start a new session.`;
+    return `An image in conversation history exceeds ${name}'s many-image limit. Restart Israel Code so restored images are resized, then retry; if it persists, start a new session.`;
   }
   // Anthropic HTTP 413: the request BODY (not the token count) exceeds the
   // provider's max size. Retrying the same request fails identically — the fix
@@ -616,6 +617,6 @@ function providerGuidance(
     return `The request to ${name} is too large. Compact the conversation to shrink history, or start a new session.`;
   }
   return status
-    ? `This is an error from ${name}, not GG Coder. Retry — if it persists, check ${status}.`
-    : `This is an error from ${name}, not GG Coder. Retry — if it persists, try a different model via the model selector.`;
+    ? `This is an error from ${name}, not Israel Code. Retry — if it persists, check ${status}.`
+    : `This is an error from ${name}, not Israel Code. Retry — if it persists, try a different model via the model selector.`;
 }

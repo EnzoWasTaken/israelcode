@@ -27,7 +27,7 @@ import { CORPUS_UNVERIFIED_REASON, type AutopilotVerdict } from "./autopilot-ver
  *  submitted plan to review and the session is read-only, so the loop halts
  *  and hands control to the user. */
 export const AUTOPILOT_PLAN_DRAFTING_REASON =
-  "GG Coder is still drafting a plan (plan mode is active with nothing submitted). Finish or cancel the plan yourself; autopilot can't prompt a read-only session.";
+  "Israel Code is still drafting a plan (plan mode is active with nothing submitted). Finish or cancel the plan yourself; autopilot can't prompt a read-only session.";
 
 /** Injected when Autopilot finds the work unchecked before its review. */
 export const AUTOPILOT_VERIFY_PROMPT =
@@ -46,7 +46,7 @@ export const AUTOPILOT_VERIFY_PROMPT =
  *  human-typed prompts — the sidecar applies it only at the autopilot cycle's
  *  injection sites. */
 export const AUTOPILOT_INJECTION_PREAMBLE =
-  "[Autopilot] This turn was triggered by Ken, GG Coder's automated reviewer — " +
+  "[Autopilot] This turn was triggered by Israel, Israel Code's automated reviewer — " +
   "not by a human, and no human is watching it land. So:\n" +
   "- Prove your work before finishing: run the tests/build or screenshot the UI. " +
   'Don\'t end on "should work" — nobody is here to catch a mistake, so verify it ' +
@@ -55,7 +55,7 @@ export const AUTOPILOT_INJECTION_PREAMBLE =
   "request and safe to do. Just do it and keep going.\n" +
   "- Only surface a question when it needs a real human decision (a product/taste " +
   "call, a destructive or irreversible action, a missing secret or external " +
-  "access). State it plainly and stop; Ken routes it to the user.\n\n" +
+  "access). State it plainly and stop; Israel routes it to the user.\n\n" +
   "Your instruction:";
 
 /** Prepend {@link AUTOPILOT_INJECTION_PREAMBLE} to a body destined for the build
@@ -71,7 +71,7 @@ export function frameAutopilotInjection(body: string): string {
  *  plan was not approved, revise it, resubmit via exit_plan. */
 export function buildPlanRevisionPrompt(feedback: string): string {
   return (
-    `The plan was not approved. Feedback from Ken (automated reviewer):\n\n` +
+    `The plan was not approved. Feedback from Israel (automated reviewer):\n\n` +
     `${feedback}\n\n` +
     `Revise the plan based on this feedback, then call exit_plan again for review.`
   );
@@ -185,7 +185,7 @@ export async function driveAutopilotCycle(deps: AutopilotCycleDeps): Promise<voi
         deps.emit({
           type: "autopilot_human",
           data: {
-            reason: "Ken did not explicitly approve the plan. Review it before implementation.",
+            reason: "Israel did not explicitly approve the plan. Review it before implementation.",
           },
         });
         return;

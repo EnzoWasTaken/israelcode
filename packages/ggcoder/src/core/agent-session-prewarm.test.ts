@@ -18,6 +18,7 @@ import {
   type StreamEvent,
   type StreamResponse,
 } from "@kenkaiiii/gg-ai";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-ai", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -65,13 +66,13 @@ beforeEach(async () => {
           })(),
         ),
     );
-  await fs.mkdir(path.join(tempHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tempHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tempHome, ".gg", "claude-code-version.json"),
+    path.join(tempHome, APP_DIR_NAME, "claude-code-version.json"),
     JSON.stringify({ version: "2.1.75", fetchedAt: Date.now() }),
   );
   await fs.writeFile(
-    path.join(tempHome, ".gg", "auth.json"),
+    path.join(tempHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: { accessToken: "t", refreshToken: "t", expiresAt: Date.now() + 3_600_000 },
       openai: { accessToken: "t", refreshToken: "t", expiresAt: Date.now() + 3_600_000 },
@@ -189,7 +190,7 @@ describe("AgentSession.prewarm", () => {
   it("skips when the next prompt will compact the history anyway", async () => {
     // threshold 0.1 of 1M = 100K-token trigger; ~143K tokens of history
     await fs.writeFile(
-      path.join(tempHome, ".gg", "settings.json"),
+      path.join(tempHome, APP_DIR_NAME, "settings.json"),
       JSON.stringify({ compactThreshold: 0.1 }),
     );
     const session = await createSession(500_000);
@@ -209,7 +210,7 @@ describe("AgentSession.prewarm", () => {
     // threshold 0.1 of 1M: prune is due from 50K tokens, compaction from 100K;
     // ten ~8.6K-token tool results (~86K) sit between the two.
     await fs.writeFile(
-      path.join(tempHome, ".gg", "settings.json"),
+      path.join(tempHome, APP_DIR_NAME, "settings.json"),
       JSON.stringify({ compactThreshold: 0.1 }),
     );
     const session = await createSession(1_000);
@@ -256,7 +257,7 @@ describe("AgentSession.prewarm", () => {
   it("pins the cache anchor where a prune left history stable, one step later", async () => {
     // threshold 0.1 of 1M: prune is due from 50K tokens, compaction from 100K.
     await fs.writeFile(
-      path.join(tempHome, ".gg", "settings.json"),
+      path.join(tempHome, APP_DIR_NAME, "settings.json"),
       JSON.stringify({ compactThreshold: 0.1 }),
     );
     const session = await createSession(1_000);

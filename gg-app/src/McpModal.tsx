@@ -30,7 +30,7 @@ interface Props {
  * connection status + tool counts, adds them via the same paste-a-`claude mcp
  * add …` grammar (the sidecar reuses the CLI parser verbatim), and removes them.
  *
- * Scope: Global writes to ~/.gg/mcp.json (all sessions). Project writes to a
+ * Scope: Global writes to ~/.israelcode/mcp.json (all sessions). Project writes to a
  * chosen project's `.gg/mcp.json` — a project picker appears when Project is
  * selected, since the modal has no inherent project context. Like the CLI, a
  * newly-added server needs an app restart to load (MCP connects once at startup).

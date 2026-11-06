@@ -1,8 +1,8 @@
-//! Native app settings (~/.gg/gg-app.json) and the workspace snapshot.
+//! Native app settings (~/.israelcode/gg-app.json) and the workspace snapshot.
 
 use crate::*;
 
-// ── Native app settings (~/.gg/gg-app.json) ───────────────────────────────
+// ── Native app settings (~/.israelcode/gg-app.json) ───────────────────────────────
 // The project folder is a plain home-dir file with NOTHING to do with the
 // agent, so Rust reads/writes it directly. This makes the home-screen Settings
 // + New project flow independent of the Node sidecar's boot — a slow or crashed
@@ -10,9 +10,9 @@ use crate::*;
 // up-to-date builds. (The sidecar keeps its own /settings endpoint for its
 // internal use; this is the authoritative path for the webview.)
 
-/// Absolute path to ~/.gg/gg-app.json.
+/// Absolute path to ~/.israelcode/gg-app.json.
 pub(crate) fn app_settings_path() -> PathBuf {
-    home_dir().join(".gg").join("gg-app.json")
+    app_data_dir().join("gg-app.json")
 }
 
 /// Default projects root: ~/gg-projects.
@@ -47,7 +47,7 @@ pub(crate) fn is_valid_project_name(name: &str) -> bool {
     true
 }
 
-/// Native: read gg-app settings directly from ~/.gg/gg-app.json. `configured`
+/// Native: read gg-app settings directly from ~/.israelcode/gg-app.json. `configured`
 /// is true only when the file exists with a non-empty projectsRoot (so the home
 /// screen's "Your Projects" gate matches the sidecar's semantics). Never needs
 /// the sidecar.
@@ -73,8 +73,8 @@ pub(crate) fn app_settings_get() -> serde_json::Value {
     serde_json::json!({ "projectsRoot": projects_root, "configured": configured })
 }
 
-/// Native: write gg-app settings directly to ~/.gg/gg-app.json. Creates the
-/// ~/.gg directory if needed. Never needs the sidecar.
+/// Native: write gg-app settings directly to ~/.israelcode/gg-app.json. Creates the
+/// ~/.israelcode directory if needed. Never needs the sidecar.
 #[tauri::command]
 pub(crate) fn app_settings_save(projects_root: String) -> Result<serde_json::Value, String> {
     let trimmed = projects_root.trim();
@@ -203,7 +203,7 @@ pub(crate) fn app_create_project(name: String) -> Result<serde_json::Value, Stri
     Ok(serde_json::json!({ "path": dir.to_string_lossy() }))
 }
 
-// ── Workspace snapshot (~/.gg/gg-app-workspace.json) ──────────────────────
+// ── Workspace snapshot (~/.israelcode/gg-app-workspace.json) ──────────────────────
 // Records which project/session is open in each window (plus geometry) so a
 // restart — especially the updater's relaunch() — can reopen every window where
 // it left off instead of dropping back to a single picker window. Owned by Rust
@@ -242,9 +242,9 @@ pub(crate) struct Workspace {
     pub(crate) windows: Vec<WorkspaceEntry>,
 }
 
-/// Absolute path to ~/.gg/gg-app-workspace.json.
+/// Absolute path to ~/.israelcode/gg-app-workspace.json.
 pub(crate) fn app_workspace_path() -> PathBuf {
-    home_dir().join(".gg").join("gg-app-workspace.json")
+    app_data_dir().join("gg-app-workspace.json")
 }
 
 /// Read the workspace snapshot; missing/invalid file → an empty workspace.
@@ -255,7 +255,7 @@ pub(crate) fn read_workspace() -> Workspace {
         .unwrap_or_default()
 }
 
-/// Write the workspace snapshot (creating ~/.gg if needed). Best-effort.
+/// Write the workspace snapshot (creating ~/.israelcode if needed). Best-effort.
 pub(crate) fn write_workspace(ws: &Workspace) {
     let path = app_workspace_path();
     if let Some(dir) = path.parent() {

@@ -10,7 +10,7 @@ const baseProps = {
 };
 
 describe("KenActivityBar", () => {
-  it("uses the listening orb and shimmer with Ken's existing color", () => {
+  it("uses the listening orb and shimmer with Israel's existing color", () => {
     const { container } = render(<KenActivityBar {...baseProps} />);
     const orb = container.querySelector("canvas");
     expect(orb?.getAttribute("aria-label")).toBe("Listening…");
@@ -20,7 +20,7 @@ describe("KenActivityBar", () => {
     expect(orb?.style.filter).toBe(`url("#${filter?.id}")`);
     const flood = container.querySelector<SVGElement>("feFlood");
     expect(flood?.style.getPropertyValue("flood-color")).toBe(theme.ken);
-    const label = screen.getByText("Ken is thinking…");
+    const label = screen.getByText("Israel is thinking…");
     expect(label.classList.contains("shimmer-text")).toBe(true);
     expect(label.style.getPropertyValue("--shimmer-base")).toBe(theme.ken);
   });

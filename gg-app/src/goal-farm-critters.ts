@@ -656,7 +656,7 @@ export function pickFarmCritter(
  */
 export const KEN_FARM_CRITTER: CritterDef = {
   id: "ken",
-  name: "Ken",
+  name: "Israel",
   move: "walk",
   palette: {
     O: "#1c120e", // outline

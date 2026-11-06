@@ -101,7 +101,7 @@ export async function discoverAgents(options: {
     agents.push(...projectAgents);
   }
 
-  // Global agents: ~/.gg/agents/*.md
+  // Global agents: ~/.israelcode/agents/*.md
   if (options.globalAgentsDir) {
     const globalAgents = await loadAgentsFromDir(options.globalAgentsDir, "global");
     agents.push(...globalAgents);

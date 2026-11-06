@@ -13,8 +13,19 @@ tests. Release automation (`release.yml`) triggers on `v*` tags; see
 
 Never commit with `--no-verify`.
 
+## Fork
+
+Israel Code is a modified version of GG Coder (`upstream` = KenKaiii/gg-framework), AGPL-3.0-only.
+Keep Ken Kai's copyright in `NOTICE` and the About page's link to the source.
+To keep upstream merges easy, rebrand only what users see: product names ("Israel Code",
+"Israel Goals", "Israel" for the mentor/Autopilot persona), app identity and the home data
+folder. Code identifiers, file names, npm scopes (`@kenkaiiii/*`), the `gg-app` binary and
+project-level `.gg/` folders stay as upstream. Home-level data lives in `~/.israelcode`
+(`APP_DIR_NAME` in gg-core `paths.ts` and `src-tauri/src/paths.rs`); never hard-code `".gg"`
+for a home path.
+
 <!-- gg:init:start -->
-# GG Coder
+# Israel Code
 
 Desktop coding workspace (code / chat / motion modes): a React+Tauri app drives multi-provider agents running in a Node sidecar. The `ggcoder` CLI is an engine/distribution surface, not the primary UI. Read `CONTEXT.md` before naming anything.
 
@@ -33,7 +44,7 @@ Desktop coding workspace (code / chat / motion modes): a React+Tauri app drives 
 - One shared Node daemon per app; each window maps to an in-process `AgentSession`, routed by `x-gg-session` header and `/events?session=`.
 - A new sidecar feature needs three parts: sidecar handler, a Rust `#[tauri::command]` proxy that attaches the session, and a typed `agent.ts` wrapper. Session calls must `waitForReady()` — daemon port ready ≠ window session exists.
 - Session creation is generation-guarded (`prepare_window_session`/`publish_window_session`): drop a late `POST /session` from an older project selection.
-- `~/.gg/gg-app.json` is read by both Rust and the sidecar — change its schema on both sides. `~/.gg/auth.json` is shared by app and CLI processes. App logs: `~/.gg/gg-app-sidecar.log` (not `debug.log`).
+- `~/.israelcode/gg-app.json` is read by both Rust and the sidecar — change its schema on both sides. `~/.israelcode/auth.json` is shared by app and CLI processes. App logs: `~/.israelcode/gg-app-sidecar.log` (not `debug.log`).
 - Passing `skills` to `AgentSession` disables project/global skill discovery; Motion relies on this to isolate `assets/motion/skills` — never move them under `assets/skills`.
 - App ASCII banners use FIGlet "Delta Corps Priest 1", lines padded to equal width, `line-height: 1`.
 
@@ -45,7 +56,7 @@ Desktop coding workspace (code / chat / motion modes): a React+Tauri app drives 
 
 ## Gotchas
 
-- **Kill the daemon process tree**, not just Node: MCP/LSP children share its process group; Windows uses `taskkill /T /F`. `~/.gg/gg-app-sidecars` ledger cleans crash orphans.
+- **Kill the daemon process tree**, not just Node: MCP/LSP children share its process group; Windows uses `taskkill /T /F`. `~/.israelcode/gg-app-sidecars` ledger cleans crash orphans.
 - **`ExitRequested` must set `AppExiting` before `Destroyed` events**, or quit prunes every window from the restore snapshot.
 - **App-visible agent errors go through `broadcastError`** in `app-sidecar.ts` (applies `formatError`, structured headline/guidance); raw provider strings regress the app.
 - **Sidecar = bundle + real dependency trees.** `bundle-sidecar.mjs` externalizes native/lazy/WASM/LSP/MCP packages and copies them with pnpm symlinks dereferenced. Inlining them or dropping spawn/path-loaded packages breaks installed-only features.

@@ -7,6 +7,7 @@ import type * as GgAgentModule from "@kenkaiiii/gg-agent";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
 import { resetInternalDiagnosticsCacheForTests } from "./internal-diagnostics.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const agentLoopMock = vi.hoisted(() => vi.fn());
 
@@ -45,14 +46,14 @@ beforeEach(async () => {
   restoreHome = useFakeHome(tmpHome);
   agentLoopMock.mockReset();
   process.env.GG_DIAGNOSTICS_DIR = tmpDiagDir;
-  await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
     anthropic: {
       accessToken: "test-access-token",
       refreshToken: "test-refresh-token",
       expiresAt: Date.now() + 3_600_000,
     },
   });
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), { autoCompact: false });
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), { autoCompact: false });
 });
 
 afterEach(async () => {

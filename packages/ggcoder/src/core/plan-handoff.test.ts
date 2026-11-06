@@ -21,7 +21,7 @@ describe("shouldOfferPendingPlan", () => {
     ["this plan was already offered", { offeredGeneration: 3 }],
     ["the submitting run is still finishing", { running: true }],
     ["a run is about to start", { starting: true }],
-    ["Ken is still reviewing", { autopilotActive: true }],
+    ["Israel is still reviewing", { autopilotActive: true }],
     ["a queued message will supersede it", { queued: 1 }],
   ])("holds back when %s", (_label, change) => {
     expect(shouldOfferPendingPlan({ ...settled, ...change })).toBe(false);

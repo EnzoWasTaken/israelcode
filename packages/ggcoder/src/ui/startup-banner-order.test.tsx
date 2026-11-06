@@ -113,7 +113,7 @@ describe("startup banner ordering", () => {
     mounted.unmount();
     const full = stripAnsi(recorder.fullText());
     const lines = full.split("\n");
-    const bannerRow = lines.findIndex((l) => l.includes("██") || l.includes("GG Coder"));
+    const bannerRow = lines.findIndex((l) => l.includes("██") || l.includes("Israel Code"));
     const statusRow = lines.findIndex((l) => l.includes("SIM_STATUS"));
     expect(bannerRow, "banner present").toBeGreaterThanOrEqual(0);
     expect(statusRow, "controls present").toBeGreaterThanOrEqual(0);

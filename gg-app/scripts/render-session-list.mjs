@@ -60,7 +60,7 @@ const rows = sessions
       ? `<span class="picker-source-tag" style="color:${meta.color}">${meta.label}</span>`
       : "";
     return `
-      <button class="picker-item"${meta ? ` title="From ${meta.label} — opens as a GG Coder session"` : ""}>
+      <button class="picker-item"${meta ? ` title="From ${meta.label} — opens as an Israel Code session"` : ""}>
         <span class="picker-row">
           <span class="picker-name picker-preview" style="color:${TEXT}">${s.preview}</span>
           <span class="badge">${s.when}</span>

@@ -62,7 +62,7 @@ describe("ModelPanel — a model that spends real money", () => {
     expect(onSelectModel).not.toHaveBeenCalled();
     expect(screen.getByText("Claude Opus 5.5 Fast spends real money.")).toBeTruthy();
     // Names what sessions fall back to, not a Claude-only "standard speed".
-    expect(screen.getByText(/go back to Claude Opus 5\.5, and Ken/)).toBeTruthy();
+    expect(screen.getByText(/go back to Claude Opus 5\.5, and Israel/)).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }));
 
     // Enter on the focused default answer backs out instead of paying.
@@ -95,17 +95,17 @@ describe("ModelPanel — a model that spends real money", () => {
     expect(onSelectModel).toHaveBeenCalledWith("claude-opus-5-5");
   });
 
-  it("keeps it off Ken, who runs unwatched", () => {
+  it("keeps it off Israel, who runs unwatched", () => {
     const onSelect = vi.fn();
     renderPanel({
-      name: "Ken",
-      followLabel: "GG",
+      name: "Israel",
+      followLabel: "Israel Code",
       model: "claude-opus-5-5",
       following: true,
       disabled: false,
       onSelect,
     });
-    fireEvent.click(screen.getByRole("radio", { name: /^Ken/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Israel(?! Code)/ }));
     const paid = option(/Claude Opus 5\.5 Fast/);
     expect(paid.getAttribute("aria-disabled")).toBe("true");
     expect(paid.textContent).toContain("main chat only");

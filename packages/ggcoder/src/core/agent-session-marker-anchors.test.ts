@@ -13,6 +13,7 @@ import {
 } from "./session-history.js";
 import { useFakeHome } from "../test-support/fake-home.js";
 import { CORPUS_UNVERIFIED_REASON } from "./autopilot-verdict.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const shouldCompactMock = vi.hoisted(() => vi.fn());
 const compactMock = vi.hoisted(() => vi.fn());
@@ -58,7 +59,7 @@ async function writeJson(filePath: string, value: unknown): Promise<void> {
 }
 
 async function listSessionFiles(): Promise<string[]> {
-  const root = path.join(tmpHome, ".gg", "sessions");
+  const root = path.join(tmpHome, APP_DIR_NAME, "sessions");
   const found: string[] = [];
   for (const dir of await fs.readdir(root)) {
     for (const file of await fs.readdir(path.join(root, dir))) {
@@ -85,14 +86,14 @@ beforeEach(async () => {
   compactMock.mockReset();
   agentLoopMock.mockReset();
 
-  await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
     anthropic: {
       accessToken: "test" + "-access",
       refreshToken: "test-refresh",
       expiresAt: Date.now() + 3_600_000,
     },
   });
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
     autoCompact: true,
     compactThreshold: 0.1,
   });
@@ -322,7 +323,7 @@ describe("AgentSession transcript marker anchors", () => {
       AUTOPILOT_MARKER_CUSTOM_KIND,
       KEN_TURN_CUSTOM_KIND,
     } = await import("./session-manager.js");
-    const sessionsDir = path.join(tmpHome, ".gg", "sessions");
+    const sessionsDir = path.join(tmpHome, APP_DIR_NAME, "sessions");
     const manager = new SessionManager(sessionsDir);
     const created = await manager.create(tmpProject, "anthropic", "claude-test");
 

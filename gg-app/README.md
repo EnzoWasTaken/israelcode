@@ -1,9 +1,9 @@
-# GG Coder, the desktop app
+# Israel Code, the desktop app
 
-The Tauri 2 desktop app. React 19 + Vite webview over the full GG Coder agent. This is the
+The Tauri 2 desktop app. React 19 + Vite webview over the full Israel Code agent. This is the
 thing we ship. The CLI is the same engine without the face.
 
-**Download it:** [latest release](https://github.com/KenKaiii/gg-framework/releases/latest)
+**Download it:** [latest release](https://github.com/EnzoWasTaken/israelcode/releases/latest)
 (macOS Apple Silicon `.dmg`, Windows `.exe`). Feature tour is in the
 [root README](../README.md).
 
@@ -32,7 +32,7 @@ hiding the button. **Show header stripe** adds an app-wide stripe and is off by 
 None suppresses the stripe for that project.
 
 Choices belong to the full project folder path, so same-named folders stay separate.
-Native windows share preferences in `~/.gg/gg-app-project-colours.json`, independently
+Native windows share preferences in `~/.israelcode/gg-app-project-colours.json`, independently
 of other app settings. These preferences are personal, survive restarts, and are not
 written into the project or shared with teammates. Browser previews use local storage
 instead; they do not share the native app's preferences.
@@ -100,5 +100,5 @@ Packaging (bundled per-platform Node runtime, single-file esbuild sidecar, exter
 signing/notarization) is in [DISTRIBUTION.md](DISTRIBUTION.md). Releases fire from a `v*`
 git tag. Version bumps go through `pnpm --filter gg-app bump`, never by hand.
 
-Debug log: `~/.gg/gg-app-sidecar.log`. Each window's sidecar appends to it, tagged with its
+Debug log: `~/.israelcode/gg-app-sidecar.log`. Each window's sidecar appends to it, tagged with its
 own `sid=`.

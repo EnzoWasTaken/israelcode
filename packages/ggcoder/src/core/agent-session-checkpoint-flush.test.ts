@@ -6,6 +6,7 @@ import type { Message } from "@kenkaiiii/gg-ai";
 import type * as GgAgentModule from "@kenkaiiii/gg-agent";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const agentLoopMock = vi.hoisted(() => vi.fn());
 
@@ -37,7 +38,7 @@ async function writeJson(filePath: string, value: unknown): Promise<void> {
 }
 
 async function sessionFiles(): Promise<string[]> {
-  const root = path.join(tmpHome, ".gg", "sessions");
+  const root = path.join(tmpHome, APP_DIR_NAME, "sessions");
   const found: string[] = [];
   for (const dir of await fs.readdir(root).catch(() => [])) {
     for (const file of await fs.readdir(path.join(root, dir))) {
@@ -63,14 +64,14 @@ beforeEach(async () => {
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-checkpoint-project-"));
   restoreHome = useFakeHome(tmpHome);
   agentLoopMock.mockReset();
-  await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
     anthropic: {
       accessToken: "test-access",
       refreshToken: "test-refresh",
       expiresAt: Date.now() + 3_600_000,
     },
   });
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), { autoCompact: false });
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), { autoCompact: false });
 });
 
 afterEach(async () => {

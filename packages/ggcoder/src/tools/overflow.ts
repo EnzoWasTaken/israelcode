@@ -7,13 +7,13 @@ import { getAppPaths } from "../config.js";
 /** Overflow files older than this are deleted by cleanupToolOutputs(). */
 const TOOL_OUTPUT_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 
-/** Root folder for recoverable full tool outputs: `~/.gg/tool-output/`. */
+/** Root folder for recoverable full tool outputs: `~/.israelcode/tool-output/`. */
 export function getToolOutputRoot(): string {
   return path.join(getAppPaths().agentDir, "tool-output");
 }
 
 /**
- * Write full content to `~/.gg/tool-output/<yyyy-mm-dd>/<prefix>-<random>.txt`
+ * Write full content to `~/.israelcode/tool-output/<yyyy-mm-dd>/<prefix>-<random>.txt`
  * so truncated tool results stay recoverable via `read` with offset/limit
  * instead of forcing the model to re-run the command.
  * Returns the file path. Caller uses it in truncation notices; callers must
@@ -39,7 +39,7 @@ export function writeOverflowSync(content: string, prefix: string): string {
 }
 
 /**
- * Delete `~/.gg/tool-output/` date folders older than 48h. Best-effort:
+ * Delete `~/.israelcode/tool-output/` date folders older than 48h. Best-effort:
  * every failure is swallowed — cleanup must never delay or break startup.
  */
 export async function cleanupToolOutputs(maxAgeMs = TOOL_OUTPUT_MAX_AGE_MS): Promise<void> {

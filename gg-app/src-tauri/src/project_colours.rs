@@ -62,9 +62,7 @@ fn project_key(cwd: &str) -> Result<String, String> {
 }
 
 fn preferences_path() -> PathBuf {
-    crate::home_dir()
-        .join(".gg")
-        .join("gg-app-project-colours.json")
+    crate::app_data_dir().join("gg-app-project-colours.json")
 }
 
 fn read_preferences(path: &Path) -> Result<serde_json::Value, String> {

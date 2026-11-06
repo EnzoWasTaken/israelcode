@@ -112,7 +112,9 @@ export function motionSfxDir(bundle: MotionBundle): string {
 export async function createMotionAgentSession(options: MotionAgentOptions): Promise<AgentSession> {
   const bundle = await findMotionBundle();
   if (!bundle) {
-    throw new Error("Motion mode is unavailable: this GG install is missing its Motion bundle.");
+    throw new Error(
+      "Motion mode is unavailable: this Israel Code install is missing its Motion bundle.",
+    );
   }
   const skills = await loadMotionSkills(bundle);
   const { sessionsDir, ...sessionOptions } = options;

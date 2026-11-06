@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as GgAgentModule from "@kenkaiiii/gg-agent";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-agent", async () => {
   const actual = await vi.importActual<typeof GgAgentModule>("@kenkaiiii/gg-agent");
@@ -29,9 +30,9 @@ beforeEach(async () => {
   tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "packs-home-"));
   tempProject = await fs.mkdtemp(path.join(os.tmpdir(), "packs-project-"));
   restoreHome = useFakeHome(tempHome);
-  await fs.mkdir(path.join(tempHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tempHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tempHome, ".gg", "auth.json"),
+    path.join(tempHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test-access",

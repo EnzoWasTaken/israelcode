@@ -480,7 +480,7 @@ export function formatComparison(comparison: ComparisonResult): string {
  *  5-min vs 1-h TTL difference. */
 export function createDefaultWorkload(): Workload {
   const systemPrompt = [
-    "You are GG Coder — a coding agent that works directly in the user's codebase.",
+    "You are Israel Code — a coding agent that works directly in the user's codebase.",
     "You explore, understand, change, and verify code.",
     "",
     "## Tools",

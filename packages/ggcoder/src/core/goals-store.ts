@@ -8,7 +8,7 @@ import { atomicWrite } from "./session-storage.js";
 /**
  * Goals: a long-running objective the user hands to GG Coder ("Bring p95
  * latency under 200 ms across the whole API"). Each goal is its own folder under
- * `~/.gg/goals/<id>/` holding `goal.json`; that folder is also the goal's
+ * `~/.israelcode/goals/<id>/` holding `goal.json`; that folder is also the goal's
  * workspace (the coordinator session's cwd) and, later, its shared library.
  * Context folders and files the user attaches live elsewhere on disk and are
  * referenced by absolute path.

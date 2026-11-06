@@ -14,7 +14,7 @@ speculative asset hunt.
 When material is missing, ask for one concrete, easy thing in plain words: "a
 screenshot of each step", "your logo file", "the link to your site". Never ask
 a non-designer for a shot list, a storyboard or a list of states. Any quality
-will do; GG rebuilds screens from screenshots.
+will do; Israel Code rebuilds screens from screenshots.
 
 ## Source handling
 

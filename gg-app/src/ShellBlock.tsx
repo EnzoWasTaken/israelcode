@@ -172,7 +172,9 @@ function ShellRun({
         {note && <span>{note}</span>}
         {item.status !== "failed" && (
           <span className="shell-run-share">
-            {item.shared ? "Shared with GG" : "GG will see this with your next message"}
+            {item.shared
+              ? "Shared with Israel Code"
+              : "Israel Code will see this with your next message"}
           </span>
         )}
         {running ? (

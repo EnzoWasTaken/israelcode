@@ -13,7 +13,7 @@ export interface ProgressLastEvent {
   levelUp: LevelUpEvent | null;
 }
 
-/** Durable on-disk progress file (~/.gg/progress.json), versioned + HMAC-signed. */
+/** Durable on-disk progress file (~/.israelcode/progress.json), versioned + HMAC-signed. */
 export interface ProgressFile {
   v: 1;
   xp: number;

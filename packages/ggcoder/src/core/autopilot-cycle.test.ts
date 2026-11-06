@@ -280,7 +280,7 @@ describe("driveAutopilotCycle — work branch (unchanged behavior)", () => {
     let cancelled = false;
     const deps = makeDeps([], {
       review: vi.fn(async () => {
-        cancelled = true; // /cancel fires while Ken is reviewing
+        cancelled = true; // /cancel fires while Israel is reviewing
         return { kind: "prompt", body: "fix it" } as AutopilotVerdict;
       }),
       isCancelled: () => cancelled,
@@ -324,7 +324,7 @@ describe("driveAutopilotCycle — work branch (unchanged behavior)", () => {
       {
         runPrompt: async (body) => {
           ran.push(body);
-          planMode = true; // GG Coder called enter_plan (no exit_plan) mid-run
+          planMode = true; // Israel Code called enter_plan (no exit_plan) mid-run
         },
         isPlanMode: () => planMode,
       },
@@ -418,7 +418,7 @@ describe("driveAutopilotCycle — plan branch", () => {
       {
         type: "autopilot_human",
         data: {
-          reason: "Ken did not explicitly approve the plan. Review it before implementation.",
+          reason: "Israel did not explicitly approve the plan. Review it before implementation.",
         },
       },
     ]);
@@ -555,7 +555,7 @@ describe("driveAutopilotCycle — plan branch", () => {
       planPending: () => true,
       isCancelled: () => cancelled,
       reviewPlan: vi.fn(async () => {
-        cancelled = true; // user Accept/cancel fired while Ken reviewed the plan
+        cancelled = true; // user Accept/cancel fired while Israel reviewed the plan
         return { kind: "all_clear" } as AutopilotVerdict;
       }),
     });

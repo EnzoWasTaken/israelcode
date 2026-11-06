@@ -62,7 +62,7 @@ describe("packaged Windows smoke artifact discovery", () => {
 
   it("requires the app, Node runtime, and sidecar in one extracted layout", () => {
     const root = temporaryDirectory();
-    const install = join(root, "PFiles64", "GG Coder");
+    const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(join(install, "sidecar"), { recursive: true });
     writeFileSync(join(install, "gg-app.exe"), "app");
     writeFileSync(join(install, "ggnode.exe"), "node");
@@ -75,7 +75,7 @@ describe("packaged Windows smoke artifact discovery", () => {
     // The exact shape of "installs fine, does nothing" that this smoke exists
     // to catch: the shell is there but has no runtime to spawn the sidecar.
     const root = temporaryDirectory();
-    const install = join(root, "PFiles64", "GG Coder");
+    const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(join(install, "sidecar"), { recursive: true });
     writeFileSync(join(install, "gg-app.exe"), "app");
     writeFileSync(join(install, "sidecar", "app-sidecar.mjs"), "sidecar");
@@ -85,7 +85,7 @@ describe("packaged Windows smoke artifact discovery", () => {
 
   it("fails when the sidecar resource did not make it into the package", () => {
     const root = temporaryDirectory();
-    const install = join(root, "PFiles64", "GG Coder");
+    const install = join(root, "PFiles64", "Israel Code");
     mkdirSync(install, { recursive: true });
     writeFileSync(join(install, "gg-app.exe"), "app");
     writeFileSync(join(install, "ggnode.exe"), "node");
@@ -215,17 +215,17 @@ describe("packaged Windows smoke failure diagnostics", () => {
 
   it("finds every app and sidecar log inside the throwaway profile", () => {
     const home = temporaryDirectory();
-    const tauriLogs = join(home, "AppData", "Local", "com.ggcoder.app", "logs");
-    const ggDir = join(home, ".gg");
+    const tauriLogs = join(home, "AppData", "Local", "com.israelcode.app", "logs");
+    const ggDir = join(home, ".israelcode");
     mkdirSync(tauriLogs, { recursive: true });
     mkdirSync(ggDir, { recursive: true });
-    writeFileSync(join(tauriLogs, "GG Coder.log"), "panic");
+    writeFileSync(join(tauriLogs, "Israel Code.log"), "panic");
     writeFileSync(join(ggDir, "gg-app-sidecar.log"), "boot");
     writeFileSync(join(ggDir, "settings.json"), "{}");
 
     expect(findDiagnosticLogs(home).map((path) => relative(home, path))).toEqual([
-      join(".gg", "gg-app-sidecar.log"),
-      join("AppData", "Local", "com.ggcoder.app", "logs", "GG Coder.log"),
+      join(".israelcode", "gg-app-sidecar.log"),
+      join("AppData", "Local", "com.israelcode.app", "logs", "Israel Code.log"),
     ]);
   });
 });

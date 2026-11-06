@@ -61,7 +61,7 @@ function bigPrefix(): string {
   for (let r = 0; r < 22; r++)
     bulkTools.push(...tools, `<!-- tool block repetition ${r} for prefix sizing -->`);
   return [
-    "You are GG Coder — a coding agent that works directly in the user's codebase.",
+    "You are Israel Code — a coding agent that works directly in the user's codebase.",
     "You explore, understand, change, and verify code end-to-end.",
     "",
     "## How to Talk",

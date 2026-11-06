@@ -85,7 +85,7 @@ export function createAutoUpdater(config: AutoUpdateConfig): AutoUpdater {
   const periodicMessage =
     config.periodicMessage ??
     (({ currentVersion, latestVersion, updateCommand }) =>
-      `Ken just pushed a fresh update — ${currentVersion} → ${latestVersion}! I'll grab it on next launch (or run ${updateCommand} if you can't wait).`);
+      `Israel just pushed a fresh update — ${currentVersion} → ${latestVersion}! I'll grab it on next launch (or run ${updateCommand} if you can't wait).`);
 
   let periodicTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -188,7 +188,7 @@ export function createAutoUpdater(config: AutoUpdateConfig): AutoUpdater {
           const info = detectInstallInfo();
           if (info.updateCommand) {
             performUpdateInBackground(info.updateCommand);
-            message = `Ken just shipped ${state.latestVersion}! Installing in the background — takes effect next launch.`;
+            message = `Israel just shipped ${state.latestVersion}! Installing in the background — takes effect next launch.`;
             writeState({
               ...state,
               lastCheckedAt: Date.now(),

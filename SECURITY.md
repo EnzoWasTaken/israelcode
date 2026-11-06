@@ -1,17 +1,17 @@
 # Security policy
 
-GG Coder stores provider API keys and OAuth tokens on your machine (`~/.gg/auth.json`) and runs a local agent daemon that can read files and execute commands. Security reports are taken seriously.
+Israel Code stores provider API keys and OAuth tokens on your machine (`~/.israelcode/auth.json`) and runs a local agent daemon that can read files and execute commands. Security reports are taken seriously.
 
 ## Supported versions
 
 Only the latest release gets security fixes:
 
-- the desktop app: [latest GitHub release](https://github.com/KenKaiii/gg-framework/releases/latest)
+- the desktop app: [latest GitHub release](https://github.com/EnzoWasTaken/israelcode/releases/latest)
 - the npm packages (`@kenkaiiii/gg-ai`, `gg-agent`, `gg-core`, `ggcoder`): latest published version
 
 ## Reporting a vulnerability
 
-Please **do not open a public issue**. Report privately through [GitHub security advisories](https://github.com/KenKaiii/gg-framework/security/advisories/new).
+Please **do not open a public issue**. Report privately through [GitHub security advisories](https://github.com/EnzoWasTaken/israelcode/security/advisories/new).
 
 Include:
 

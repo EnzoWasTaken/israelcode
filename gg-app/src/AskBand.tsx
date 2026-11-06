@@ -512,7 +512,7 @@ export function AskBand({
       inert={committing !== null}
       ref={bandRef}
       role="group"
-      aria-label="GG Coder needs your answer"
+      aria-label="Israel Code needs your answer"
       data-ask-prompt={prompt.id}
     >
       {/* A status note about the run, set apart from the question below it. */}

@@ -16,11 +16,11 @@ an optional idea pitch. Adapt its choices to this job; keep the card to four
 questions total and skip choices the brief or requested reference already settles.
 
 - "Which task should the video walk through?" Offer the two or three tasks the
-  prompt or screenshots suggest, plus "Let GG Motion choose".
+  prompt or screenshots suggest, plus "Let Israel Motion choose".
 - "Where will people mostly watch this?" (from the `motion` skill).
 - "Should it have music?" (from the `motion` skill).
 - "Which idea should we go with?" Pitches below, recommended marked, plus "Let
-  GG Motion choose".
+  Israel Motion choose".
 
 Without screenshots, end with one plain line: "Send me a screenshot of each
 step of that task, in order. Phone photos of the screen are fine." Do not ask

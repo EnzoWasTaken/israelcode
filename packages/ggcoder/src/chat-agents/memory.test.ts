@@ -30,17 +30,17 @@ function context(): ToolContext {
 describe("MemoryStore", () => {
   it("persists additions, updates, and explicit deletion across store instances", async () => {
     const first = new MemoryStore({ filePath });
-    const added = await first.remember("Ken prefers concise answers.", "preference", 4);
+    const added = await first.remember("Israel prefers concise answers.", "preference", 4);
     const id = added.memory!.id;
 
     const second = new MemoryStore({ filePath });
     expect(await second.list()).toEqual([expect.objectContaining({ id, importance: 4 })]);
 
-    await second.update(id, "Ken prefers concise, scannable answers.", undefined, 5);
+    await second.update(id, "Israel prefers concise, scannable answers.", undefined, 5);
     expect((await first.list())[0]).toEqual(
       expect.objectContaining({
         id,
-        text: "Ken prefers concise, scannable answers.",
+        text: "Israel prefers concise, scannable answers.",
         importance: 5,
       }),
     );
@@ -75,9 +75,12 @@ describe("MemoryStore", () => {
 
   it("rejects near duplicates using token-set Jaccard similarity", async () => {
     const store = new MemoryStore({ filePath });
-    const original = await store.remember("Ken likes short direct answers", "preference");
-    const duplicate = await store.remember("Ken likes direct short answers", "preference");
-    const articleVariant = await store.remember("The Ken likes short direct answers", "preference");
+    const original = await store.remember("Israel likes short direct answers", "preference");
+    const duplicate = await store.remember("Israel likes direct short answers", "preference");
+    const articleVariant = await store.remember(
+      "The Israel likes short direct answers",
+      "preference",
+    );
 
     expect(duplicate.duplicateOf?.id).toBe(original.memory?.id);
     expect(articleVariant.duplicateOf?.id).toBe(original.memory?.id);
@@ -123,25 +126,25 @@ describe("MemoryStore", () => {
     const second = new MemoryStore({ filePath });
 
     await Promise.all([
-      first.remember("Ken is building project Alpha.", "project"),
-      second.remember("Ken is building project Beta.", "project"),
+      first.remember("Israel is building project Alpha.", "project"),
+      second.remember("Israel is building project Beta.", "project"),
     ]);
 
     expect((await first.list()).map((memory) => memory.text).sort()).toEqual([
-      "Ken is building project Alpha.",
-      "Ken is building project Beta.",
+      "Israel is building project Alpha.",
+      "Israel is building project Beta.",
     ]);
   });
 
   it("groups prompt memories by category with IDs and a consolidation nudge", async () => {
     const store = new MemoryStore({ filePath });
-    await store.remember("Ken is the user's name.", "identity", 5);
-    await store.remember("Ken prefers TypeScript.", "preference", 4);
+    await store.remember("Israel is the user's name.", "identity", 5);
+    await store.remember("Israel prefers TypeScript.", "preference", 4);
 
     let prompt = store.renderForPrompt();
     expect(prompt).toContain("## identity");
     expect(prompt).toContain("## preference");
-    expect(prompt).toMatch(/\[[0-9a-f-]+\] \(importance 5\) Ken is the user's name\./);
+    expect(prompt).toMatch(/\[[0-9a-f-]+\] \(importance 5\) Israel is the user's name\./);
 
     for (let index = 2; index < MEMORY_SOFT_LIMIT; index += 1) {
       await store.remember(`Distinct durable project fact number ${index}.`, "project", 2);
@@ -156,7 +159,7 @@ describe("MemoryStore", () => {
       filePath,
       now: () => new Date(Date.UTC(2026, 0, 1, 0, 0, tick++)),
     });
-    const identity = await store.remember("Ken's legal identity is protected.", "identity", 1);
+    const identity = await store.remember("Israel's legal identity is protected.", "identity", 1);
     const oldest = await store.remember("Old low importance memory.", "other", 1);
     for (let index = 2; index < MEMORY_HARD_LIMIT; index += 1) {
       await store.remember(`Unique durable fact ${index}.`, "project", 3);
@@ -197,20 +200,23 @@ describe("memory tools", () => {
     ]);
 
     const remembered = await tools[0]!.execute(
-      { content: "Ken has a durable preference.", category: "preference", importance: 4 },
+      { content: "Israel has a durable preference.", category: "preference", importance: 4 },
       context(),
     );
     expect(remembered).toMatch(/^Remembered as /);
     const id = (await store.list())[0]!.id;
 
     const duplicate = await tools[0]!.execute(
-      { content: "Ken has a durable preference.", category: "preference" },
+      { content: "Israel has a durable preference.", category: "preference" },
       context(),
     );
     expect(duplicate).toContain(`Near-duplicate already exists as ${id}`);
 
     expect(
-      await tools[1]!.execute({ id, content: "Ken has an updated durable preference." }, context()),
+      await tools[1]!.execute(
+        { id, content: "Israel has an updated durable preference." },
+        context(),
+      ),
     ).toBe(`Updated memory ${id}. 1 memory stored.`);
     expect(await tools[2]!.execute({ id }, context())).toBe(
       `Forgot memory ${id}. 0 memories remain.`,

@@ -206,18 +206,18 @@ import "./App.css";
 import "./Deck.css";
 import "./Trophies.css";
 
-const DEFAULT_INPUT_PLACEHOLDER = "Type a message, / commands, @ files, @Ken for help";
+const DEFAULT_INPUT_PLACEHOLDER = "Type a message, / commands, @ files, @Israel for help";
 const INPUT_PLACEHOLDERS = [
   DEFAULT_INPUT_PLACEHOLDER,
-  "Need a second opinion? Ask @Ken",
+  "Need a second opinion? Ask @Israel",
   "Start with ! to run a command, like !git status",
-  "Stuck on what to do next? Ask @Ken",
+  "Stuck on what to do next? Ask @Israel",
   DEFAULT_INPUT_PLACEHOLDER,
-  "Run tests yourself with !pnpm test, then ask GG to fix them",
-  "Want a second set of eyes? Ask @Ken",
-  "Unsure how to proceed? Ask @Ken",
-  "!ls runs in this project. GG sees the output next message",
-  "Need a quick review? Ask @Ken",
+  "Run tests yourself with !pnpm test, then ask Israel Code to fix them",
+  "Want a second set of eyes? Ask @Israel",
+  "Unsure how to proceed? Ask @Israel",
+  "!ls runs in this project. Israel Code sees the output next message",
+  "Need a quick review? Ask @Israel",
 ] as const;
 const RUNNING_INPUT_PLACEHOLDERS = [
   "Agent is working. Add a follow-up if you want",
@@ -226,7 +226,7 @@ const RUNNING_INPUT_PLACEHOLDERS = [
   "Agent is on it. You can stack the next note",
   "Thinking ahead? Drop the next instruction",
   "Keep going. Your next message will queue up",
-  "Check something yourself with !, it won't interrupt GG",
+  "Check something yourself with !, it won't interrupt Israel Code",
 ] as const;
 const INPUT_PLACEHOLDER_INTERVAL_MS = 12_000;
 const PLACEHOLDER_SHUFFLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -1417,7 +1417,7 @@ function App(): React.ReactElement {
     void switchKenModel(modelId).then((res) => {
       if (!res) {
         // Without this the picker just snaps back and the click looks ignored.
-        toast("Couldn't switch Ken's model.", "error");
+        toast("Couldn't switch Israel's model.", "error");
         return;
       }
       setState((s) =>
@@ -1516,12 +1516,12 @@ function App(): React.ReactElement {
   // with it (case-insensitive, word-boundary so `@kennedy.ts` still picks files),
   // Ken is "active": the file picker is suppressed and the input is tinted in
   // Ken's color with a shimmering marker, so it's obvious the message goes to Ken.
-  const kenActive = workspaceMode === "code" && /^@ken\b/i.test(input.trimStart());
+  const kenActive = workspaceMode === "code" && /^@(?:israel|ken)\b/i.test(input.trimStart());
   // Split the input for the `@Ken` highlight overlay: any leading whitespace,
   // the literal `@Ken` token (preserving the user's casing), then the rest. Only
   // the token shimmers; lead+rest render in the normal input color.
   const kenInputParts = (() => {
-    const m = /^(\s*)(@ken)/i.exec(input);
+    const m = /^(\s*)(@(?:israel|ken))/i.exec(input);
     if (!m) return null;
     return { lead: m[1], token: m[2], rest: input.slice(m[1].length + m[2].length) };
   })();
@@ -1930,9 +1930,9 @@ function App(): React.ReactElement {
           id: nextId(),
           ...readChatError(
             {
-              headline: "Ken's prompt wasn't sent",
+              headline: "Israel's prompt wasn't sent",
               message: error instanceof Error ? error.message : String(error),
-              guidance: "Click Send to GG Coder again when the agent is ready.",
+              guidance: "Click Send to Israel Code again when the agent is ready.",
               reason: "network",
             },
             "error",
@@ -2004,7 +2004,7 @@ function App(): React.ReactElement {
             // Nothing was cut short: the goal had simply finished.
             if (!resumed && !state?.goal?.paused) {
               toast(
-                "Nothing to carry on: the goal finished. Tell GG Goals what's next in the chat.",
+                "Nothing to carry on: the goal finished. Tell Israel Goals what's next in the chat.",
               );
             }
           });
@@ -2352,10 +2352,13 @@ function App(): React.ReactElement {
     // `@Ken <prompt>` (case-insensitive, optional colon) routes to Ken Kai, the
     // read-only mentor agent — NOT GG Coder. Ken runs concurrently with any
     // build run; his reply streams into a magenta bubble via ken_* events.
-    const kenMatch = workspaceMode === "code" ? /^@ken\b:?\s*/i.exec(trimmed) : null;
+    const kenMatch = workspaceMode === "code" ? /^@(?:israel|ken)\b:?\s*/i.exec(trimmed) : null;
     if (kenMatch) {
       if (attachments.length > 0) {
-        toast("Ken cannot receive attachments. Remove @Ken to send them to GG.", "warning");
+        toast(
+          "Israel cannot receive attachments. Remove @Israel to send them to Israel Code.",
+          "warning",
+        );
         return;
       }
       const question = trimmed.slice(kenMatch[0].length).trim();
@@ -3019,7 +3022,7 @@ function App(): React.ReactElement {
                                   disabled={running || kenRunning || autopilotReviewing}
                                   title={
                                     it.scope === "ken_error" || it.scope === "autopilot_error"
-                                      ? "Switch Ken's model"
+                                      ? "Switch Israel's model"
                                       : "Switch model"
                                   }
                                   label={
@@ -3102,7 +3105,7 @@ function App(): React.ReactElement {
                 state?.goal
                   ? {
                       name: "Critters",
-                      followLabel: "GG Goals",
+                      followLabel: "Israel Goals",
                       model: state.goal.critterModel ?? state.model,
                       following: !state.goal.critterModel,
                       disabled: false,
@@ -3110,8 +3113,8 @@ function App(): React.ReactElement {
                     }
                   : workspaceMode === "code" && state
                     ? {
-                        name: "Ken",
-                        followLabel: "GG",
+                        name: "Israel",
+                        followLabel: "Israel Code",
                         model: state.kenModel ?? state.model,
                         following: !state.kenModelOverride,
                         disabled: running || kenRunning || autopilotReviewing,
@@ -3267,8 +3270,8 @@ function App(): React.ReactElement {
               }
               status={
                 /* The deck's status line is whoever is working: a manual @Ken
-                 reply shows Ken's bar there in place of GG's (an automatic
-                 review stays in GG's task row). */
+                 reply shows Israel's bar there in place of Israel Code's (an automatic
+                 review stays in Israel Code's task row). */
                 workspaceMode === "code" && kenRunning && !running && !autopilotReviewing ? (
                   <KenActivityBar
                     runStartTs={kenRunStartTs}

@@ -127,7 +127,7 @@ describe("buildSystemPrompt", () => {
       new Set<LanguageId>(["typescript"]),
     );
 
-    expect(prompt.startsWith("You are GG Coder by Ken Kai")).toBe(true);
+    expect(prompt.startsWith("You are Israel Code")).toBe(true);
     expect(sectionIndex(prompt, "## Replies")).toBeLessThan(sectionIndex(prompt, "## Work"));
     expect(sectionIndex(prompt, "## Work")).toBeLessThan(
       sectionIndex(prompt, "## Project Context"),
@@ -753,7 +753,7 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("the nearest file wins");
   });
 
-  it("uses the Claude Code identity for Anthropic and GG Coder for other providers", async () => {
+  it("uses the Claude Code identity for Anthropic and Israel Code for other providers", async () => {
     const cwd = await makeProject();
     const anthropic = await buildSystemPrompt(
       cwd,
@@ -775,8 +775,8 @@ describe("buildSystemPrompt", () => {
     );
 
     expect(anthropic.startsWith("You are Claude Code")).toBe(true);
-    expect(anthropic).not.toContain("GG Coder by Ken Kai");
-    expect(openai.startsWith("You are GG Coder by Ken Kai")).toBe(true);
+    expect(anthropic).not.toContain("Israel Code");
+    expect(openai.startsWith("You are Israel Code")).toBe(true);
     expect(openai).not.toContain("You are Claude Code");
   });
 

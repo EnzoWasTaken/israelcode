@@ -4,7 +4,7 @@ import { log } from "../core/logger.js";
 
 // ── GG World device link ────────────────────────────────────────────────
 // One device link per install, used only for GG World online save and the
-// live world. It lives in ~/.gg/royale.json (the name is from GG Royale, now
+// live world. It lives in ~/.israelcode/royale.json (the name is from GG Royale, now
 // closed; the file and its format are unchanged so existing players keep
 // their account). The device token is only ever sent to the server it was
 // minted for.

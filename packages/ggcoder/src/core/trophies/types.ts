@@ -145,7 +145,7 @@ export interface TrophyLastEvent {
   unlocked: string[];
 }
 
-/** Durable trophies file (~/.gg/trophies.json). */
+/** Durable trophies file (~/.israelcode/trophies.json). */
 export interface TrophyFile {
   /** 1 was a pre-release format that credited past XP; it's discarded on load. */
   v: 2;

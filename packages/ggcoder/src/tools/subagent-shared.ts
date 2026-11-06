@@ -18,7 +18,7 @@ export const SUB_AGENT_MAX_OUTPUT_CHARS = 100_000;
 /**
  * What the blocking `subagent` tool pastes into the parent's context — the
  * same per-agent budget as `wait_agent` (SubAgentManager), well under the
- * 50 KB tool cap. The full report is offloaded to `~/.gg/tool-output/`.
+ * 50 KB tool cap. The full report is offloaded to `~/.israelcode/tool-output/`.
  */
 export const SUB_AGENT_BLOCKING_OUTPUT_CHARS = 30_000;
 export const SUB_AGENT_MAX_OUTPUT_LINES = 500;

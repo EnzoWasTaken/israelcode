@@ -21,6 +21,7 @@ import type { ProcessManager } from "./process-manager.js";
 import { buildKenAutopilotContext } from "./ken-context.js";
 import type { VerificationEvidence } from "./verification-evidence.js";
 import { createBashTool, REVIEW_REJECTED_BEFORE_START } from "../tools/bash.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 interface FlowInternals {
   sessionPath: string;
@@ -44,9 +45,9 @@ beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-verify-flow-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-verify-flow-"));
   restoreHome = useFakeHome(tmpHome);
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test-token",
@@ -408,7 +409,7 @@ describe("verification gate flow", { timeout: 60_000 }, () => {
     expect(events.filter((e) => e.startsWith("hook:"))).toEqual([]);
   });
 
-  it("accepts a real background check/build chain in both the gate and Ken's digest", async () => {
+  it("accepts a real background check/build chain in both the gate and Israel's digest", async () => {
     await prepareBuildProject(artifactBuild);
     const { internal } = await makeSession();
     await simulateToolCall(internal, "edit", { file_path: "subject.mjs" });

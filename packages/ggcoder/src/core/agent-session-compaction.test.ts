@@ -10,6 +10,7 @@ import { MODELS } from "./model-registry.js";
 import { estimateConversationTokens } from "./compaction/token-estimator.js";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const shouldCompactMock = vi.hoisted(() => vi.fn());
 const compactMock = vi.hoisted(() => vi.fn());
@@ -103,7 +104,7 @@ beforeEach(async () => {
     "huggingface",
   ];
   await writeJson(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     Object.fromEntries(
       authProviders.map((provider) => [
         provider,
@@ -116,7 +117,7 @@ beforeEach(async () => {
       ]),
     ),
   );
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
     autoCompact: true,
     compactThreshold: 0.1,
   });
@@ -742,7 +743,7 @@ describe("AgentSession overflow recovery", () => {
 
 describe("AgentSession mid-turn compaction", () => {
   it("compacts non-forced in-flight history exactly at the configured 80% boundary", async () => {
-    await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+    await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
       autoCompact: true,
       compactThreshold: 0.8,
     });
@@ -935,7 +936,7 @@ describe("AgentSession mid-turn compaction", () => {
   });
 
   it("clears authoritative usage after compaction and does not recompact unchanged context", async () => {
-    await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+    await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
       autoCompact: true,
       compactThreshold: 0.85,
     });
@@ -1001,7 +1002,7 @@ describe("AgentSession mid-turn compaction", () => {
   it.each(providerModels)(
     "$provider uses the same normalized usage formula",
     async ({ provider, model }) => {
-      await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+      await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
         autoCompact: true,
         compactThreshold: 0.8,
       });
@@ -1047,7 +1048,7 @@ describe("AgentSession mid-turn compaction", () => {
   );
 
   it("honors a custom threshold during a non-forced transform", async () => {
-    await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+    await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
       autoCompact: true,
       compactThreshold: 0.65,
     });
@@ -1086,7 +1087,7 @@ describe("AgentSession mid-turn compaction", () => {
   });
 
   it("honors autoCompact false for non-forced calls but force bypasses settings and cooldown", async () => {
-    await writeJson(path.join(tmpHome, ".gg", "settings.json"), {
+    await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), {
       autoCompact: false,
       compactThreshold: 0.8,
     });
@@ -1270,7 +1271,7 @@ describe("AgentSession mid-turn compaction", () => {
 /** Every .jsonl under the ggcoder session store — must stay empty for
  *  transient sessions (Ken chat/autopilot, subagent spawns). */
 async function listSessionFiles(): Promise<string[]> {
-  const sessionsDir = path.join(tmpHome, ".gg", "sessions");
+  const sessionsDir = path.join(tmpHome, APP_DIR_NAME, "sessions");
   const out: string[] = [];
   const walk = async (dir: string): Promise<void> => {
     let entries;

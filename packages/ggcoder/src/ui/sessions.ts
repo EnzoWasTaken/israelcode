@@ -72,10 +72,10 @@ function renderScreen(sessions: SessionDisplay[], selectedIndex: number): string
   const lines: string[] = [];
 
   for (const row of renderLogoBlock([
-    chalk.hex("#60a5fa").bold("GG Coder") +
+    chalk.hex("#60a5fa").bold("Israel Code") +
       (_version ? chalk.hex(TEXT_DIM)(` v${_version}`) : "") +
       chalk.hex(TEXT_DIM)(" · By ") +
-      chalk.hex(TEXT).bold("Ken Kai"),
+      chalk.hex(TEXT).bold("Israel"),
     chalk.hex(PRIMARY)("Sessions"),
     chalk.hex(TEXT_DIM)("Select a session to resume"),
   ])) {

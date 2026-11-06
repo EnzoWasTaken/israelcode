@@ -65,7 +65,7 @@ describe("packaged Linux smoke layout", () => {
     mkdirSync(join(root, "usr", "bin"), { recursive: true });
     writeFileSync(join(root, "usr", "bin", "gg-app"), "");
     if (node) writeFileSync(join(root, "usr", "bin", "ggnode"), "");
-    const resources = join(root, "usr", "lib", "GG Coder", "sidecar");
+    const resources = join(root, "usr", "lib", "Israel Code", "sidecar");
     mkdirSync(resources, { recursive: true });
     if (sidecar) writeFileSync(join(resources, "app-sidecar.mjs"), "");
   }
@@ -74,21 +74,21 @@ describe("packaged Linux smoke layout", () => {
     const root = temporaryDirectory();
     unpack(root);
     const real = realpathSync(root);
-    expect(discoverPackagedLayout(root, "GG Coder")).toEqual({
+    expect(discoverPackagedLayout(root, "Israel Code")).toEqual({
       executable: join(real, "usr", "bin", "gg-app"),
       installDir: join(real, "usr", "bin"),
       node: join(real, "usr", "bin", "ggnode"),
-      sidecar: join(real, "usr", "lib", "GG Coder", "sidecar", "app-sidecar.mjs"),
+      sidecar: join(real, "usr", "lib", "Israel Code", "sidecar", "app-sidecar.mjs"),
     });
   });
 
   it("fails when the Node runtime or sidecar is missing", () => {
     const noNode = temporaryDirectory();
     unpack(noNode, { node: false });
-    expect(() => discoverPackagedLayout(noNode, "GG Coder")).toThrow(/Node runtime missing/);
+    expect(() => discoverPackagedLayout(noNode, "Israel Code")).toThrow(/Node runtime missing/);
     const noSidecar = temporaryDirectory();
     unpack(noSidecar, { sidecar: false });
-    expect(() => discoverPackagedLayout(noSidecar, "GG Coder")).toThrow(/sidecar resource missing/);
+    expect(() => discoverPackagedLayout(noSidecar, "Israel Code")).toThrow(/sidecar resource missing/);
   });
 });
 

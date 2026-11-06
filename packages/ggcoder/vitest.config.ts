@@ -12,7 +12,7 @@ export default defineConfig({
       CI: "false",
       CONTINUOUS_INTEGRATION: "false",
       // Edit-regression telemetry from fake test edits must never land in the
-      // user's real ~/.gg/edit-quality.jsonl.
+      // user's real ~/.israelcode/edit-quality.jsonl.
       GG_EDIT_TELEMETRY_PATH: path.join(os.tmpdir(), "gg-vitest-edit-quality.jsonl"),
     },
     // The session/compaction suites persist real sessions and checkpoints to a

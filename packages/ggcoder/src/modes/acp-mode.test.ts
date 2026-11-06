@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ACP_PROTOCOL_VERSION } from "./acp-mode.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const MODES_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODES_DIR, "../..");
@@ -308,7 +309,7 @@ describe("ACP mode over stdio", () => {
     expect(initialize.result).toMatchObject({
       protocolVersion: ACP_PROTOCOL_VERSION,
       authMethods: [],
-      agentInfo: { name: "ggcoder", title: "GG Coder", version: "0.0.0-test" },
+      agentInfo: { name: "ggcoder", title: "Israel Code", version: "0.0.0-test" },
     });
     // A client only offers resume and a session list when these are advertised,
     // and `{}` — not `true` — is how ACP spells "supported" for these two.
@@ -1385,7 +1386,7 @@ interface GoalRow {
   agentSessionId: string | null;
 }
 
-describe("ACP mode GG extensions", () => {
+describe("ACP mode Israel Code extensions", () => {
   it("advertises gg capabilities and image prompts", async () => {
     client = new AcpClient();
     const init = await request(client, 1, "initialize", { protocolVersion: 1 });
@@ -1583,7 +1584,7 @@ describe("ACP mode GG extensions", () => {
       instructions: "Keep old URLs working",
     });
     expect(goal).not.toHaveProperty("latestSessionPath");
-    expect(path.dirname(goal.path)).toBe(path.join(tmpHome, ".gg", "goals"));
+    expect(path.dirname(goal.path)).toBe(path.join(tmpHome, APP_DIR_NAME, "goals"));
 
     const listed = (await request(client, 5, "_gg/goals/list", {})).result!.goals as GoalRow[];
     expect(listed.map((g) => g.id)).toEqual([goal.id]);
@@ -1913,7 +1914,7 @@ describe("ACP mode GG extensions", () => {
         reviewing: false,
       });
       const settings = JSON.parse(
-        await fs.readFile(path.join(tmpHome, ".gg", "gg-app.json"), "utf8"),
+        await fs.readFile(path.join(tmpHome, APP_DIR_NAME, "gg-app.json"), "utf8"),
       ) as { autopilot: Record<string, boolean> };
       expect(Object.values(settings.autopilot)).toEqual([true]);
     });
@@ -1970,7 +1971,7 @@ describe("ACP mode GG extensions", () => {
           return rest;
         });
 
-    it("prompts GG Coder hidden, then finishes with done", async () => {
+    it("prompts Israel Code hidden, then finishes with done", async () => {
       const sessionId = await autopilotSession(["PROMPT\nAdd a test.", "ALL_CLEAR"]);
       prompt(sessionId, 4, "build it");
       const frames = await live().until(4);
@@ -1988,7 +1989,7 @@ describe("ACP mode GG extensions", () => {
       expect(frames.at(-1)!.result).toEqual({ stopReason: "end_turn" });
     });
 
-    it("persists Ken's markers and replays them on session/load to _gg clients only", async () => {
+    it("persists Israel's markers and replays them on session/load to _gg clients only", async () => {
       const sessionId = await autopilotSession(["PROMPT\nAdd a test.", "ALL_CLEAR"]);
       prompt(sessionId, 4, "build it");
       await live().until(4);

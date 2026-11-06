@@ -3,13 +3,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadStreamRules } from "./stream-rules.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 let root: string;
 let home: string;
 let cwd: string;
 
 async function writeRule(base: string, file: string, content: string): Promise<void> {
-  const dir = path.join(base, ".gg", "rules");
+  const dir = path.join(base, base === home ? APP_DIR_NAME : ".gg", "rules");
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, file), content, "utf8");
 }

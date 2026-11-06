@@ -314,7 +314,7 @@ function PromptBlock({ body }: { body: string }): React.ReactElement {
       : sendPrompt(text).then(
           () => true,
           () => {
-            toast("Couldn't send the prompt to GG Coder. Try again.", "error");
+            toast("Couldn't send the prompt to Israel Code. Try again.", "error");
             return false;
           },
         );
@@ -331,10 +331,10 @@ function PromptBlock({ body }: { body: string }): React.ReactElement {
           className={`ken-prompt-send${sent ? " sent" : ""}`}
           onClick={send}
           disabled={sent}
-          title={sent ? "Sent to GG Coder" : "Send this prompt to GG Coder"}
+          title={sent ? "Sent to Israel Code" : "Send this prompt to Israel Code"}
         >
           {sent ? <CheckIcon size={12} /> : <ArrowElbowDownLeftIcon size={12} />}
-          {sent ? "Sent" : "Send to GG Coder"}
+          {sent ? "Sent" : "Send to Israel Code"}
         </button>
       )}
     </div>

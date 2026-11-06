@@ -19,12 +19,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KenKaiii/gg-framework.git",
+    "url": "git+https://github.com/EnzoWasTaken/israelcode.git",
     "directory": "packages/gg-agent"
   },
-  "homepage": "https://github.com/KenKaiii/gg-framework/tree/main/packages/gg-agent#readme",
+  "homepage": "https://github.com/EnzoWasTaken/israelcode/tree/main/packages/gg-agent#readme",
   "bugs": {
-    "url": "https://github.com/KenKaiii/gg-framework/issues"
+    "url": "https://github.com/EnzoWasTaken/israelcode/issues"
   },
   "exports": {
     ".": {

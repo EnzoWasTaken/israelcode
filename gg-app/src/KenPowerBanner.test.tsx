@@ -32,9 +32,9 @@ describe("KenFace", () => {
 
 describe("KenPowerBanner", () => {
   it.each([
-    ["on", "Ken is on."],
-    ["off", "Ken is off."],
-  ] as const)("shows Ken's %s face beside the words", (mode, text) => {
+    ["on", "Israel is on."],
+    ["off", "Israel is off."],
+  ] as const)("shows Israel's %s face beside the words", (mode, text) => {
     const { container } = render(<KenPowerBanner mode={mode} onDone={() => undefined} />);
     expect(container.querySelector(`.ken-power-banner .ken-face-${mode}`)).not.toBeNull();
     expect(container.textContent).toContain(text);

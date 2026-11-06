@@ -12,6 +12,7 @@ import path from "node:path";
 import { useFakeHome } from "../test-support/fake-home.js";
 import { keepAliveWhileOwnerLives } from "../test-support/keep-alive.js";
 import type { ProcessManager } from "./process-manager.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 interface DisposeInternals {
   processManager?: ProcessManager;
@@ -30,9 +31,9 @@ beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-dispose-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-dispose-"));
   restoreHome = useFakeHome(tmpHome);
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test-token",

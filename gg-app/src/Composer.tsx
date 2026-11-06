@@ -266,9 +266,9 @@ export function Composer({
               onDone={onEnhanceAnimDone}
             />
           )}
-          {/* `@Ken` active: a textarea can't color just one token, so we mirror
-            the input in an aligned overlay where the leading `@Ken` shimmers
-            in Ken's color. The textarea text below is made transparent (caret
+          {/* `@Israel` active: a textarea can't color just one token, so we mirror
+            the input in an aligned overlay where the leading `@Israel` shimmers
+            in Israel's color. The textarea text below is made transparent (caret
             stays visible) so only this styled copy shows. Metrics match
             `.input` 1:1 so wrapping/caret line up. */}
           {kenActive && kenInputParts && (
@@ -424,7 +424,7 @@ export function Composer({
                 : keyAction === "stop-run"
                   ? "Stop the run"
                   : keyAction === "stop-ken"
-                    ? "Stop Ken"
+                    ? "Stop Israel"
                     : attachmentsLoading
                       ? "Loading attachments…"
                       : "Send"

@@ -1,4 +1,4 @@
-# GG Motion style library
+# Israel Motion style library
 
 Curated, render-verified building blocks for Motion videos, used through
 `bin/library.mjs`. Two kinds of entry:
@@ -94,7 +94,7 @@ project's `CREDITS.md` when added.
 
 ## Move kit
 
-`kit/moves.js` is GG's own motion toolkit. Install it with
+`kit/moves.js` is Israel Code's own motion toolkit. Install it with
 `node library.mjs kit <project>` (or through any kit piece), put the printed
 `<script src="assets/kit/moves.js">` in the root head after GSAP, then use
 `window.GGMotionKit` from any composition script. It follows the library's

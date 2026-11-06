@@ -129,7 +129,7 @@ describe("gg-app sidecar session listings", () => {
     expect(chatSessions.at(-1)).toMatchObject({ id: "chat-1", chatAgent: "general" });
   });
 
-  it("surfaces a Claude Code session for the project and opens it as a resumable GG Coder session", async () => {
+  it("surfaces a Claude Code session for the project and opens it as a resumable Israel Code session", async () => {
     const home = path.join(tmp, "home");
     const transcript = await writeClaudeTranscript(
       home,

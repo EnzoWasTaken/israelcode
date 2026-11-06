@@ -13,12 +13,12 @@ interface BannerProps {
 }
 
 const LOGO_LINES = [
-  " \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557 ",
-  "\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d ",
-  "\u2588\u2588\u2551  \u2588\u2588\u2588\u2557\u2588\u2588\u2551  \u2588\u2588\u2588\u2557",
-  "\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551",
-  "\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d",
-  " \u255a\u2550\u2550\u2550\u2550\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u255d",
+  "\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557      ",
+  "\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d      ",
+  "\u2588\u2588\u2551\u2588\u2588\u2551           ",
+  "\u2588\u2588\u2551\u2588\u2588\u2551           ",
+  "\u2588\u2588\u2551\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2557      ",
+  "\u255a\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d      ",
 ];
 
 // Gradient steps across the logo: primary -> secondary -> primary, giving a
@@ -88,7 +88,7 @@ export function Banner({ version, model, cwd }: BannerProps) {
       <Box>
         <Text>{LEFT_PAD}</Text>
         <Text color={theme.primary} bold>
-          GG Coder
+          Israel Code
         </Text>
         <Text color={theme.textDim}> v{version}</Text>
       </Box>
@@ -112,12 +112,12 @@ export function Banner({ version, model, cwd }: BannerProps) {
     <Box flexDirection="column">
       <Box>
         <Text color={theme.primary} bold>
-          GG Coder
+          Israel Code
         </Text>
         <Text color={theme.textDim}> v{version}</Text>
         <Text color={theme.textDim}> · By </Text>
         <Text color={theme.text} bold>
-          Ken Kai
+          Israel
         </Text>
       </Box>
       <Box>

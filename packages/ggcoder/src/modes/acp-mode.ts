@@ -311,7 +311,7 @@ export interface AcpModeOptions {
     hooks: AcpPlanHooks,
     context: AcpSessionContext,
   ) => AcpAgentSession;
-  /** `~/.gg` by default; where goals (`goals/`) and sessions live. */
+  /** `~/.israelcode` by default; where goals (`goals/`) and sessions live. */
   agentDir?: string;
   /**
    * `ask_user` soft deadline (default: the desktop's interactive 10 min). Past
@@ -2086,7 +2086,7 @@ export async function runAcpMode(options: AcpModeOptions): Promise<void> {
         },
       },
       authMethods: [],
-      agentInfo: { name: "ggcoder", title: "GG Coder", version: options.version },
+      agentInfo: { name: "ggcoder", title: "Israel Code", version: options.version },
     };
   }
 
@@ -2163,7 +2163,7 @@ export async function runAcpMode(options: AcpModeOptions): Promise<void> {
    * Stored sessions, newest first.
    *
    * This is the answer to "see everything that was on GG Coder": the phone asks
-   * the agent, and the agent reads the same `~/.gg/sessions` files the desktop
+   * the agent, and the agent reads the same `~/.israelcode/sessions` files the desktop
    * browses — no separate index to fall out of step.
    *
    * ACP makes `cwd` nullable here on purpose. Omitted means EVERY project, not
@@ -2375,7 +2375,7 @@ export async function runAcpMode(options: AcpModeOptions): Promise<void> {
       if (!target) throw new InvalidParams(`Unknown model '${value}'.`);
       if (target.billing?.paid && target.id !== session.getState().model) {
         throw new InvalidParams(
-          `${target.name} spends real money (${target.billing.detail}) and can only be switched to in the GG Coder app or CLI, where you confirm it.`,
+          `${target.name} spends real money (${target.billing.detail}) and can only be switched to in the Israel Code app or CLI, where you confirm it.`,
         );
       }
       await session.switchModel(target.provider, target.id);

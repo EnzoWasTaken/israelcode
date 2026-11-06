@@ -104,7 +104,7 @@ describe("McpElicitModal", () => {
     const send = screen.getByRole("button", { name: "Send" }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
 
-    fireEvent.change(screen.getByLabelText("Your name *"), { target: { value: "Ken" } });
+    fireEvent.change(screen.getByLabelText("Your name *"), { target: { value: "Israel" } });
     fireEvent.change(screen.getByLabelText("How many"), { target: { value: "3" } });
     // Region is the shared Dropdown (not a native <select>): open it, pick "Europe".
     const region = screen.getByRole("button", { name: "Region" });
@@ -123,7 +123,7 @@ describe("McpElicitModal", () => {
     // `count` must arrive as a number — the SDK validates the result against
     // the same schema and would reject the string "3".
     expect(mcpElicitMock).toHaveBeenCalledWith("elicit-1", "accept", {
-      name: "Ken",
+      name: "Israel",
       count: 3,
       region: "eu",
       confirm: true,

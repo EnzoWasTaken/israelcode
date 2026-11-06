@@ -23,7 +23,7 @@ agree and confirm you're 18 or over.
 
 | What                                                                                                   | Why                                                                       | How long                                           |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------- |
-| A player id and a private device key (kept on your computer in `~/.gg/royale.json`, and on the server) | To know it's you, without a password                                      | Until you delete your account                      |
+| A player id and a private device key (kept on your computer in `~/.israelcode/royale.json`, and on the server) | To know it's you, without a password                                      | Until you delete your account                      |
 | Your World name, how your character looks, the items you own, coins spent, your coding level           | So your save survives reinstalls and carries over to other computers      | Until you delete your save or account              |
 | Mutes and their history                                                                                | To apply the chat rules wherever you play                                 | Kept with your account; steps down over clean days |
 | Reports (the reason, plus the reported player's last 20 public chat lines)                             | So a person can review abuse                                              | 30 days, or until reviewed                         |

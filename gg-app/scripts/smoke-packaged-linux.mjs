@@ -248,7 +248,7 @@ function hasVisibleWindow(pid) {
 
 /**
  * A throwaway user profile so the smoke can never read or write the real
- * `~/.gg` (auth tokens, settings, session store).
+ * `~/.israelcode` (auth tokens, settings, session store).
  */
 function isolatedEnvironment(root, projectDir) {
   const home = join(root, "home");

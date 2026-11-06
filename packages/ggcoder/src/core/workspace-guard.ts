@@ -84,7 +84,7 @@ function realResolve(target: string): string {
 /**
  * Decide whether a resolved write/edit target path is allowed.
  * Allowed by default: under `cwd`, under the OS temp dir, and under the
- * agent's own state dir (~/.gg) — sessions/plans/settings must keep working.
+ * agent's own state dir (~/.israelcode) — sessions/plans/settings must keep working.
  *
  * Both sides are compared AFTER symlink resolution (see {@link realResolve}):
  * the target, so a link inside the workspace cannot point out of it, and the

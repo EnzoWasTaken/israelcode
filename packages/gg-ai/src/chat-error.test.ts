@@ -140,7 +140,7 @@ describe("formatChatError", () => {
   it("removes blame and static entitlement promises", () => {
     expect(
       formatChatError(new GGAIError("fetch failed", { source: "network" })).guidance,
-    ).not.toContain("not a GG Coder issue");
+    ).not.toContain("not an Israel Code issue");
     const video = formatChatError(new VideoUnsupportedError());
     expect(video.reason).toBe("capability");
     expect(video.guidance).toBe("Choose a model that supports video.");

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { withFileLock } from "@kenkaiiii/gg-core";
+import { withFileLock, APP_DIR_NAME } from "@kenkaiiii/gg-core";
 import { atomicWrite } from "../core/session-storage.js";
 import { projectModelKey } from "./app-settings.js";
 
@@ -32,7 +32,7 @@ export const SHELL_HISTORY_MAX = 100;
 const SUGGESTED_COMMAND_MAX = 200;
 
 export function shellHistoryFile(): string {
-  return path.join(os.homedir(), ".gg", "shell-history.json");
+  return path.join(os.homedir(), APP_DIR_NAME, "shell-history.json");
 }
 
 function readEntries(value: unknown): HistoryEntry[] {

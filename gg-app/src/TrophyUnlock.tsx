@@ -266,7 +266,7 @@ export function TrophyUnlock({
             ))}
           </div>
           <div className="tu-back" aria-hidden="true">
-            <span className="tu-mono">GG</span>
+            <span className="tu-mono">Israel Code</span>
             <span className="tu-cap">TROPHY</span>
             <span className="tu-core" />
             <span className="tu-trace" />

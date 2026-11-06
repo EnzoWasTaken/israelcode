@@ -896,7 +896,7 @@ pub(crate) async fn agent_ken_cancel(
 }
 
 /// Proxy: toggle autopilot (auto-review) for THIS window's project. Persisted
-/// server-side in ~/.gg/gg-app.json keyed by cwd; returns `{ autopilot }`.
+/// server-side in ~/.israelcode/gg-app.json keyed by cwd; returns `{ autopilot }`.
 #[tauri::command]
 pub(crate) async fn agent_autopilot_set(
     webview: WebviewWindow,

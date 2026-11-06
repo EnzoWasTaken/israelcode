@@ -1,7 +1,7 @@
 /**
  * Point `os.homedir()` at a throwaway directory, on every platform.
  *
- * Tests that isolate `~/.gg` (auth.json, settings, session store) used to set
+ * Tests that isolate `~/.israelcode` (auth.json, settings, session store) used to set
  * `process.env.HOME` alone. That silently does NOTHING on Windows: libuv
  * resolves the home directory from `USERPROFILE`, falling back to
  * `HOMEDRIVE`+`HOMEPATH`, and ignores `HOME` entirely. So on Windows those

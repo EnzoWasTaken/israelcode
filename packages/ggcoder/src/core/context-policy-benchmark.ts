@@ -14,8 +14,8 @@
  *      counted separately as "stale".
  *
  * Arms change ONE thing against the current defaults. Settings are overridden
- * in the child process only (SettingsManager.prototype.get); ~/.gg/settings.json
- * is never written. Credentials come from the shared ~/.gg/auth.json exactly as
+ * in the child process only (SettingsManager.prototype.get); ~/.israelcode/settings.json
+ * is never written. Credentials come from the shared ~/.israelcode/auth.json exactly as
  * any other GG process uses them.
  *
  * Usage:

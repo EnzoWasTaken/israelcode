@@ -18,7 +18,7 @@ describe("parseAutopilotVerdict", () => {
     });
   });
 
-  it("keeps the corpus warning when Ken drifts it below a bare ALL_CLEAR", () => {
+  it("keeps the corpus warning when Israel drifts it below a bare ALL_CLEAR", () => {
     // The benchmarked failure: keyword line, then the old JSON form. The
     // approval used to win and the warning was silently dropped.
     expect(
@@ -106,7 +106,7 @@ describe("parseAutopilotVerdict", () => {
     });
   });
 
-  it("strips a ```prompt fence Ken wrapped the body in", () => {
+  it("strips a ```prompt fence Israel wrapped the body in", () => {
     const reply = "PROMPT\n```prompt\nWire the button to the handler.\n```";
     expect(parseAutopilotVerdict(reply)).toEqual({
       kind: "prompt",
@@ -162,7 +162,7 @@ describe("parseAutopilotVerdict", () => {
     expect(parseAutopilotVerdict("\n\nALL_CLEAR")).toEqual({ kind: "all_clear" });
   });
 
-  it("recovers ALL_CLEAR when Ken adds commentary before a trailing bare keyword line", () => {
+  it("recovers ALL_CLEAR when Israel adds commentary before a trailing bare keyword line", () => {
     const reply =
       "The label is now a plain non-clickable <span>, model name is the separate " +
       "clickable button. Matches the request exactly. Typecheck passed.\nALL_CLEAR";
@@ -201,7 +201,7 @@ describe("parseAutopilotVerdict", () => {
       parseAutopilotVerdict("Waiting on input.\nprompt the user for their API key first.").kind,
     ).toBe("human");
     expect(
-      parseAutopilotVerdict("Unclear ask.\nWe should write a prompt for GG Coder here.").kind,
+      parseAutopilotVerdict("Unclear ask.\nWe should write a prompt for Israel Code here.").kind,
     ).toBe("human");
   });
 
@@ -222,7 +222,7 @@ describe("parseAutopilotVerdict", () => {
     // reason after the keyword and drop the prose — HUMAN stops either way.
     const reply =
       "The screenshot shows a clean squared inward spiral that matches the " +
-      "reference. Tests green. GG Coder asked whether to dress it up with art — " +
+      "reference. Tests green. Israel Code asked whether to dress it up with art — " +
       "that's a taste/product call the user should own.\nHUMAN\nStructural spiral " +
       "is done; dressing it up with art is a taste call only you can make.";
     const v = parseAutopilotVerdict(reply);

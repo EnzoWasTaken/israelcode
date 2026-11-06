@@ -157,7 +157,9 @@ export interface SharedCheckoutCheckOptions {
 /** "1 other open GG Coder window" / "3 other open GG Coder windows", or null for none. */
 export function describeOtherWindows(count: number): string | null {
   if (count <= 0) return null;
-  return count === 1 ? "1 other open GG Coder window" : `${count} other open GG Coder windows`;
+  return count === 1
+    ? "1 other open Israel Code window"
+    : `${count} other open Israel Code windows`;
 }
 
 function blockMessage(match: BranchSwitch, root: string, others: string): string {

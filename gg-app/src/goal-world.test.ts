@@ -106,7 +106,7 @@ const worker = (over: Partial<FloorAgent> = {}): FloorAgent => ({
 const coordinatorAgent = (over: Partial<WorldAgent> = {}): WorldAgent => ({
   key: COORDINATOR_KEY,
   agentName: undefined,
-  name: "GG Goals",
+  name: "Israel Goals",
   coordinator: true,
   status: "working",
   kind: "think",
@@ -129,7 +129,7 @@ function crosses(f: Farm, a: { x: number; y: number }, b: { x: number; y: number
 }
 
 describe("goal world agents", () => {
-  it("puts GG Goals first and reads its work from the live tool feed", () => {
+  it("puts Israel Goals first and reads its work from the live tool feed", () => {
     const agents = collectWorldAgents({
       running: true,
       waitingOnUser: false,
@@ -144,7 +144,7 @@ describe("goal world agents", () => {
     expect(agents[1]).toMatchObject({ kind: "read", status: "working" });
   });
 
-  it("shows GG Goals at the mailbox while it waits on the user, and resting when idle", () => {
+  it("shows Israel Goals at the mailbox while it waits on the user, and resting when idle", () => {
     const base = { liveTools: [], workers: [] };
     expect(collectWorldAgents({ ...base, running: true, waitingOnUser: true })[0]?.kind).toBe(
       "ask",
@@ -155,7 +155,7 @@ describe("goal world agents", () => {
     });
   });
 
-  it("keeps GG Goals where its last work was between tool calls, not pacing to the notes board", () => {
+  it("keeps Israel Goals where its last work was between tool calls, not pacing to the notes board", () => {
     // Regression: every gap between tool calls sent Ken to the notes board,
     // so a run of reads had him walking board, bookcase, board, bookcase.
     const base = { running: true, waitingOnUser: false, workers: [] };
@@ -197,7 +197,7 @@ describe("goal world agents", () => {
 });
 
 describe("goal farm critters", () => {
-  it("draws GG Goals as a little Ken, the farm's size, and never hands Ken to a worker", () => {
+  it("draws Israel Goals as a little Israel, the farm's size, and never hands Israel to a worker", () => {
     expect(KEN_FARM_CRITTER.rows).toHaveLength(FARM_CRITTER_H);
     for (const row of KEN_FARM_CRITTER.rows) expect(row).toHaveLength(FARM_CRITTER_W);
     for (const ch of new Set(KEN_FARM_CRITTER.rows.join(""))) {
@@ -210,7 +210,7 @@ describe("goal farm critters", () => {
       expect(pickFarmCritter(undefined, `w${i}`, none).id).not.toBe("ken");
   });
 
-  it("gives each member of GG Goals' team a critter of its own", () => {
+  it("gives each member of Israel Goals' team a critter of its own", () => {
     const none = new Set<string>();
     expect(
       ["builder", "scout", "researcher", "checker"].map(
@@ -1050,7 +1050,7 @@ describe("goal farm play", () => {
     expect(water && farm.surface[water.y * farm.width + water.x]).toBe(SURFACE.water);
   });
 
-  it("marks GG Goals with its gold crown and a KEN nameplate, and no worker", () => {
+  it("marks Israel Goals with its gold crown and a ISRAEL nameplate, and no worker", () => {
     const w = createFarmWorld(farm, () => 0.4);
     const agents = collectWorldAgents({
       running: true,
@@ -1559,7 +1559,7 @@ describe("goal finish", () => {
     });
   });
 
-  it("falls back to a plain line when Ken said nothing during the stretch", () => {
+  it("falls back to a plain line when Israel said nothing during the stretch", () => {
     const finish = goalFinishOf([run({ outcome: "failed" })], [], {
       messageId: 3,
       face: "happy",

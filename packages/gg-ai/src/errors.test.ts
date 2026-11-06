@@ -113,7 +113,7 @@ describe("formatError request too large", () => {
         { statusCode: 400 },
       ),
     );
-    expect(f.guidance).toContain("Restart GG Coder");
+    expect(f.guidance).toContain("Restart Israel Code");
     expect(f.guidance).toContain("restored images are resized");
     expect(f.guidance).not.toContain("status.anthropic.com");
   });
@@ -145,7 +145,7 @@ describe("VideoUnsupportedError", () => {
   it("renders headline + guidance only (no bug-report framing)", () => {
     const out = formatErrorForDisplay(new VideoUnsupportedError());
     expect(out).toContain("This model can't analyze video.");
-    expect(out).not.toContain("GG Coder bug");
+    expect(out).not.toContain("Israel Code bug");
   });
 });
 
@@ -158,12 +158,12 @@ describe("formatErrorForDisplay", () => {
       [
         "Anthropic returned an error.",
         "  overloaded_error: Overloaded",
-        "  → Anthropic's servers are overloaded right now. Retry in a moment — not a GG Coder issue.",
+        "  → Anthropic's servers are overloaded right now. Retry in a moment — not an Israel Code issue.",
       ].join("\n"),
     );
   });
 
-  it("tells the user to update GG Coder when the ChatGPT backend rejects the client version", () => {
+  it("tells the user to update Israel Code when the ChatGPT backend rejects the client version", () => {
     const out = formatErrorForDisplay(
       new ProviderError(
         "openai",
@@ -172,7 +172,7 @@ describe("formatErrorForDisplay", () => {
       ),
     );
     expect(out).toContain(
-      "→ OpenAI needs a newer GG Coder to serve this model. Update GG Coder to the latest version and retry, or switch to another OpenAI model via the model selector.",
+      "→ OpenAI needs a newer Israel Code to serve this model. Update Israel Code to the latest version and retry, or switch to another OpenAI model via the model selector.",
     );
     expect(out).not.toContain("status.openai.com");
   });
@@ -185,7 +185,7 @@ describe("formatErrorForDisplay", () => {
       [
         "OpenAI returned an error.",
         "  server_error: something broke",
-        "  \u2192 This is an error from OpenAI, not GG Coder. Retry \u2014 if it keeps happening, check status.openai.com.",
+        "  \u2192 This is an error from OpenAI, not Israel Code. Retry \u2014 if it keeps happening, check status.openai.com.",
       ].join("\n"),
     );
   });
@@ -214,29 +214,29 @@ describe("formatErrorForDisplay", () => {
       [
         "Gemini returned an error.",
         "  quota exceeded",
-        "  \u2192 Your Gemini account has a billing or quota issue \u2014 check your balance. Not a GG Coder issue.",
+        "  \u2192 Your Gemini account has a billing or quota issue \u2014 check your balance. Not an Israel Code issue.",
       ].join("\n"),
     );
   });
 
-  it("classifies a network GGAIError without a GG Coder bug headline", () => {
+  it("classifies a network GGAIError without an Israel Code bug headline", () => {
     const out = formatErrorForDisplay(new GGAIError("fetch failed", { source: "network" }));
     expect(out).toBe(
       [
         "Network error \u2014 couldn't reach the provider.",
         "  fetch failed",
-        "  → Check your internet connection. Not a GG Coder issue — retry shortly.",
+        "  → Check your internet connection. Not an Israel Code issue — retry shortly.",
       ].join("\n"),
     );
   });
 
-  it("falls back to the GG Coder-bug headline for unknown errors", () => {
+  it("falls back to the Israel Code-bug headline for unknown errors", () => {
     const out = formatErrorForDisplay(new Error("Cannot read property 'foo' of undefined"));
     expect(out).toBe(
       [
-        "GG Coder hit an unexpected error.",
+        "Israel Code hit an unexpected error.",
         "  Cannot read property 'foo' of undefined",
-        "  → This looks like a GG Coder bug — please report it to the developer.",
+        "  → This looks like an Israel Code bug — please report it to the developer.",
       ].join("\n"),
     );
   });

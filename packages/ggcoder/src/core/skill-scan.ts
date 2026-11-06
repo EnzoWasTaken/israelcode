@@ -180,7 +180,7 @@ const ARCHIVE_PASSWORD =
   /\b(?:zip|archive|rar|7z)\b[^\n]{0,60}\bpassword\b\s*[:=]?\s*[`"']?\w{3,}|\bpassword\b[^\n]{0,20}\b(?:for|to\s+(?:open|extract|unzip))\b[^\n]{0,30}\b(?:zip|archive)\b/i;
 
 const CREDENTIAL_SOURCE =
-  /(?:~|\$HOME|\$\{HOME\}|%USERPROFILE%|\/Users\/[\w.-]+|\/home\/[\w.-]+)\/\.ssh\b|\bid_(?:rsa|ed25519|ecdsa|dsa)|\.aws\/credentials\b|~\/\.aws\b|\.gg\/auth\.json\b|\.clawdbot\/|\.config\/gh\/hosts|(?:~|\$HOME)\/\.(?:netrc|npmrc|pypirc)\b|\.docker\/config\.json\b|\bsecurity\s+find-(?:generic|internet)-password\b|(?:^|[\s'"`(/=@<])\.env(?:\.local|\.production)?(?![\w.-])|\$\{?[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\b|process\.env\.[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET)\b|os\.environ(?:\.get\(|\[)\s*['"][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET)/;
+  /(?:~|\$HOME|\$\{HOME\}|%USERPROFILE%|\/Users\/[\w.-]+|\/home\/[\w.-]+)\/\.ssh\b|\bid_(?:rsa|ed25519|ecdsa|dsa)|\.aws\/credentials\b|~\/\.aws\b|\.gg\/auth\.json\b|\.israelcode\/auth\.json\b|\.clawdbot\/|\.config\/gh\/hosts|(?:~|\$HOME)\/\.(?:netrc|npmrc|pypirc)\b|\.docker\/config\.json\b|\bsecurity\s+find-(?:generic|internet)-password\b|(?:^|[\s'"`(/=@<])\.env(?:\.local|\.production)?(?![\w.-])|\$\{?[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\b|process\.env\.[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET)\b|os\.environ(?:\.get\(|\[)\s*['"][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET)/;
 
 const SECRET_IN_URL =
   /\b(?:append|add|attach|include|put)\b[^.\n]{0,80}?\$\{?[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET)\b[^.\n]{0,60}?\b(?:to|in|into|onto)\b[^.\n]{0,30}?\b(?:(?:every|each|all|any)\s+(?:\w+\s+)?(?:urls?|links?|requests?|quer(?:y|ies))|urls|links)\b/i;

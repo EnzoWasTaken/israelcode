@@ -28,7 +28,7 @@ export function parseSafetyBlock(result: string): string | null {
 }
 
 export const SAFETY_BLOCK_NOTE =
-  "GG Coder blocked this for the user's safety. Carry on without it, and tell the user in one plain sentence in your final reply what was blocked and what you did instead.";
+  "Israel Code blocked this for the user's safety. Carry on without it, and tell the user in one plain sentence in your final reply what was blocked and what you did instead.";
 
 // ─── Shell helpers ──────────────────────────────────────────────────────────
 
@@ -888,9 +888,9 @@ function count(re: RegExp | LineRule, text: string, key?: RegExp): number {
 function describe(kind: ConfigKind): string {
   switch (kind) {
     case "gg-auth":
-      return "GG Coder's credential store";
+      return "Israel Code's credential store";
     case "gg-settings":
-      return "GG Coder's own safety settings";
+      return "Israel Code's own safety settings";
     case "shell-startup":
       return "a shell startup file (runs in every new terminal)";
     case "git-hook":

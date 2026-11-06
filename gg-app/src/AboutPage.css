@@ -1,8 +1,8 @@
 /* ── About (AboutPage.tsx) ──
-   Two cards: the maker (Ken in his storybook box, his name and the ways to
+   Two cards: the maker (Israel in his storybook box, his name and the ways to
    learn from him) and the ship log (every day since the first release, lit by
    how many releases). Same card, gap and type tokens as the other Settings
-   pages; Ken's parchment and the name's Young Serif are his storybook art from
+   pages; Israel's parchment and the name's Young Serif are his storybook art from
    the Workers view, used here so he looks like himself. */
 .about {
   display: flex;

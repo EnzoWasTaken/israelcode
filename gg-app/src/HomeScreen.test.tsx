@@ -150,7 +150,7 @@ describe("HomeScreen", () => {
     expect(goals.hasAttribute("aria-describedby")).toBe(false);
     expect(screen.queryByText("Beta")).toBeNull();
     expect(screen.queryByText("In beta")).toBeNull();
-    expect(screen.queryByText(/By Ken Kai/)).toBeNull();
+    expect(screen.queryByText(/By Israel/)).toBeNull();
     expect(screen.queryByRole("link", { name: "Skool" })).toBeNull();
     expect(screen.getByRole("button", { name: "Motion" }).hasAttribute("aria-describedby")).toBe(
       false,

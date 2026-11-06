@@ -355,7 +355,7 @@ const REF_HEADING = "Referenced files:";
 /**
  * Files a prompt points at: the app's @-picker sends them as a
  * "Referenced files:" list after the text; a typed `@path` counts too.
- * `@Ken` is a person, not a file.
+ * `@Israel` (or the upstream `@Ken`) is a person, not a file.
  */
 export function mentionedPaths(text: string, limit = 10): string[] {
   const out: string[] = [];
@@ -376,7 +376,7 @@ export function mentionedPaths(text: string, limit = 10): string[] {
   const re = /(?:^|\s)@([\w./-]*[\w-])/g;
   for (let m = re.exec(text); m && out.length < limit; m = re.exec(text)) {
     const token = m[1];
-    if (token && token.toLowerCase() !== "ken") push(token);
+    if (token && !["israel", "ken"].includes(token.toLowerCase())) push(token);
   }
   return out;
 }

@@ -7,6 +7,7 @@ import { spawn, type ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 /**
  * Plan hand-off, end to end: the REAL app sidecar daemon, driven over HTTP,
@@ -341,13 +342,13 @@ beforeEach(async () => {
   kenReviews = 0;
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-plan-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-plan-project-"));
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.mkdir(path.join(tmpProject, ".gg", "plans"), { recursive: true });
   await fs.mkdir(path.join(tmpProject, "src"), { recursive: true });
   await fs.writeFile(path.join(tmpProject, PLAN_REL), PLAN);
   const modelPort = await startModelServer();
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       deepseek: {
         accessToken: "sk-test",
@@ -358,7 +359,7 @@ beforeEach(async () => {
     }),
   );
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "settings.json"),
+    path.join(tmpHome, APP_DIR_NAME, "settings.json"),
     JSON.stringify({ provider: "deepseek", model: "deepseek-v4-pro", autoCompact: false }),
   );
   await startDaemon();
@@ -418,7 +419,7 @@ describe("plan hand-off (real daemon)", () => {
     expect(count(window.events, "plan_review")).toBe(1);
   }, 120_000);
 
-  it("autopilot on: Ken handing the plan back opens the review box", async () => {
+  it("autopilot on: Israel handing the plan back opens the review box", async () => {
     const window = await openWindow();
     await setAutopilot(window.session, true);
     kenVerdicts = ["HUMAN\nThis plan needs your call on the data model."];
@@ -433,7 +434,7 @@ describe("plan hand-off (real daemon)", () => {
     expect(reviewAt).toBeGreaterThan(humanAt);
   }, 120_000);
 
-  it("autopilot on: Ken approving runs the plan without ever showing the box", async () => {
+  it("autopilot on: Israel approving runs the plan without ever showing the box", async () => {
     const window = await openWindow();
     await setAutopilot(window.session, true);
     kenVerdicts = ["ALL_CLEAR"];
@@ -487,7 +488,7 @@ describe("plan hand-off (real daemon)", () => {
     await expect(fs.access(path.join(tmpProject, SNEAKY_REL))).rejects.toThrow();
   }, 120_000);
 
-  it("autopilot on: Ken's plan feedback is revised read-only, then handed back", async () => {
+  it("autopilot on: Israel's plan feedback is revised read-only, then handed back", async () => {
     const window = await openWindow();
     await setAutopilot(window.session, true);
     kenVerdicts = ["PROMPT\nREVISE_IT: split step 2", "HUMAN\nOver to you."];

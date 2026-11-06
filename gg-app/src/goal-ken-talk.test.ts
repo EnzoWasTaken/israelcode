@@ -27,7 +27,7 @@ const line = (id: string, priority: number, extra: Partial<KenLine> = {}): KenLi
 });
 
 describe("splitKenLine", () => {
-  it("takes Ken's spoken line off the end of a message, with its face", () => {
+  it("takes Israel's spoken line off the end of a message, with its face", () => {
     const text =
       "## Results\n\n| Page | Before | After |\n|---|---|---|\n| Home | 1.4s | 0.9s |\n\n[ken:proud] 0.9 seconds on mobile. We beat the target.";
     const { body, line: said } = splitKenLine(text);
@@ -143,14 +143,14 @@ describe("event lines", () => {
     expect(failed.priority).toBeGreaterThan(done.priority);
   });
 
-  it("gives each of Ken's messages its own line", () => {
+  it("gives each of Israel's messages its own line", () => {
     expect(ownLine({ messageId: 7, face: "happy", text: "Hi" })).toMatchObject({
       id: "own:7",
       priority: PRIORITY.own,
     });
   });
 
-  it("finds the line on GG Goals' latest reply only", () => {
+  it("finds the line on Israel Goals' latest reply only", () => {
     expect(
       latestKenLine([
         { kind: "assistant", id: 1, text: "Old.\n[ken:sad] Old news." },

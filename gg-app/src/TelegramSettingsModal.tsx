@@ -17,7 +17,7 @@ interface Props {
 /**
  * Telegram bot setup — mirrors `ggcoder telegram`. Collects a BotFather token
  * and the authorized numeric user id, verifies the token sidecar-side (getMe),
- * and saves to ~/.gg/telegram.json. The token field is left blank when one is
+ * and saves to ~/.israelcode/telegram.json. The token field is left blank when one is
  * already saved (a masked preview is shown instead).
  */
 export function TelegramSettingsModal({ onClose, onSaved }: Props): React.ReactElement {

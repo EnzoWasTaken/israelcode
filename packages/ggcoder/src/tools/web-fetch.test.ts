@@ -791,7 +791,7 @@ describe("createWebFetchTool", () => {
     const firstHeaders = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
     const retryHeaders = fetchMock.mock.calls[1][1]?.headers as Record<string, string>;
     expect(firstHeaders["User-Agent"]).toContain("Mozilla");
-    expect(retryHeaders["User-Agent"]).toContain("ggcoder/1.0");
+    expect(retryHeaders["User-Agent"]).toContain("israelcode/1.0");
   });
 
   it("probes curated documents concurrently but preserves candidate priority", async () => {

@@ -799,8 +799,8 @@ mod tests {
     #[test]
     fn crash_loop_message_carries_the_fatal_reason() {
         assert_eq!(
-            crash_loop_message(Some("GG_APP_FATAL EACCES: ~/.gg/settings.json")),
-            "The agent daemon kept crashing on startup: EACCES: ~/.gg/settings.json"
+            crash_loop_message(Some("GG_APP_FATAL EACCES: ~/.israelcode/settings.json")),
+            "The agent daemon kept crashing on startup: EACCES: ~/.israelcode/settings.json"
         );
         assert_eq!(
             crash_loop_message(Some("GG_APP_FATAL ")),

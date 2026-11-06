@@ -106,7 +106,7 @@ export function WhatsNewLounge({
     <div className="wn-lounge">
       <Clearing hour={sceneHour(fixedHour ?? localHour)} />
       <header className="wn-lounge-head">
-        <h1 className="sr-only">{`What's new in GG Coder v${latest.version}`}</h1>
+        <h1 className="sr-only">{`What's new in Israel Code v${latest.version}`}</h1>
         <img
           className="wn-lounge-title"
           src={title}

@@ -5,8 +5,8 @@
  * without configuration; this store holds only the extra endpoints a user typed
  * in — a moved port, a remote self-hosted box, an OpenAI-compatible gateway.
  *
- * Endpoints live in `~/.gg/gg-app.json` under `localEndpoints`; each one's key
- * (and, for keyed servers, its token) lives in `~/.gg/auth.json` as a
+ * Endpoints live in `~/.israelcode/gg-app.json` under `localEndpoints`; each one's key
+ * (and, for keyed servers, its token) lives in `~/.israelcode/auth.json` as a
  * `local:<id>` credential, which is also what carries the baseUrl into the
  * stream call. The two are kept in sync here so the UI never has to.
  */
@@ -19,6 +19,7 @@ import {
   clearLocalDiscoveryCache,
   withFileLock,
   type LocalEndpoint,
+  APP_DIR_NAME,
 } from "@kenkaiiii/gg-core";
 import { atomicWrite } from "./session-storage.js";
 
@@ -59,12 +60,12 @@ function toStored({ id, label, baseUrl, apiKey, contextLength }: LocalEndpoint):
 
 /**
  * Where this store reads and writes. Both default to the real user's files;
- * tests inject a temp directory so they never touch `~/.gg` — note that
+ * tests inject a temp directory so they never touch `~/.israelcode` — note that
  * overriding `$HOME` is NOT a portable way to do that, since `os.homedir()`
  * reads `USERPROFILE` on Windows.
  */
 export interface LocalEndpointStoreOptions {
-  /** Path to the gg-app settings file (defaults to `~/.gg/gg-app.json`). */
+  /** Path to the gg-app settings file (defaults to `~/.israelcode/gg-app.json`). */
   settingsFile?: string;
   /** Auth storage holding the `local:<id>` credentials. */
   auth?: AuthStorage;
@@ -74,7 +75,7 @@ const RESERVED_IDS = new Set(DEFAULT_LOCAL_ENDPOINTS.map((e) => e.id));
 const MAX_CUSTOM_ENDPOINTS = 20;
 
 function appSettingsFile(override?: string): string {
-  return override ?? path.join(os.homedir(), ".gg", "gg-app.json");
+  return override ?? path.join(os.homedir(), APP_DIR_NAME, "gg-app.json");
 }
 
 /**

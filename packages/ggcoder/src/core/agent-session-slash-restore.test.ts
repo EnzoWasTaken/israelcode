@@ -7,6 +7,7 @@ import type * as GgAgentModule from "@kenkaiiii/gg-agent";
 import type * as McpModule from "./mcp/index.js";
 import { restoreUserRow, resolveRestoredCommand } from "./session-history.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const agentLoopMock = vi.hoisted(() => vi.fn());
 
@@ -37,9 +38,9 @@ beforeEach(async () => {
     messages.push({ role: "assistant", content: "done" });
     yield { type: "agent_done" };
   });
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test-access",

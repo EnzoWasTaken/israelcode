@@ -118,9 +118,9 @@ describe("PlanReviewModal", () => {
     expect(handlers.onReject).toHaveBeenCalledTimes(1);
   });
 
-  it("says when Ken is reviewing, without locking the decision", () => {
+  it("says when Israel is reviewing, without locking the decision", () => {
     renderPlan({ kenReviewing: true });
-    expect(screen.getByRole("status").textContent).toContain("Ken is reviewing it");
+    expect(screen.getByRole("status").textContent).toContain("Israel is reviewing it");
     expect(screen.getByRole("button", { name: "Accept plan" })).toHaveProperty("disabled", false);
   });
 });

@@ -58,7 +58,7 @@ describe("buildKenAutopilotSystemPrompt — verdict contract", () => {
     expect(prompt).toContain("model-authored claims are not proof");
   });
 
-  it("makes Ken the plan reviewer (no automatic HUMAN on plan submissions)", () => {
+  it("makes Israel the plan reviewer (no automatic HUMAN on plan submissions)", () => {
     // In autopilot, a submitted plan is reviewed by Ken himself — approve,
     // revise, or (rarely) hand a genuine product decision to the user.
     expect(prompt).toContain("Plans are YOURS to review");
@@ -119,8 +119,8 @@ describe("buildKenAutopilotSystemPrompt — verdict contract", () => {
     expect(prompt).toContain("Those still require PROMPT to fix, or HUMAN");
   });
 
-  it("tells Ken injected transcript lines are his own, not user asks", () => {
-    expect(prompt).toContain("Ken autopilot (injected)");
+  it("tells Israel injected transcript lines are his own, not user asks", () => {
+    expect(prompt).toContain("Israel autopilot (injected)");
     expect(prompt).toContain(
       "Judge against the original user request and genuine user corrections",
     );
@@ -135,8 +135,8 @@ describe("buildKenAutopilotSystemPrompt — verdict contract", () => {
   it("keeps the injected label byte-identical to the digest renderer's", () => {
     // The system prompt names the label in prose; the digest emits it. If the
     // label constant drifts, the prompt's rule points at nothing.
-    expect(INJECTED_PROMPT_LABEL).toContain("Ken autopilot (injected)");
-    expect(prompt).toContain("Ken autopilot (injected)");
+    expect(INJECTED_PROMPT_LABEL).toContain("Israel autopilot (injected)");
+    expect(prompt).toContain("Israel autopilot (injected)");
   });
 
   it("kills the standalone why — reasons live only inside a PROMPT body", () => {
@@ -149,7 +149,7 @@ describe("buildKenAutopilotSystemPrompt — verdict contract", () => {
     expect(prompt).toContain("no audience for a why");
     expect(prompt).toContain("Never justify your verdict");
     expect(prompt).toContain("INSIDE a PROMPT body");
-    expect(prompt).toContain("when GG Coder itself needs it");
+    expect(prompt).toContain("when Israel Code itself needs it");
   });
 
   it("shows a contrastive WRONG/RIGHT example of the drift", () => {
@@ -172,14 +172,14 @@ describe("buildKenAutopilotSystemPrompt — verdict contract", () => {
 describe("buildKenSystemPrompt — chat mode unaffected", () => {
   it("keeps the chat output contract (prompt fence) and no verdict keywords", async () => {
     const prompt = await buildKenSystemPrompt(TEST_CWD);
-    expect(prompt).toContain("Send to GG Coder");
+    expect(prompt).toContain("Send to Israel Code");
     // The verdict contract is autopilot-only.
     expect(prompt).not.toContain("ALL_CLEAR");
   });
 });
 
 describe("Steroids guidance alignment", () => {
-  it("gives chat Ken and Autopilot the same evidence bar and corpus-gap rules", async () => {
+  it("gives chat Israel and Autopilot the same evidence bar and corpus-gap rules", async () => {
     for (const prompt of [
       await buildKenSystemPrompt(TEST_CWD),
       await buildKenAutopilotSystemPrompt(TEST_CWD),
@@ -234,8 +234,8 @@ describe("UI guidance alignment", () => {
   });
 });
 
-describe("GG Coder capabilities — both modes know what the executor can do", () => {
-  it("teaches Ken GG Coder's real toolset in chat AND autopilot", async () => {
+describe("Israel Code capabilities — both modes know what the executor can do", () => {
+  it("teaches Israel Israel Code's real toolset in chat AND autopilot", async () => {
     // Ken directs GG Coder, so both prompts must ground his instructions in the
     // executor's actual capabilities (plan mode, subagents, bash, screenshots),
     // not leave him guessing from the transcript.
@@ -243,7 +243,7 @@ describe("GG Coder capabilities — both modes know what the executor can do", (
       await buildKenSystemPrompt(TEST_CWD),
       await buildKenAutopilotSystemPrompt(TEST_CWD),
     ]) {
-      expect(prompt).toContain("What GG Coder can do");
+      expect(prompt).toContain("What Israel Code can do");
       expect(prompt).toContain("enter_plan");
       expect(prompt).toContain("subagents");
       expect(prompt).toContain("bash");
@@ -251,7 +251,7 @@ describe("GG Coder capabilities — both modes know what the executor can do", (
     }
   });
 
-  it("draws the boundary: Ken's own tools check, GG Coder's tools build", async () => {
+  it("draws the boundary: Israel's own tools check, Israel Code's tools build", async () => {
     // Ken should verify facts with his own read-only tools before delegating,
     // not send GG Coder to find out something he could confirm faster himself.
     for (const prompt of [

@@ -167,7 +167,7 @@ export function createWriteTool(
       const resolved = resolvePath(cwd, file_path);
       await rejectSymlink(resolved);
 
-      // Workspace write guard: outside cwd/tmp/~/.gg requires user approval.
+      // Workspace write guard: outside cwd/tmp/~/.israelcode requires user approval.
       const guard = resolveWriteGuard(cwd, resolved, getWriteGuardSettings?.());
       if (!guard.allowed) {
         return `Error: ${guard.reason}`;

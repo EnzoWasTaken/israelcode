@@ -63,12 +63,12 @@ import { toolTonePalette } from "./transcript/tool-presentation.js";
 import { editTargetLabel, editTargetPaths } from "../tools/edit-targets.js";
 
 const LOGO_LINES = [
-  " ██████╗  ██████╗ ",
-  "██╔════╝ ██╔════╝ ",
-  "██║  ███╗██║  ███╗",
-  "██║   ██║██║   ██║",
-  "╚██████╔╝╚██████╔╝",
-  " ╚═════╝  ╚═════╝",
+  "██╗ ██████╗      ",
+  "██║██╔════╝      ",
+  "██║██║           ",
+  "██║██║           ",
+  "██║╚██████╗      ",
+  "╚═╝ ╚═════╝      ",
 ];
 const PLAN_MODE_LOGO = [
   "▗▄▄▖ ▗▖    ▗▄▖ ▗▖  ▗▖    ▗▖  ▗▖ ▗▄▖ ▗▄▄▄ ▗▄▄▄▖",
@@ -486,7 +486,7 @@ function renderBanner(context: TerminalHistoryContext): string {
       "",
       ...logo,
       "",
-      `${RESPONSE_LEFT_PADDING}${color(context.theme.primary, "GG Coder", true)}${dim(context, ` v${context.version}`)}`,
+      `${RESPONSE_LEFT_PADDING}${color(context.theme.primary, "Israel Code", true)}${dim(context, ` v${context.version}`)}`,
       `${RESPONSE_LEFT_PADDING}${color(context.theme.secondary, modelName)}  ${dim(context, truncatePlain(displayPath, context.columns))}`,
       `${RESPONSE_LEFT_PADDING}${shortcuts}`,
       "",
@@ -496,7 +496,7 @@ function renderBanner(context: TerminalHistoryContext): string {
   // Info lines rendered beside the (taller) logo. They're anchored starting at
   // INFO_ANCHOR_ROW so the text column sits vertically centered next to the art.
   const infoLines = [
-    `${color(context.theme.primary, "GG Coder", true)}${dim(context, ` v${context.version} · By `)}${color(context.theme.text, "Ken Kai", true)}`,
+    `${color(context.theme.primary, "Israel Code", true)}${dim(context, ` v${context.version} · By `)}${color(context.theme.text, "Israel", true)}`,
     `${color(context.theme.secondary, modelName)}  ${dim(context, truncatePlain(displayPath, Math.max(10, context.columns - LOGO_WIDTH - GAP.length - stringWidth(modelName) - 2)))}`,
     shortcuts,
   ];

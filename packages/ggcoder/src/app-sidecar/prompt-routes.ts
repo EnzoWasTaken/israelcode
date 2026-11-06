@@ -357,7 +357,7 @@ export function handlePromptRoutes(
   if (method === "POST" && url === "/ken/prompt") {
     if (ctx.mode !== "code") {
       json(res, 404, {
-        error: `Ken is not available in GG ${ctx.mode === "chat" ? "Chat" : "Motion"}.`,
+        error: `Israel is not available in Israel ${ctx.mode === "chat" ? "Chat" : "Motion"}.`,
       });
       return true;
     }
@@ -375,7 +375,7 @@ export function handlePromptRoutes(
         return;
       }
       if (ctx.kenRunning) {
-        json(res, 409, { error: "Ken is already thinking — wait for his reply." });
+        json(res, 409, { error: "Israel is already thinking — wait for his reply." });
         return;
       }
       json(res, 202, { accepted: true });
@@ -428,7 +428,7 @@ export function handlePromptRoutes(
   if (method === "POST" && url === "/autopilot") {
     if (ctx.mode !== "code") {
       json(res, 404, {
-        error: `Autopilot is not available in GG ${ctx.mode === "chat" ? "Chat" : "Motion"}.`,
+        error: `Autopilot is not available in Israel ${ctx.mode === "chat" ? "Chat" : "Motion"}.`,
       });
       return true;
     }

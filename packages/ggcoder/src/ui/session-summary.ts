@@ -115,7 +115,7 @@ export function buildSessionSummary(options: {
 }): SessionSummary {
   const now = options.now?.() ?? Date.now();
   return {
-    title: "GG Coder is powering down. Goodbye!",
+    title: "Israel Code is powering down. Goodbye!",
     sessionId: options.stats.sessionId,
     provider: options.provider,
     model: options.model,

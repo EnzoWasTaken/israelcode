@@ -1,6 +1,5 @@
-// Builds GG Coder's whole icon set from one source: the capital "G" of the
-// "Delta Corps Priest 1" FIGlet font, in white with a soft diagonal shine, on
-// a black rounded tile.
+// Builds Israel Code's whole icon set from one source: an "IC" pixel
+// monogram, in white with a soft diagonal shine, on a black rounded tile.
 //
 //   node gg-app/scripts/build-icons.mjs
 //
@@ -25,28 +24,25 @@ const app = join(here, "..");
 const require = createRequire(join(app, "..", "packages", "ggcoder", "package.json"));
 const sharp = require("sharp");
 
-/**
- * "G" from Delta Corps Priest 1 (by CoSMiC cHiLD, via patorjk/figlet.js),
- * with each half-block character split into two cells. 12 × 16.
- */
+/** "IC" monogram: a serifed I beside a C, on a 15 × 16 grid. */
 export const GLYPH = [
-  "....######..",
-  "...########.",
-  "..###....###",
-  "..###....###",
-  "..###....##.",
-  "..###....#..",
-  "..###.......",
-  ".####.......",
-  "#####.####..",
-  "..###.#####.",
-  "..###....###",
-  "..###....###",
-  "..###....###",
-  "..###....###",
-  "..#########.",
-  "..########..",
-];
+  "#####...######.",
+  "#####..########",
+  ".###..###....##",
+  ".###..###....##",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###......",
+  ".###..###....##",
+  ".###..###....##",
+  "#####..########",
+  "#####...######.",
+]
 const COLS = GLYPH[0].length;
 const ROWS = GLYPH.length;
 
@@ -100,8 +96,7 @@ export function iconSvg(
   if (snap) cell = Math.round(cell);
   const w = cell * COLS;
   const h = cell * ROWS;
-  // The G's left spur is light, so nudge the letter a touch left to look centred.
-  let gx = t0 + (tile - w) / 2 - cell * 0.15;
+  let gx = t0 + (tile - w) / 2;
   let gy = t0 + (tile - h) / 2;
   if (snap) {
     gx = Math.round(gx);

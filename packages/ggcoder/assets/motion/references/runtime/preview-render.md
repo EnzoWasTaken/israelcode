@@ -148,9 +148,9 @@ hf render --docker                       # byte-identical
 
 **Parametrized renders:** the composition declares its variables on the `<html>` root with **`data-composition-variables`** — a JSON **array of declarations** (`{id, type, label, default}` per entry) that defines the schema. Scripts inside read the resolved values via `window.__hyperframes.getVariables()`. The CLI `--variables '{"title":"Q4 Report"}'` is a JSON **object keyed by id** that overrides those declared defaults for one render; missing keys fall through, so the same composition runs unchanged in dev preview and in production. Sub-comp hosts can also override per-instance with `data-variable-values`. See the `hyperframes-core` skill for the full pattern.
 
-## GG delivery boundary
+## Israel Code delivery boundary
 
 Keep renders and diagnostics local. Feedback submission, issue filing, publishing
 and cloud rendering are not automatic completion steps. They require explicit
 user authorization; do not send source files, private assets or logs upstream.
-Use GG's `reveal.mjs` to select the delivered local file.
+Use Israel Code's `reveal.mjs` to select the delivered local file.

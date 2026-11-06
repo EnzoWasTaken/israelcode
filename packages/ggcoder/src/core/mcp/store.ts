@@ -8,7 +8,7 @@ import type { MCPServerConfig } from "./types.js";
 /**
  * Where a server config lives. We collapse Claude Code's three scopes
  * (local/project/user) into two:
- * - "global"  → ~/.gg/mcp.json   (all GG Coder sessions)
+ * - "global"  → ~/.israelcode/mcp.json   (all GG Coder sessions)
  * - "project" → ./.gg/mcp.json   (the current project root)
  */
 export type MCPScope = "global" | "project";

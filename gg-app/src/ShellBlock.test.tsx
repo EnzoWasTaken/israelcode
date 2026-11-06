@@ -65,12 +65,12 @@ describe("ShellBlock", () => {
     expect(confirm).toHaveBeenLastCalledWith(1, "always");
   });
 
-  it("folds long output to its end and says whether GG has it", () => {
+  it("folds long output to its end and says whether Israel Code has it", () => {
     const output = Array.from({ length: 40 }, (_, i) => `line ${i + 1}`).join("\n");
     render(<ShellBlock item={{ ...base, output, exitCode: 1, durationMs: 4200, shared: false }} />);
     expect(screen.getByText("exit 1")).toBeTruthy();
     expect(screen.getByText("4.2s")).toBeTruthy();
-    expect(screen.getByText("GG will see this with your next message")).toBeTruthy();
+    expect(screen.getByText("Israel Code will see this with your next message")).toBeTruthy();
     const pre = document.querySelector(".shell-run-out");
     expect(pre?.textContent?.startsWith("line 29")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Show all 40 lines" }));

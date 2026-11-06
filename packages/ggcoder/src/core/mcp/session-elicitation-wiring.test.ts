@@ -83,7 +83,7 @@ describe("app-sidecar wires every window session for elicitation", () => {
    * Named factories specifically, so the assertion above cannot be satisfied by
    * three blocks that happen to be the wrong three.
    */
-  it("wires Ken chat and Ken autopilot specifically, not just the coding agent", async () => {
+  it("wires Israel chat and Israel autopilot specifically, not just the coding agent", async () => {
     const source = await fs.readFile(APP_SIDECAR, "utf8");
 
     for (const factory of ["ensureKenSession", "ensureKenAutoSession"]) {
@@ -147,7 +147,7 @@ describe("pool keying for a window's three sessions", () => {
    * pool splits — one connection for the coding agent, a second for the two
    * headless Ken sessions. Two processes where there should be one.
    */
-  it("splits into a second connection when Ken's sessions cannot prompt", async () => {
+  it("splits into a second connection when Israel's sessions cannot prompt", async () => {
     const pool = new SharedMcpPool();
     const spawns = { count: 0 };
 

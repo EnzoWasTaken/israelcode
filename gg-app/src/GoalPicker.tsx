@@ -57,7 +57,7 @@ function GoalStatusPill({ status }: { status: GoalSummary["status"] }): React.Re
       <Badge
         className="goal-status-running"
         color="var(--success)"
-        title="GG Goals is working on this now"
+        title="Israel Goals is working on this now"
       >
         Running now
       </Badge>
@@ -206,7 +206,7 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
         {!loading && !loadError && goals.length === 0 && (
           <div className="picker-empty">
             <span style={{ color: theme.textMuted }}>
-              No goals yet. Give GG Coder something bigger than one session.
+              No goals yet. Give Israel Code something bigger than one session.
             </span>
             {newGoalButton}
           </div>

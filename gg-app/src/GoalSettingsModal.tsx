@@ -73,7 +73,7 @@ export function GoalSettingsModal({
         <div className="modal-hint" style={{ color: theme.textDim }}>
           {busy
             ? "The goal is working. Pause it to change its settings."
-            : "GG Goals picks up the change on its next step."}
+            : "Israel Goals picks up the change on its next step."}
         </div>
       </div>
       {error && (

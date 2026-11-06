@@ -4,12 +4,12 @@
 <dict>
     <!--
       Tauri merges these strings into the generated macOS app Info.plist.
-      Permissions apply both to GG Coder's webview and to dev apps launched by
-      its agent, because macOS identifies GG Coder as the responsible parent.
+      Permissions apply both to Israel Code's webview and to dev apps launched by
+      its agent, because macOS identifies Israel Code as the responsible parent.
     -->
     <key>NSCameraUsageDescription</key>
-    <string>GG Coder allows apps you run during development to access your camera for recording and testing.</string>
+    <string>Israel Code allows apps you run during development to access your camera for recording and testing.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>GG Coder allows apps you run during development to access your microphone for recording and testing.</string>
+    <string>Israel Code allows apps you run during development to access your microphone for recording and testing.</string>
 </dict>
 </plist>

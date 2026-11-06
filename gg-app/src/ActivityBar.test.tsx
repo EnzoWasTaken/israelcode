@@ -152,7 +152,7 @@ describe("ActivityBar task outcomes", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
-  it("keeps the orb and shimmer while Ken reviews without an active builder", () => {
+  it("keeps the orb and shimmer while Israel reviews without an active builder", () => {
     const { container } = render(
       <ActivityBar
         {...baseProps}
@@ -160,13 +160,13 @@ describe("ActivityBar task outcomes", () => {
         activity={{
           ...INITIAL_ACTIVITY,
           phase: "reviewing",
-          label: "Ken reviewing…",
+          label: "Israel reviewing…",
           startedAt: 100,
         }}
       />,
     );
     expect(container.querySelector("canvas")).toBeTruthy();
-    expect(screen.getByText("Ken reviewing…").classList.contains("shimmer-text")).toBe(true);
+    expect(screen.getByText("Israel reviewing…").classList.contains("shimmer-text")).toBe(true);
     expect(screen.queryByText("Response ready")).toBeNull();
   });
   it("shows a compact outcome and metrics without a details panel", () => {
@@ -227,7 +227,7 @@ describe("ActivityBar cancellation state", () => {
         activity={{
           ...INITIAL_ACTIVITY,
           phase: "reviewing",
-          label: "Ken is reviewing",
+          label: "Israel is reviewing",
           startedAt: 1,
         }}
       />,

@@ -57,7 +57,7 @@ const SettingsSchema = z.object({
   idealReviewEnabled: z.boolean().default(true),
   /** Append LSP diagnostics to edit/write tool results. */
   lspDiagnostics: z.boolean().default(true),
-  /** Allow write/edit outside the workspace (cwd, tmpdir, ~/.gg). Off by
+  /** Allow write/edit outside the workspace (cwd, tmpdir, ~/.israelcode). Off by
    *  default — outside writes return a guard error asking for user approval. */
   allowOutsideWorkspaceWrites: z.boolean().default(false),
   /** Network egress policy. "allowlist" enforces `networkAllow` on the agent's
@@ -114,7 +114,7 @@ const SettingsSchema = z.object({
   /** Connect MCP servers declared in the OPENED REPO's `.gg/mcp.json`. That
    *  file is repo-controlled: a malicious repo can declare a stdio `command`
    *  that executes the moment the project opens. Off by default — enable only
-   *  for repos you trust (global ~/.gg/mcp.json is always connected). */
+   *  for repos you trust (global ~/.israelcode/mcp.json is always connected). */
   trustProjectMcpServers: z.boolean().default(false),
   /** Repo paths the user has individually trusted for project-scope MCP (the
    *  per-repo complement to the global `trustProjectMcpServers`). Stored as

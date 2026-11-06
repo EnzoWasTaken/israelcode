@@ -17,7 +17,9 @@ export function useTerminalTitle({ isRunning, cwd, gitBranch }: TerminalTitleOpt
   useEffect(() => {
     if (!stdout) return;
     const directory = cwd.split(/[\\/]/).filter(Boolean).pop();
-    const context = directory ? `${directory}${gitBranch ? ` │ ⎇ ${gitBranch}` : ""}` : "GG Coder";
+    const context = directory
+      ? `${directory}${gitBranch ? ` │ ⎇ ${gitBranch}` : ""}`
+      : "Israel Code";
     const title = isRunning ? `● ${context}` : context;
     if (title !== prevTitleRef.current) {
       prevTitleRef.current = title;
@@ -28,7 +30,7 @@ export function useTerminalTitle({ isRunning, cwd, gitBranch }: TerminalTitleOpt
   // Reset title on unmount
   useEffect(() => {
     return () => {
-      stdout?.write(`\x1b]0;GG Coder\x1b\\`);
+      stdout?.write(`\x1b]0;Israel Code\x1b\\`);
     };
   }, [stdout]);
 }

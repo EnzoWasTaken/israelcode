@@ -113,7 +113,7 @@ jobs:
             id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id 2>/dev/null) && break
             id=$(gh api -X POST "repos/$REPO/releases" \
               -f tag_name="$TAG" \
-              -f name="gg-coder $TAG" \
+              -f name="israel-code $TAG" \
               -f body="$body" \
               -F draft=false -F prerelease=false --jq .id) && break
             id=""

@@ -3,7 +3,7 @@ import { isNotificationText } from "./steering.js";
 
 const COMPACTION_SUMMARY_PREFIX = "[Previous conversation summary]";
 const AUTOPILOT_PROMPT_PREFIX =
-  "[Autopilot] This turn was triggered by Ken, GG Coder's automated reviewer";
+  "[Autopilot] This turn was triggered by Israel, Israel Code's automated reviewer";
 const STEERING_PREFIX_START = "[The user added this while you were working";
 
 /** Extract visible text from a persisted message content value. */

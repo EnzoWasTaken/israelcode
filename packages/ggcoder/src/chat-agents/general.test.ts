@@ -9,7 +9,7 @@ function optionsOf(agent: unknown): AgentSessionOptions {
 }
 
 describe("General chat agent", () => {
-  it("uses an isolated session namespace outside GG Coder history", () => {
+  it("uses an isolated session namespace outside Israel Code history", () => {
     // path.resolve on BOTH sides: the production code resolves its input, and
     // on Windows that attaches the current drive ("\\tmp\\gg" -> "D:\\tmp\\gg").
     // A hardcoded POSIX literal can never match that.
@@ -49,7 +49,7 @@ describe("General chat agent", () => {
     expect(options.transient).toBeUndefined();
   });
 
-  it("refuses to resume a GG Coder session outside the General namespace", () => {
+  it("refuses to resume an Israel Code session outside the General namespace", () => {
     const agent = createGeneralChatAgent({
       provider: "anthropic",
       model: "claude-test",

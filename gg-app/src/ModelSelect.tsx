@@ -104,7 +104,7 @@ export function ModelSelect({
   color,
   onSelectFollow,
   followActive,
-  followLabel = "GG Coder",
+  followLabel = "Israel Code",
   loadFailed,
 }: Props): React.ReactElement {
   const [open, setOpen] = useState(false);

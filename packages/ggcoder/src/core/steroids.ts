@@ -2,7 +2,7 @@
 //
 // The agent's `steroids` tool and the desktop Home screen both key off the
 // same detection: a binary on the enriched PATH (see shell-path.ts) or the
-// copy we install ourselves into ~/.gg/bin. Install mirrors the CLI's own
+// copy we install ourselves into ~/.israelcode/bin. Install mirrors the CLI's own
 // self-upgrade (upgrade.rs): hard-coded GitHub release URL, sha256 verified
 // against the release's SHA256SUMS, size-capped, single-entry tar extraction to
 // a fixed path, then a `--version` smoke test. No shell anywhere.
@@ -13,6 +13,7 @@ import { chmod, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export interface SteroidsStatus {
   /** A `steroids` binary was found. */
@@ -45,7 +46,7 @@ const BIN_NAME = process.platform === "win32" ? "steroids.exe" : "steroids";
 
 /** Where the desktop install lands; also the last place detection looks. */
 export function defaultInstallDir(): string {
-  return path.join(os.homedir(), ".gg", "bin");
+  return path.join(os.homedir(), APP_DIR_NAME, "bin");
 }
 
 function isFile(p: string): boolean {
@@ -58,7 +59,7 @@ function isFile(p: string): boolean {
 
 /**
  * Locate the `steroids` binary: every PATH entry first (Cargo installs land
- * in ~/.cargo/bin, already on the enriched PATH), then ~/.gg/bin. `null` when
+ * in ~/.cargo/bin, already on the enriched PATH), then ~/.israelcode/bin. `null` when
  * absent — callers hide the tool and drop the prompt sentence, never guess.
  */
 export function findSteroidsBinary(

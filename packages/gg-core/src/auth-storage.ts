@@ -387,7 +387,7 @@ export class AuthStorage {
 
   async load(): Promise<void> {
     // A reload (the file changed under us) is routine — log it once at first
-    // load so ~/.gg/debug.log doesn't fill with identical lines on every read.
+    // load so ~/.israelcode/debug.log doesn't fill with identical lines on every read.
     const first = !this.loaded;
     await withFileLock(this.filePath, async () => {
       try {

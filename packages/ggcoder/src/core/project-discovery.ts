@@ -24,7 +24,7 @@ export interface DiscoverProjectsOptions {
   hiddenPaths?: readonly string[];
   /**
    * Folders whose contents are never projects (Goal workspaces under
-   * `~/.gg/goals`). Anything at or below one of these is dropped.
+   * `~/.israelcode/goals`). Anything at or below one of these is dropped.
    */
   excludeRoots?: readonly string[];
 }
@@ -122,7 +122,7 @@ function mergeSources(a: ProjectSource[], b: ProjectSource[]): ProjectSource[] {
 }
 
 /**
- * Scan ~/.gg/sessions/. Each session directory's name is the encoded cwd
+ * Scan ~/.israelcode/sessions/. Each session directory's name is the encoded cwd
  * (slashes → underscores), but that encoding is lossy: any real path segment
  * containing a literal underscore round-trips wrong (e.g. `my_app` decodes to
  * `.../my/app`, which doesn't exist, so the project silently vanished from the
@@ -324,7 +324,7 @@ const FOLDER_SCAN_IGNORED = new Set([
   "Library",
   "Applications",
   // GG Motion's video workspace lives in the projects root but is not a codebase.
-  "GG Motion",
+  "Israel Motion",
 ]);
 
 /**

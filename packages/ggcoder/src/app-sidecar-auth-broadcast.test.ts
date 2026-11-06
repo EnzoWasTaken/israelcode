@@ -8,6 +8,7 @@ import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { realpathNative } from "./utils/git.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 /**
  * Boots the REAL app sidecar daemon and drives it over HTTP, because the bug
@@ -175,11 +176,11 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15_000): Promise<vo
 beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-models-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-models-project-"));
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   // No auth.json: the daemon is boot-tolerant when logged out, which is exactly
   // the state a user is in right before they connect their first provider.
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "settings.json"),
+    path.join(tmpHome, APP_DIR_NAME, "settings.json"),
     JSON.stringify({ autoCompact: false }),
   );
   await startDaemon();
@@ -208,7 +209,7 @@ afterEach(async ({ task }) => {
 });
 
 async function printSidecarLogTail(): Promise<void> {
-  const logFile = path.join(tmpHome, ".gg", "gg-app-sidecar.log");
+  const logFile = path.join(tmpHome, APP_DIR_NAME, "gg-app-sidecar.log");
   const text = await fs.readFile(logFile, "utf-8").catch(() => "(no sidecar log)");
   console.error(`--- ${logFile} (last 200 lines) ---\n${text.split("\n").slice(-200).join("\n")}`);
 }
@@ -238,7 +239,7 @@ describe("a goal window reconnecting", () => {
     // Live bug: after a daemon restart the app swaps its state for the events
     // stream's "ready" frame, which had no `goal`, so a goal window turned
     // into a plain project screen.
-    const goalDir = path.join(tmpHome, ".gg", "goals", "speed");
+    const goalDir = path.join(tmpHome, APP_DIR_NAME, "goals", "speed");
     await fs.mkdir(goalDir, { recursive: true });
     await fs.writeFile(
       path.join(goalDir, "goal.json"),
@@ -275,7 +276,7 @@ describe("a goal window reconnecting", () => {
     execFileSync("git", ["init", "-q"], { cwd: project });
     await fs.writeFile(path.join(project, "a.txt"), "changed by the agent\n");
     await fs.writeFile(path.join(project, "b.txt"), "and this\n");
-    const goalDir = path.join(tmpHome, ".gg", "goals", "site-speed");
+    const goalDir = path.join(tmpHome, APP_DIR_NAME, "goals", "site-speed");
     await fs.mkdir(goalDir, { recursive: true });
     await fs.writeFile(
       path.join(goalDir, "goal.json"),
@@ -357,7 +358,7 @@ describe("two windows on one checkout", () => {
       running?.kill("SIGKILL");
     });
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         anthropic: {
           accessToken: "fake",
@@ -434,7 +435,7 @@ describe("two windows on one checkout", () => {
       running?.kill("SIGKILL");
     });
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         anthropic: {
           accessToken: "fake",
@@ -473,7 +474,7 @@ describe("two windows on one checkout", () => {
     const listed = await request("GET", "/git/branches", { session: sessionA });
     expect(listed.status).toBe(200);
     expect(listed.json.current).toBe("develop");
-    expect(listed.json.sharedWith).toBe("1 other open GG Coder window");
+    expect(listed.json.sharedWith).toBe("1 other open Israel Code window");
 
     const picked = await request("POST", "/git/branch", {
       session: sessionA,
@@ -482,9 +483,9 @@ describe("two windows on one checkout", () => {
     expect(picked.status).toBe(200);
     expect(picked.json.kind).toBe("moved");
     const tree = picked.json.path as string;
-    expect(tree.startsWith(await realpathNative(path.join(tmpHome, ".gg", "worktrees")))).toBe(
-      true,
-    );
+    expect(
+      tree.startsWith(await realpathNative(path.join(tmpHome, APP_DIR_NAME, "worktrees"))),
+    ).toBe(true);
     // The shared folder (and window B on it) stays on its branch.
     expect(g("branch", "--show-current").trim()).toBe("develop");
     expect(
@@ -540,7 +541,13 @@ describe("a window whose saved conversation is gone", () => {
     // Live bug: after a restart the app asked to resume a deleted session
     // file; the create failed and the window had no session, so even its
     // goal list said "Couldn't load your goals".
-    const gone = path.join(tmpHome, ".gg", "sessions", "deleted", "2026-10-11T00-00-00_gone.jsonl");
+    const gone = path.join(
+      tmpHome,
+      APP_DIR_NAME,
+      "sessions",
+      "deleted",
+      "2026-10-11T00-00-00_gone.jsonl",
+    );
     const created = await request("POST", "/session", {
       body: { mode: "code", cwd: tmpProject, sessionPath: gone },
     });
@@ -562,7 +569,7 @@ describe("a model that spends real money", () => {
       });
     }
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         anthropic: {
           accessToken: "sk-ant-oat-fake-for-tests",
@@ -572,7 +579,7 @@ describe("a model that spends real money", () => {
       }),
     );
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "settings.json"),
+      path.join(tmpHome, APP_DIR_NAME, "settings.json"),
       JSON.stringify({
         autoCompact: false,
         defaultProvider: "anthropic",
@@ -610,7 +617,7 @@ describe("a model that spends real money", () => {
     expect(after.json.model).toBe("claude-opus-5-5-fast");
     expect(after.json.kenModel).toBe("claude-opus-5-5");
     const saved = JSON.parse(
-      await fs.readFile(path.join(tmpHome, ".gg", "settings.json"), "utf-8"),
+      await fs.readFile(path.join(tmpHome, APP_DIR_NAME, "settings.json"), "utf-8"),
     ) as { defaultModel?: string };
     expect(saved.defaultModel).toBe("claude-opus-5-5");
 
@@ -824,7 +831,7 @@ describe("dual-auth providers (OAuth + API key)", () => {
     // Write both credentials directly: an OAuth login needs a real browser, and
     // what matters here is the two-credential state the app has to manage.
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         xai: { accessToken: "key", refreshToken: "", expiresAt: Date.now() + 1_000_000 },
         "xai-oauth": {
@@ -859,7 +866,7 @@ describe("dual-auth providers (OAuth + API key)", () => {
   it("hides Gemini from the provider list and the model picker, even with a login on disk", async () => {
     const session = await createSession();
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         gemini: { accessToken: "oauth", refreshToken: "r", expiresAt: Date.now() + 1_000_000 },
         "gemini-api": { accessToken: "k", refreshToken: "", expiresAt: Date.now() + 1_000_000 },
@@ -879,7 +886,7 @@ describe("dual-auth providers (OAuth + API key)", () => {
   it("counts a stale Ollama credential only while Ollama serves models", async () => {
     const session = await createSession();
     await fs.writeFile(
-      path.join(tmpHome, ".gg", "auth.json"),
+      path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         "local:ollama": {
           accessToken: "local",
@@ -963,7 +970,12 @@ describe("starting a goal by typing", () => {
       body: { name: "Typed start", goal: "Write hello.txt", context: [tmpProject] },
     });
     expect(created.status).toBe(200);
-    const goalDir = path.join(tmpHome, ".gg", "goals", (created.json.goal as { id: string }).id);
+    const goalDir = path.join(
+      tmpHome,
+      APP_DIR_NAME,
+      "goals",
+      (created.json.goal as { id: string }).id,
+    );
     const opened = await request("POST", "/session", { body: { mode: "code", cwd: goalDir } });
     const goalSession = opened.json.sessionId as string;
     const startedAt = async (): Promise<unknown> =>

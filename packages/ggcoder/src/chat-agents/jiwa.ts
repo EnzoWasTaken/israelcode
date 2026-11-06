@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
 import type { AgentTool } from "@kenkaiiii/gg-agent";
-import { withFileLock } from "@kenkaiiii/gg-core";
+import { withFileLock, APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export const JIWA_SOFT_LIMIT = 60;
 export const JIWA_HARD_LIMIT = 90;
@@ -152,7 +152,7 @@ export class JiwaStore {
   private readonly now: () => Date;
 
   constructor(options: JiwaStoreOptions = {}) {
-    this.filePath = options.filePath ?? path.join(os.homedir(), ".gg", "chat-jiwa.json");
+    this.filePath = options.filePath ?? path.join(os.homedir(), APP_DIR_NAME, "chat-jiwa.json");
     this.onChange = options.onChange;
     this.now = options.now ?? (() => new Date());
   }

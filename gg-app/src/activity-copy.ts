@@ -129,11 +129,11 @@ export const OUTCOME_PHRASES: Record<string, readonly string[]> = {
     "Review capped. Your move",
     "Review limit. Paused",
   ],
-  "Ken’s review failed": [
-    "Ken’s review hit a snag",
-    "Ken’s review failed",
+  "Israel’s review failed": [
+    "Israel’s review hit a snag",
+    "Israel’s review failed",
     "Review error. Try again",
-    "Ken couldn’t review",
+    "Israel couldn’t review",
     "Review failed. Retry",
     "Review hit trouble",
   ],

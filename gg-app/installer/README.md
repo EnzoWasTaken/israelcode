@@ -1,7 +1,7 @@
 # Installer art
 
 Branded installer chrome for the macOS DMG and Windows NSIS setup, drawn from
-the app's own art so it always matches: the "GG CODER" ASCII banner
+the app's own art so it always matches: the "ISRAEL CODE" ASCII banner
 (`src/AsciiLogo.tsx`), the critters (`src/critter-sprites.ts`), the meadow
 terrain (`src/critter-terrain.ts`), and the theme's dark surface, white ink and
 critter pink.

@@ -11,7 +11,7 @@ import type { WorldAgent } from "./goal-world-agents";
 const all = [...Object.values(WORKER_LINES), ...Object.values(KEN_LINES)].flat();
 
 describe("what the farm's critters say", () => {
-  it("has about ten different lines for every kind of work, for workers and for Ken", () => {
+  it("has about ten different lines for every kind of work, for workers and for Israel", () => {
     for (const kind of WORK_KINDS) {
       for (const lines of [WORKER_LINES[kind], KEN_LINES[kind]]) {
         expect(lines.length, kind).toBeGreaterThanOrEqual(10);

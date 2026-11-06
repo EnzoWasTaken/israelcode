@@ -382,7 +382,7 @@ const PROBE_CONCURRENCY = 3;
 
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-const HONEST_USER_AGENT = "ggcoder/1.0 (+https://github.com/KenKaiii/gg-coder)";
+const HONEST_USER_AGENT = "israelcode/1.0 (+https://github.com/EnzoWasTaken/israelcode)";
 
 const DOC_PATH_PATTERNS = [/\/docs?\b/i, /\/reference\b/i, /\/api\b/i, /\/guide/i, /\/learn\b/i];
 const DOC_ROOT_SEGMENTS = new Set(["docs", "doc", "reference", "api", "guide", "learn"]);

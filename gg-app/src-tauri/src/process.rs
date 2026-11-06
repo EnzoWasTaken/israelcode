@@ -283,7 +283,7 @@ pub(crate) fn force_kill_pid(pid: i32) {
         .status();
 }
 
-/// Absolute path to the sidecar PID ledger (`~/.gg/gg-app-sidecars`).
+/// Absolute path to the sidecar PID ledger (`~/.israelcode/gg-app-sidecars`).
 ///
 /// Newline-delimited list of PIDs of every Node sidecar this app has spawned.
 /// Because each sidecar is spawned as a process-group leader (`process_group(0)`
@@ -291,7 +291,7 @@ pub(crate) fn force_kill_pid(pid: i32) {
 /// ledgered PID doubles as "a GG process-group id", which is how the sweep
 /// recognises a crashed sidecar's children by lineage — no MCP-name whitelist.
 pub(crate) fn sidecar_ledger_path() -> PathBuf {
-    home_dir().join(".gg").join("gg-app-sidecars")
+    app_data_dir().join("gg-app-sidecars")
 }
 
 /// Read the ledgered sidecar PIDs (== process-group ids). Missing/garbage file
@@ -309,7 +309,7 @@ pub(crate) fn read_sidecar_ledger() -> HashSet<i32> {
 }
 
 /// Append a freshly-spawned sidecar's PID to the ledger. Called right after
-/// `spawn_daemon` gets a live child. Creates `~/.gg` if needed. Best-effort:
+/// `spawn_daemon` gets a live child. Creates `~/.israelcode` if needed. Best-effort:
 /// a write failure only means that sidecar's orphans fall back to name matching.
 pub(crate) fn record_sidecar_pid(pid: i32) {
     let path = sidecar_ledger_path();
@@ -527,7 +527,7 @@ mod tests {
     fn live_sidecar_with_alive_parent_is_excluded() {
         // The current gg-app (pid 100) is the parent of a live sidecar (pid 200).
         let snap = vec![
-            proc(100, 1, "/Applications/GG Coder.app/Contents/MacOS/gg-app"),
+            proc(100, 1, "/Applications/Israel Code.app/Contents/MacOS/gg-app"),
             proc(200, 100, "ggnode app-sidecar.mjs"),
         ];
         let ks = orphan_killset(&snap, 100, &no_ledger());
@@ -655,8 +655,8 @@ mod tests {
         // Real `ps -eo pid=,ppid=,pgid=,command=` output: multiple spaces
         // between fields. Columns are pid, ppid, pgid, then the command.
         let raw = "    1     0     1 /sbin/launchd\n\
-                   11541     1 11541 /Applications/GG Coder.app/Contents/MacOS/gg-app\n\
-                   11553 11541 11553 /Applications/GG Coder.app/Contents/MacOS/ggnode app-sidecar.mjs";
+                   11541     1 11541 /Applications/Israel Code.app/Contents/MacOS/gg-app\n\
+                   11553 11541 11553 /Applications/Israel Code.app/Contents/MacOS/ggnode app-sidecar.mjs";
         let rows = parse_ps_output(raw);
         assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].pid, 1);
@@ -733,7 +733,7 @@ mod tests {
                    1000|4|C:\\Windows\\System32\\cmd.exe\n\
                    5000|9999|C:\\nodejs\\node.exe app-sidecar.mjs\n\
                    5001|5000|C:\\nodejs\\node.exe some-mcp-server\n\
-                   6000|4|C:\\Program Files\\GG Coder\\gg-app.exe\n\
+                   6000|4|C:\\Program Files\\Israel Code\\gg-app.exe\n\
                    6001|6000|C:\\nodejs\\node.exe app-sidecar.mjs";
         let snapshot = parse_cim_output(raw);
         assert_eq!(snapshot.len(), 6);

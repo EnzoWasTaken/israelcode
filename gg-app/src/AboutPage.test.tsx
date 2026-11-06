@@ -7,7 +7,7 @@ vi.mock("./goal-ken-portrait", () => ({ drawKenPortrait: vi.fn() }));
 vi.mock("./agent", () => ({ openUrl: vi.fn(), openWhatsNewWindow: vi.fn(async () => {}) }));
 vi.mock("./changelog", () => ({
   CHANGELOG: [
-    { version: "0.3.0", date: "2026-06-17", items: ["Ken got a `Workers` view. It is good."] },
+    { version: "0.3.0", date: "2026-06-17", items: ["Israel got a `Workers` view. It is good."] },
     { version: "0.2.0", date: "2026-06-16", items: ["Faster lists for everyone. Truly."] },
     { version: "0.1.0", date: "2026-06-15", items: ["The first release ever shipped. Yes."] },
   ],
@@ -15,7 +15,7 @@ vi.mock("./changelog", () => ({
 
 import { openUrl, openWhatsNewWindow } from "./agent";
 import { AboutKen, AboutPage } from "./AboutPage";
-import { SKOOL_URL, SOURCE_URL, YOUTUBE_URL } from "./about-content";
+import { SOURCE_URL, UPSTREAM_URL } from "./about-content";
 
 afterEach(() => {
   cleanup();
@@ -34,14 +34,12 @@ function dayButton(label: RegExp): HTMLElement {
 }
 
 describe("AboutPage", () => {
-  it("credits Ken and opens his Skool and YouTube in the browser", async () => {
+  it("introduces Israel and opens the fork on GitHub in the browser", async () => {
     await renderPage();
 
-    expect(screen.getByRole("heading", { name: "Ken Kai" })).not.toBeNull();
-    fireEvent.click(screen.getByRole("link", { name: /Learn with Ken on Skool/ }));
-    expect(openUrl).toHaveBeenCalledWith(SKOOL_URL);
-    fireEvent.click(screen.getByRole("link", { name: /Watch on YouTube/ }));
-    expect(openUrl).toHaveBeenCalledWith(YOUTUBE_URL);
+    expect(screen.getByRole("heading", { name: "Israel" })).not.toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: /View on GitHub/ }));
+    expect(openUrl).toHaveBeenCalledWith(SOURCE_URL);
   });
 
   it("states the AGPL license and opens the source code in the browser", async () => {
@@ -52,9 +50,13 @@ describe("AboutPage", () => {
     ).not.toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Source code" }));
     expect(openUrl).toHaveBeenCalledWith(SOURCE_URL);
+    // AGPL attribution: the upstream work this is modified from.
+    expect(screen.getByText(/It is a modified version of/)).not.toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "GG Coder" }));
+    expect(openUrl).toHaveBeenCalledWith(UPSTREAM_URL);
   });
 
-  it("dates GG Coder from the CLI and the calendar from the desktop app", async () => {
+  it("dates Israel Code from the CLI and the calendar from the desktop app", async () => {
     await renderPage();
 
     expect(screen.getByText("CLI since 4 Mar 2026. App since 15 Jun 2026.")).not.toBeNull();
@@ -103,7 +105,7 @@ describe("AboutKen", () => {
   ] as const;
 
   function box(): HTMLElement {
-    return screen.getByRole("button", { name: /^Ken, / });
+    return screen.getByRole("button", { name: /^Israel, / });
   }
 
   it("rises, types his line, then moves through his lines on click", () => {
@@ -123,7 +125,7 @@ describe("AboutKen", () => {
     // Clicking mid-line shows the rest at once.
     fireEvent.click(box());
     expect(document.querySelector(".ken-dialogue-text")?.textContent).toBe("Hi there.");
-    expect(box().getAttribute("aria-label")).toBe("Ken, 1 of 2: Hi there. Next");
+    expect(box().getAttribute("aria-label")).toBe("Israel, 1 of 2: Hi there. Next");
 
     fireEvent.click(box());
     // One character every 30ms, each scheduled after the last one lands.
@@ -133,7 +135,7 @@ describe("AboutKen", () => {
       });
     }
     expect(document.querySelector(".ken-dialogue-text")?.textContent).toBe("Bye now.");
-    expect(box().getAttribute("aria-label")).toBe("Ken, 2 of 2: Bye now. Start over");
+    expect(box().getAttribute("aria-label")).toBe("Israel, 2 of 2: Bye now. Start over");
 
     fireEvent.click(box());
     expect(box().getAttribute("aria-label")).toContain("1 of 2: Hi there.");

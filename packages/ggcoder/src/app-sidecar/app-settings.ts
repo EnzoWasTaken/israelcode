@@ -6,7 +6,7 @@ import type { KenModelPref } from "../core/ken-model.js";
 import { SettingsManager, type Settings } from "../core/settings-manager.js";
 import { log } from "../core/logger.js";
 import { atomicWrite } from "../core/session-storage.js";
-import { withFileLock, withoutPaidTier } from "@kenkaiiii/gg-core";
+import { withFileLock, withoutPaidTier, APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export const ALL_PROVIDERS: Provider[] = [
   // US
@@ -27,7 +27,7 @@ export const ALL_PROVIDERS: Provider[] = [
   "openrouter",
 ];
 
-// ── gg-app settings (~/.gg/gg-app.json) ────────────────────
+// ── gg-app settings (~/.israelcode/gg-app.json) ────────────────────
 // App-specific, separate from the shared ggcoder settings file so the desktop
 // app's preferences never collide with the CLI's.
 
@@ -69,7 +69,7 @@ export function stringArray(value: unknown): string[] | undefined {
 }
 
 export function appSettingsFile(): string {
-  return path.join(os.homedir(), ".gg", "gg-app.json");
+  return path.join(os.homedir(), APP_DIR_NAME, "gg-app.json");
 }
 
 export function defaultProjectsRoot(): string {
@@ -202,7 +202,7 @@ export async function saveShellTrusted(cwd: string, trusted: boolean): Promise<v
 }
 
 /**
- * Persist the active model selection to ~/.gg/settings.json so it survives app
+ * Persist the active model selection to ~/.israelcode/settings.json so it survives app
  * restarts. Mirrors the CLI's handleModelSelect persistence (App.tsx).
  */
 export async function persistModelSelection(
@@ -222,7 +222,7 @@ export async function persistModelSelection(
 }
 
 /**
- * Persist the thinking level to ~/.gg/settings.json so it survives app restarts.
+ * Persist the thinking level to ~/.israelcode/settings.json so it survives app restarts.
  * Mirrors the CLI's handleToggleThinking persistence (App.tsx).
  */
 export async function persistThinkingLevel(

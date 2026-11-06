@@ -42,7 +42,7 @@ export interface ServeController {
 }
 
 // ── Serve Config ───────────────────────────────────────────
-// Maps Telegram chatId → project path. Stored at ~/.gg/serve.json.
+// Maps Telegram chatId → project path. Stored at ~/.israelcode/serve.json.
 // DMs use chatId of the private chat. Groups use the group chatId.
 
 interface ServeConfig {
@@ -72,7 +72,7 @@ async function saveConfig(config: ServeConfig): Promise<void> {
 // ── Project Discovery ──────────────────────────────────────
 
 /**
- * Scan ~/.gg/sessions/ to find all project directories that have sessions.
+ * Scan ~/.israelcode/sessions/ to find all project directories that have sessions.
  * Returns decoded absolute paths sorted alphabetically.
  */
 async function discoverProjects(): Promise<string[]> {
@@ -806,10 +806,10 @@ export async function startServeMode(options: ServeModeOptions): Promise<ServeCo
     // GG logo with gradient (matches the interactive TUI banner)
     console.log();
     for (const row of renderLogoBlock([
-      chalk.hex("#60a5fa").bold("GG Coder") +
+      chalk.hex("#60a5fa").bold("Israel Code") +
         chalk.hex("#6b7280")(` v${options.version}`) +
         chalk.hex("#6b7280")(" · By ") +
-        chalk.white.bold("Ken Kai"),
+        chalk.white.bold("Israel"),
       chalk.hex("#a78bfa")(modelName),
       chalk.hex("#6b7280")(displayPath),
     ])) {

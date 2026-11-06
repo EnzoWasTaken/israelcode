@@ -2,7 +2,7 @@
  * Internal-only `session_stats` tool — NOT part of the public tool set.
  *
  * Registered by AgentSession exclusively when internal diagnostics are
- * enabled (env `GG_INTERNAL=1` or `~/.gg/internal.json` with
+ * enabled (env `GG_INTERNAL=1` or `~/.israelcode/internal.json` with
  * `diagnostics: true`). Gives the agent live visibility into its own
  * session — token spend, cache reuse, per-tool cost and errors, repeated
  * calls — plus an optional cross-session aggregate, so it can notice waste

@@ -962,7 +962,7 @@ select {
    WebKit runs a CSS filter on a non-composited element in SOFTWARE, over the
    element's full bounds, on EVERY repaint that touches it — and this element
    spans the whole window, so a blinking cursor re-blurred the entire window at
-   80px. A user's profile of the shared GPU process ("GG Coder Graphics and
+   80px. A user's profile of the shared GPU process ("Israel Code Graphics and
    Media", 7 windows, 468% CPU) was dominated by FEGaussianBlurSoftwareApplier.
    The softness now comes from the gradients' own falloff, which is one cheap
    shade pass. `will-change: opacity` (NOT filter — see .enh-diss-fade) lifts
@@ -1040,7 +1040,7 @@ select {
 
 /* ── Background windows freeze their looping decoration. ──
    Every looping animation forces a repaint each frame, and every repaint is a
-   round trip through WebKit's single shared GPU process ("GG Coder Graphics and
+   round trip through WebKit's single shared GPU process ("Israel Code Graphics and
    Media"): allocate an IOSurface, rasterize, flush, wait. One window doing that
    is fine; seven idle windows doing it all day pinned that process at 400%+ CPU
    on a user's machine. Only the window the user is looking at animates.
@@ -1303,10 +1303,10 @@ select {
 
 .ascii-logo {
   font-family: var(--mono);
-  /* 89 mono columns ≈ 54em wide, so 9px needs ~480px (about the old banner's
+  /* 117 mono columns ≈ 71em wide, so 7px needs ~497px (about the old banner's
      footprint). Scale down below that instead of overflowing both edges on
      very narrow viewports. */
-  font-size: min(9px, 100vw / 57);
+  font-size: min(7px, 100vw / 75);
   /* The font draws curves with half blocks (▄ ▀), so rows must touch: any
      extra leading shows as horizontal gaps through every letter. */
   line-height: 1;
@@ -1455,8 +1455,8 @@ select {
    non-scrolling sibling wrapping `.transcript` (see that rule below), so it
    stays pinned to the visible viewport at any scroll position instead of the
    scrolled chat content. The chat head/nav above and the tool
-   panel/activity bar/input footer below stay visible and untouched. A "Ken is
-   on."/"Ken is off." line (app font, same size as the wake screen's typed
+   panel/activity bar/input footer below stay visible and untouched. A "Israel is
+   on."/"Israel is off." line (app font, same size as the wake screen's typed
    line) materializes with
    the same scale+fade "flash" the app already uses for the zoom-level HUD
    (see `.zoom-overlay-card`/`zoom-overlay-in`) instead of sliding across the
@@ -1590,7 +1590,7 @@ select {
   text-decoration-color: currentColor;
 }
 /* ── Home title ──
-   "GG Coder" in GG Royale's title lettering: a pixel image at a whole number
+   "Israel Code" in GG Royale's title lettering: a pixel image at a whole number
    of screen pixels per art pixel (2×, 1× in very small windows). */
 .home-title {
   --title-scale: 2;
@@ -4966,7 +4966,7 @@ select {
   color: var(--text);
 }
 /* Non-scrolling wrapper around `.transcript` — owns the flex sizing +
-   `position: relative` so an absolutely positioned overlay child (the Ken
+   `position: relative` so an absolutely positioned overlay child (the Israel
    power banner) is pinned to the visible chat viewport, not the scrolled
    CONTENT inside `.transcript` (a `position: absolute` descendant of a
    scrolling container is positioned relative to the top of that container's
@@ -5247,7 +5247,7 @@ select {
 }
 
 /* ── Ken needs you (GoalAskNotice.tsx) ───────────────────────────────────
-   Ken (GG Goals) is blocked on a question: a card just under the header, in
+   Israel (Israel Goals) is blocked on a question: a card just under the header, in
    GG Royale's style of his dialogue box (the panel, plate and keys shared
    below), with his thinking face beside the question. It drops in and settles when it appears, then stays still until
    the user goes to the chat. */
@@ -5364,7 +5364,7 @@ select {
 
 /* ── Job done (GoalFinishCard.tsx) ─────────────────────────────────────
    A stretch of goal work finished: the end-of-level card, centred over the
-   farm, on the same board, plate and button as "Ken needs you". Ken's face
+   farm, on the same board, plate and button as "Israel needs you". Israel's face
    and the line he ended on, then the score in a row, then the way out. The
    farm carries on behind it; nothing is blocked. */
 .goal-finish {
@@ -5485,7 +5485,7 @@ select {
 }
 
 /* ── Ken's dialogue box (KenDialogue) ──
-   Little Ken, bottom left of the Workers view, now and then saying a line
+   Little Israel, bottom left of the Workers view, now and then saying a line
    like a game's dialogue box: his portrait stands behind a parchment box
    (cut corners, a fine double frame, faint swirls), his name plate (dark,
    angled ends, gold caps) on its top edge, a purple ▼ once the line is out.
@@ -5494,8 +5494,8 @@ select {
    Hidden most of the time; data-phase drives the entrance ("entering",
    "talking" are up; "hidden", "leaving" down). Transitions, not keyframes,
    so an interrupted line reverses from where it is. In: the box lifts and
-   opens, the name plate slides in, Ken rises from behind the box and
-   settles. Out, quicker: Ken sinks, then the box drops away. ENTER_MS /
+   opens, the name plate slides in, Israel rises from behind the box and
+   settles. Out, quicker: Israel sinks, then the box drops away. ENTER_MS /
    EXIT_MS in KenDialogue.tsx match these timings. */
 /* Ken's signs, in GG Royale's look: square panels with a 1px ink outline,
    a lighter top lip and a shaded bottom lip, a drop of ink under them; text in
@@ -5647,7 +5647,7 @@ select {
   left: 104px;
   top: 0;
   height: 120px;
-  overflow: hidden; /* Ken rises from behind the box's top edge */
+  overflow: hidden; /* Israel rises from behind the box's top edge */
 }
 .ken-dialogue-portrait canvas {
   display: block;
@@ -5789,7 +5789,7 @@ select {
    Bottom right of the Workers view: a panel in GG Royale's style, his
    face in a recessed square with the kind of work as a badge, one line, and how
    long he's been at it. It grows on hover to show one more line, and steps
-   aside (a dissolve) while Ken talks or a sign is up: one thing at a time.
+   aside (a dissolve) while Israel talks or a sign is up: one thing at a time.
    Royale's square panel; the tone shows on the badge and the sweep, in the
    game's own badge colours (white glyphs on each meet 3:1 or better). */
 .ken-status {
@@ -6211,7 +6211,7 @@ select {
    centre) and scroll-to-bottom (bottom right) float over the chat viewport,
    anchored to `.transcript-frame` — the NON-scrolling sibling. Anchoring to
    `.transcript` would pin them to the top of the scrolled content instead of
-   what's on screen (same trap the Ken power banner comment above documents).
+   what's on screen (same trap the Israel power banner comment above documents).
 
    Always in the DOM so the exit transition can play; `visibility` joins the
    transition (delayed on the way out, instant on the way in) so a hidden
@@ -6592,7 +6592,7 @@ select {
   border-radius: var(--radius-bubble);
   padding: var(--space-5) var(--space-7);
   /* Each message starts a new turn: a clear gap above it (margins collapse
-     with the reply before), a smaller one before GG's answer. */
+     with the reply before), a smaller one before Israel Code's answer. */
   margin: calc(var(--space-12) + var(--space-5)) 0 var(--space-8) auto;
   font-size: var(--fs-read);
   line-height: 1.55;
@@ -6604,13 +6604,13 @@ select {
   border: 1px solid transparent;
 }
 /* `@Ken` prompt bubble: solid in Ken's teal, so the transcript shows at a
-   glance this message went to the mentor, not GG Coder. */
+   glance this message went to the mentor, not Israel Code. */
 .user-msg.user-ken {
   background: var(--ken-fill);
   color: var(--on-ken-fill);
 }
 /* "Sent to GG Coder" bubble (from a Ken prompt-block button): same Ken border
-   as a @Ken bubble, with the shimmer label carrying Ken's color. */
+   as a @Israel bubble, with the shimmer label carrying Israel's color. */
 .user-msg.user-ken-sent {
   border-color: color-mix(in srgb, var(--ken) 45%, transparent);
 }
@@ -7258,7 +7258,7 @@ select {
   background: var(--surface-1);
 }
 /* Sent: settles to a quiet confirmed state in success green, no longer the
-   call-to-action Ken accent. */
+   call-to-action Israel accent. */
 .markdown .ken-prompt-send.sent {
   color: var(--success);
   cursor: default;
@@ -7340,7 +7340,7 @@ select {
   margin-top: var(--space-4);
 }
 /* Prose and lists keep the ~72-character reading measure. Tables, code blocks
-   and Ken's prompt blocks are data, not lines of reading, so they take the
+   and Israel's prompt blocks are data, not lines of reading, so they take the
    full conversation column (long code lines wrap far less). */
 .assistant-text .markdown > :not(.md-table-scroll, .code-block, .ken-prompt-block) {
   max-width: 36em;
@@ -9032,7 +9032,7 @@ select {
 }
 /* Multi-line draft: the field takes the full row and the circles fall beneath
    it. `order` moves it above them without changing the DOM (so tab order and
-   the @Ken overlay stay put). */
+   the @Israel overlay stay put). */
 .inputrow.is-multiline .input-stack {
   flex-basis: 100%;
   order: -1;
@@ -9044,8 +9044,8 @@ select {
 }
 
 /* `@Ken` active: the textarea text goes transparent (caret stays via caret-color)
-   so only the aligned highlight overlay shows, with the leading `@Ken` shimmering
-   in Ken's color. This is the signal the message is addressed to the mentor. */
+   so only the aligned highlight overlay shows, with the leading `@Israel` shimmering
+   in Israel's color. This is the signal the message is addressed to the mentor. */
 .input-stack .input.input-ken {
   color: transparent;
   caret-color: var(--ken);

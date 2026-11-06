@@ -1,5 +1,5 @@
 // Renders the installer art pages from the app's REAL art, so the installer
-// always matches the app: the "GG CODER" ASCII banner (src/AsciiLogo.tsx), the
+// always matches the app: the "ISRAEL CODE" ASCII banner (src/AsciiLogo.tsx), the
 // critter sprites (src/critter-sprites.ts), the terrains (src/critter-terrain.ts)
 // and the theme's dark surface, white ink and critter pink.
 //
@@ -166,7 +166,7 @@ function dmg(lines) {
     <div style="position:absolute;top:34px;left:0;right:0;display:flex;justify-content:center">
       <div class="banner" style="font-size:11px">${esc(lines.join("\n"))}</div></div>
     <div style="position:absolute;top:150px;left:0;right:0;text-align:center;color:#c9ccd6;
-      font-size:23px;font-weight:600">Drag GG Coder into your Applications folder</div>
+      font-size:23px;font-weight:600">Drag Israel Code into your Applications folder</div>
     <div style="position:absolute;left:520px;top:322px;width:280px;height:36px">
       <svg width="280" height="36" viewBox="0 0 280 36" fill="none">
         <path d="M6 18 H252" stroke="#ff8fd0" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 16"/>
@@ -205,7 +205,7 @@ function sidebar(lines) {
     <div style="position:absolute;top:118px;left:0;right:0;display:flex;justify-content:center">
       <div class="banner" style="font-size:9.6px">${esc(gg.join("\n"))}</div></div>
     <div style="position:absolute;top:226px;left:0;right:0;text-align:center;color:#f4f6f8;
-      font-size:30px;font-weight:800;letter-spacing:-0.02em">GG Coder</div>
+      font-size:30px;font-weight:800;letter-spacing:-0.02em">Israel Code</div>
     <div style="position:absolute;top:268px;left:0;right:0;text-align:center;color:#9aa3b2;
       font-size:17px">the coding agent, with critters</div>
     <div class="bubble" style="left:${46 * px + 7 * px - 30}px;top:${H - stripH + (TERRAIN_ROWS - FLOOR_CELLS - CRITTER_CELLS) * px - 38}px;
@@ -234,7 +234,7 @@ function header() {
     H,
     `<div class="sky"></div>${stars(W, 60, 10, 5)}
     <div style="position:absolute;right:20px;top:20px;color:#f4f6f8;font-size:26px;font-weight:800;
-      letter-spacing:-0.02em">GG Coder</div>
+      letter-spacing:-0.02em">Israel Code</div>
     <div style="position:absolute;left:0;bottom:0">${scene}</div>`,
   );
 }
@@ -246,7 +246,9 @@ async function main() {
     ["nsis-sidebar", sidebar(lines), 328, 628],
     ["nsis-header", header(), 300, 114],
   ];
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(
+    process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {},
+  );
   try {
     for (const [name, html, width, height] of pages) {
       const tab = await browser.newPage({ viewport: { width, height } });

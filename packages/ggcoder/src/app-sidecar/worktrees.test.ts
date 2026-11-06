@@ -108,7 +108,7 @@ describe("removeWorktree", () => {
   });
 
   it("never removes the user's own worktrees, or one a window is open in", async () => {
-    await expect(removeWorktree(options(own))).rejects.toThrow(/Only worktrees GG Coder made/);
+    await expect(removeWorktree(options(own))).rejects.toThrow(/Only worktrees Israel Code made/);
     await expect(removeWorktree(options(mine, { openWindows: 1 }))).rejects.toThrow(
       /Close it first/,
     );

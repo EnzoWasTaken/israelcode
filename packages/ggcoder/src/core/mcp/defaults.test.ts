@@ -21,12 +21,13 @@ vi.mock("../../config.js", async () => {
 
 import { getAllMcpServers, getMCPServers } from "./defaults.js";
 import { addServer } from "./store.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-mcpdef-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-mcpdef-proj-"));
   process.env.GG_TEST_HOME = tmpHome;
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
 });
 
 afterEach(async () => {

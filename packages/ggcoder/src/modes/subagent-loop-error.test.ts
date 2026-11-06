@@ -8,6 +8,7 @@ import { GGAIError, type Message } from "@kenkaiiii/gg-ai";
 import type * as GgAgentModule from "@kenkaiiii/gg-agent";
 import type * as McpModule from "../core/mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 /**
  * A sub-agent whose agent loop stops on an error must come back as FAILED.
@@ -137,14 +138,14 @@ beforeEach(async () => {
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-subagent-loop-error-project-"));
   restoreHome = useFakeHome(tmpHome);
   agentLoopMock.mockReset();
-  await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
     anthropic: {
       accessToken: "test-access",
       refreshToken: "test-refresh",
       expiresAt: Date.now() + 3_600_000,
     },
   });
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), { autoCompact: false });
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), { autoCompact: false });
 });
 
 afterEach(async () => {
@@ -253,7 +254,7 @@ describe("spawn_agent worker", () => {
         model: "claude-test",
         cwd: tmpProject,
         systemPrompt: "test system prompt",
-        sessionRootDir: path.join(tmpHome, ".gg", "subagent-sessions"),
+        sessionRootDir: path.join(tmpHome, APP_DIR_NAME, "subagent-sessions"),
         ...extraOptions,
       },
     });
@@ -358,7 +359,7 @@ describe("spawn_agent worker", () => {
   });
 
   it("restores inherited OpenAI Ultra when a pinned model falls back to the parent", async () => {
-    await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+    await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
       openai: {
         accessToken: "test-access",
         refreshToken: "test-refresh",

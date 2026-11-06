@@ -117,7 +117,7 @@ const reason = (d: Record<string, unknown>, fallback: string): string =>
 
 function finish(s: TaskActivity, now: number): TaskActivity {
   if (["failed", "stopped", "attention"].includes(s.phase)) return { ...s, reviewPending: false };
-  const reviewed = s.reviewed ? "Ken reviewed this task." : "Ken did not review this task.";
+  const reviewed = s.reviewed ? "Israel reviewed this task." : "Israel did not review this task.";
   if (s.verification === "failed")
     return {
       ...s,
@@ -294,7 +294,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
           ...s,
           project,
           phase: "reviewing",
-          label: "Ken reviewing…",
+          label: "Israel reviewing…",
           reviewPending: true,
           connectionLost: false,
           endedAt: null,
@@ -341,7 +341,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
       return {
         ...(continuation ? s : { ...INITIAL_ACTIVITY, project: s.project }),
         phase: "working",
-        label: continuation ? "Applying Ken’s corrections…" : wording.label,
+        label: continuation ? "Applying Israel’s corrections…" : wording.label,
         phraseCounts: wording.phraseCounts,
         detail: "",
         startedAt: continuation ? s.startedAt : now,
@@ -570,14 +570,14 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
           endedAt: now,
         };
       return d.reviewPending === true
-        ? { ...next, phase: "reviewing", label: "Preparing Ken’s review…", reviewPending: true }
+        ? { ...next, phase: "reviewing", label: "Preparing Israel’s review…", reviewPending: true }
         : finish(next, now);
     }
     case "autopilot_review_start":
       return {
         ...s,
         phase: "reviewing",
-        label: "Ken reviewing…",
+        label: "Israel reviewing…",
         reviewPending: true,
         endedAt: null,
         startedAt: s.startedAt ?? now,
@@ -586,7 +586,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
       return {
         ...s,
         phase: "working",
-        label: "Applying Ken’s corrections…",
+        label: "Applying Israel’s corrections…",
         reviewPending: true,
         endedAt: null,
       };
@@ -616,7 +616,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
         ...s,
         phase: "attention",
         label: "Your decision needed",
-        detail: reason(d, "Review Ken’s message in chat before continuing."),
+        detail: reason(d, "Review Israel’s message in chat before continuing."),
         endedAt: now,
         reviewPending: false,
       };
@@ -626,7 +626,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
         phase: "stopped",
         label: "Paused · review limit reached",
         detail:
-          "Ken reached the correction limit. Review the remaining work in chat before continuing.",
+          "Israel reached the correction limit. Review the remaining work in chat before continuing.",
         endedAt: now,
         reviewPending: false,
       };
@@ -634,7 +634,7 @@ export function reduceTaskActivity(s: TaskActivity, e: SidecarEvent, now: number
       return {
         ...s,
         phase: "failed",
-        label: "Ken’s review failed",
+        label: "Israel’s review failed",
         detail: "The work was not approved. Review the error in chat before retrying.",
         endedAt: now,
         reviewPending: false,

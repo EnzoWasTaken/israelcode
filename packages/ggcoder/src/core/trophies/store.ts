@@ -1,4 +1,4 @@
-// Durable trophies file (~/.gg/trophies.json): read-modify-write under the
+// Durable trophies file (~/.israelcode/trophies.json): read-modify-write under the
 // same file lock and atomic rename the progress store uses, so several app
 // processes can record at once without losing an unlock.
 

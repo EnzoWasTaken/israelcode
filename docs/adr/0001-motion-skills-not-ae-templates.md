@@ -1,10 +1,10 @@
-# ADR 0001: GG Motion uses skills, not After Effects templates
+# ADR 0001: Israel Motion uses skills, not After Effects templates
 
 **Status:** Accepted, 2026-09-29
 
 ## Context
 
-GG Motion shipped templates rebuilt from purchased After Effects packs (Mixkit
+Israel Motion shipped templates rebuilt from purchased After Effects packs (Mixkit
 split text, Mobile Notification, Kinetic Text), made with a private extraction
 pipeline. Each pack took hours, needed approximations of native effects, and
 still had visible differences from the original. Only matched requests could

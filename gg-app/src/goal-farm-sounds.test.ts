@@ -52,7 +52,7 @@ describe("goal farm sounds", () => {
     expect(hasFarmSound(flicked)).toBe(true);
   });
 
-  it("sounds a thing in use only now and then, and never Ken's idle tea", () => {
+  it("sounds a thing in use only now and then, and never Israel's idle tea", () => {
     expect(inUseSoundDue("bench", undefined, 0)).toBe(true);
     expect(inUseSoundDue("bench", 0, USE_SOUND_GAP_MS - 1)).toBe(false);
     expect(inUseSoundDue("bench", 0, USE_SOUND_GAP_MS)).toBe(true);

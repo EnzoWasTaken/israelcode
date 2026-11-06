@@ -171,7 +171,7 @@ function coordinator(input: WorldInput): WorldAgent {
   const base = {
     key: COORDINATOR_KEY,
     agentName: undefined,
-    name: "GG Goals",
+    name: "Israel Goals",
     coordinator: true,
   };
   if (input.waitingOnUser) {
@@ -243,7 +243,7 @@ export function previewCrowd(now: number): WorldAgent[] {
   const coordinator: WorldAgent = {
     key: COORDINATOR_KEY,
     agentName: undefined,
-    name: "GG Goals",
+    name: "Israel Goals",
     coordinator: true,
     status: "working",
     kind: "delegate",

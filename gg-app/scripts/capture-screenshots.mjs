@@ -3,7 +3,7 @@
  *
  * Boots the Vite dev server's webview in headless Chromium with a FAKE Tauri IPC
  * layer (`window.__TAURI_INTERNALS__`), so every screenshot is rendered from
- * synthetic demo data defined in this file. Nothing from `~/.gg` — no real
+ * synthetic demo data defined in this file. Nothing from `~/.israelcode` — no real
  * sessions, project paths, chat content, tokens, or account names — can ever
  * reach a committed image.
  *

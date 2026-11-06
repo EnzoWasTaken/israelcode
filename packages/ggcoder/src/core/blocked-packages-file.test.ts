@@ -40,7 +40,7 @@ describe("project 'don't install' list", () => {
       [
         BLOCKLIST_START,
         "## Blocked packages",
-        "GG Coder's safety checks blocked these. Never install or run them; use another version or package.",
+        "Israel Code's safety checks blocked these. Never install or run them; use another version or package.",
         "- npm `chalk@5.6.1`: known malware (MAL-2025-46969)",
         BLOCKLIST_END,
         "",
@@ -48,7 +48,7 @@ describe("project 'don't install' list", () => {
     );
   });
 
-  it("writes to the file GG Coder reads (CLAUDE.md when it's the only one) and keeps its content", async () => {
+  it("writes to the file Israel Code reads (CLAUDE.md when it's the only one) and keeps its content", async () => {
     await fs.writeFile(path.join(dir, "CLAUDE.md"), "# My project\n\nUse pnpm.\n");
     expect(await instructionFileFor(dir)).toBe(path.join(dir, "CLAUDE.md"));
     await recordBlockedPackages(dir, [chalk]);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paint the app's pixel titles ("GG Coder" on Home, "Plan Mode" in the chat),
+"""Paint the app's pixel titles ("Israel Code" on Home, "Plan Mode" in the chat),
 as GG Royale paints "Royale".
 
 Alagard (Hewett Tsoi, free with credit; src/assets/fonts/alagard) at 48px, an
@@ -9,6 +9,7 @@ colours as GG Royale's menu title. The PNG is shown at a whole-number scale
 with nearest-neighbour sampling.
 
     python3 scripts/gen-home-title.py   (needs Pillow; run from gg-app/)
+    node scripts/gen-home-title.mjs     (same output via Playwright + Edge/Chrome)
 """
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 TITLES = (
-    ("GG Coder", ROOT / "src/assets/home/gg-coder-title.png"),
+    ("Israel Code", ROOT / "src/assets/home/gg-coder-title.png"),
     ("Plan Mode", ROOT / "src/assets/home/plan-mode-title.png"),
 )
 FONT = ROOT / "src/assets/fonts/alagard/alagard.ttf"

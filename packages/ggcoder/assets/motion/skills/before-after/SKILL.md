@@ -15,10 +15,10 @@ an optional idea pitch. Adapt its choices to this job; keep the card to four
 questions total and skip choices the brief or requested reference already settles.
 
 - "What's the annoying part of life without it?" Offer two or three guesses
-  from the prompt, plus "Let GG Motion choose".
+  from the prompt, plus "Let Israel Motion choose".
 - "Where will people mostly watch this?" (from the `motion` skill).
 - "Should it have music?" (from the `motion` skill).
-- "Which idea should we go with?" Pitches below, plus "Let GG Motion choose".
+- "Which idea should we go with?" Pitches below, plus "Let Israel Motion choose".
 
 ## Ideas that suit comparisons
 

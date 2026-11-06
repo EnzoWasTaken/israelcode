@@ -7,6 +7,7 @@ import type { AgentTool } from "@kenkaiiii/gg-agent";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
 import { DEFERRED_TOOL_NAMES } from "../tools/tool-tiers.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-agent", async () => {
   const actual = await vi.importActual<typeof GgAgentModule>("@kenkaiiii/gg-agent");
@@ -31,9 +32,9 @@ beforeEach(async () => {
   tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "tiers-home-"));
   tempProject = await fs.mkdtemp(path.join(os.tmpdir(), "tiers-project-"));
   restoreHome = useFakeHome(tempHome);
-  await fs.mkdir(path.join(tempHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tempHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tempHome, ".gg", "auth.json"),
+    path.join(tempHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       anthropic: {
         accessToken: "test-token",
@@ -55,7 +56,7 @@ afterEach(async () => {
 
 async function writeSettings(settings: Record<string, unknown>): Promise<void> {
   await fs.writeFile(
-    path.join(tempHome, ".gg", "settings.json"),
+    path.join(tempHome, APP_DIR_NAME, "settings.json"),
     JSON.stringify(settings),
     "utf-8",
   );
@@ -224,9 +225,9 @@ describe("AgentSession built-in tool tiering", () => {
 
   it("loads wait_agent as soon as spawn_agent succeeds, skipping the tool_search turn", async () => {
     // spawn_agent only exists when an agent is defined.
-    await fs.mkdir(path.join(tempHome, ".gg", "agents"), { recursive: true });
+    await fs.mkdir(path.join(tempHome, APP_DIR_NAME, "agents"), { recursive: true });
     await fs.writeFile(
-      path.join(tempHome, ".gg", "agents", "owl.md"),
+      path.join(tempHome, APP_DIR_NAME, "agents", "owl.md"),
       "---\nname: owl\ndescription: Read-only helper\ntools: read\n---\nYou read code.\n",
     );
     const session = await createSession({ globalSubagents: true });

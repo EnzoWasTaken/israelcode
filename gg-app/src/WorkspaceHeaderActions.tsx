@@ -236,7 +236,7 @@ export function DeckMenu({
           role="switch"
           aria-checked={autopilot}
           disabled={running || autopilotReviewing}
-          title="Autopilot: after each run, Ken reviews the work and GG continues if it needs changes"
+          title="Autopilot: after each run, Israel reviews the work and Israel Code continues if it needs changes"
           onClick={() => onAutopilotChange(!autopilot)}
         >
           Autopilot

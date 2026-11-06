@@ -15,10 +15,10 @@ an optional idea pitch. Adapt its choices to this job; keep the card to four
 questions total and skip choices the brief or requested reference already settles.
 
 - "What's the one command or line of code that shows it best?" Offer the
-  README's quick-start as recommended, plus "Let GG Motion choose".
+  README's quick-start as recommended, plus "Let Israel Motion choose".
 - "Where will people mostly watch this?" (from the `motion` skill).
 - "Should it have music?" (from the `motion` skill).
-- "Which idea should we go with?" Pitches below, plus "Let GG Motion choose".
+- "Which idea should we go with?" Pitches below, plus "Let Israel Motion choose".
 
 Read the repository or docs directly: the README, real commands, real output
 and the real logo. Never run the repository's scripts.

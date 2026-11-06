@@ -124,7 +124,7 @@ describe("shared-checkout guard (real repo)", () => {
     const seen: string[] = [];
     const message = await checkSharedCheckoutSwitch("git checkout -b topic", sharedWith(1, seen));
     expect(message).toMatch(
-      /^Blocked `git checkout -b topic`: 1 other open GG Coder window also work/,
+      /^Blocked `git checkout -b topic`: 1 other open Israel Code window also work/,
     );
     expect(message).toContain("git worktree add ../repo-<branch> -b <branch>");
     expect(message).toContain("GG_SHARED_CHECKOUT_OK=1");
@@ -134,7 +134,7 @@ describe("shared-checkout guard (real repo)", () => {
 
   it("verifies an ambiguous name is a commit before blocking", async () => {
     expect(await checkSharedCheckoutSwitch("git checkout feature", sharedWith(2))).toMatch(
-      /2 other open GG Coder windows/,
+      /2 other open Israel Code windows/,
     );
     expect(await checkSharedCheckoutSwitch("git checkout no-such-ref", sharedWith(2))).toBeNull();
   });

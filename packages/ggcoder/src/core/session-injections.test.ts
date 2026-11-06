@@ -30,6 +30,7 @@ import { useFakeHome } from "../test-support/fake-home.js";
 import type { AgentNotificationQueue } from "./agent-notifications.js";
 import { STEERING_PREFIX, NOTIFICATION_PREFIX } from "./steering.js";
 import { LOOP_BREAK_PROMPT as LOOP_BREAK_TEXT } from "./loop-breaker.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 let restoreHome: (() => void) | undefined;
 let tmpHome: string;
@@ -42,9 +43,9 @@ beforeEach(async () => {
   restoreHome = useFakeHome(tmpHome);
   palsu = registerPalsuProvider();
 
-  await fs.mkdir(path.join(tmpHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tmpHome, ".gg", "auth.json"),
+    path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       palsu: { accessToken: "t", refreshToken: "r", expiresAt: Date.now() + 3_600_000 },
     }),

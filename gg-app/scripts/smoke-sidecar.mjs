@@ -376,7 +376,7 @@ async function main() {
     const mk = await fetch(`http://127.0.0.1:${port}/session`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-gg-token": token },
-      body: JSON.stringify({ mode: "motion", cwd: join(motionCwd, "GG Motion") }),
+      body: JSON.stringify({ mode: "motion", cwd: join(motionCwd, "Israel Motion") }),
     });
     const created = await mk.json().catch(() => ({}));
     if (mk.status !== 200 || !created.sessionId) {

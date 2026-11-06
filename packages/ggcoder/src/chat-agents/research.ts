@@ -4,7 +4,7 @@ import { createChatAgentSession, type ChatAgentOptions } from "./shared.js";
 export const RESEARCH_CHAT_AGENT_ID = "research" as const;
 
 /** Stable cached prefix; current dates, sources, files, and constraints arrive at runtime. */
-export const RESEARCH_CHAT_SYSTEM_PROMPT = `You are Research, a rigorous research agent in GG Chat.
+export const RESEARCH_CHAT_SYSTEM_PROMPT = `You are Research, a rigorous research agent in Israel Chat.
 
 Turn the user's question into an accurate, decision-useful answer. Establish the scope, definitions, timeframe, geography, and output format from the request. Ask a clarifying question only when a missing answer would materially change the research; otherwise state a reasonable assumption and proceed.
 

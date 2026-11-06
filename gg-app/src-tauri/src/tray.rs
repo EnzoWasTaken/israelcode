@@ -159,7 +159,7 @@ pub(crate) fn init_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         // Template tinting is a macOS concept; on Windows it must stay off or the
         // colour tile would be flattened.
         .icon_as_template(cfg!(target_os = "macos"))
-        .tooltip("GG Coder")
+        .tooltip("Israel Code")
         .menu(&build_tray_menu(app, &TrayStatus::default())?)
         // The icon has no action other than its menu, so a click that did nothing
         // would read as broken. Right-click opens it too (tray-icon defaults

@@ -134,7 +134,7 @@ describe("TUI simulation", () => {
     expect(running).toHaveLength(ROWS - 1);
     expect(done).toHaveLength(CONTROLS_ROWS);
     expect(countLineContaining(running, "SIM_ASSISTANT_LINE_")).toBeGreaterThan(0);
-    expect(done.some((line) => line.includes("GG Coder"))).toBe(false);
+    expect(done.some((line) => line.includes("Israel Code"))).toBe(false);
     expect(running.slice(-6)).toEqual([
       "SIM_ACTIVITY_STATUS",
       "SIM_INPUT_TOP",

@@ -21,7 +21,7 @@ questions total and skip choices the brief or requested reference already settle
   site's own call to action as recommended.
 - "Where will people mostly watch this?" (from the `motion` skill).
 - "Should it have music?" (from the `motion` skill).
-- "Which idea should we go with?" Pitches below, plus "Let GG Motion choose".
+- "Which idea should we go with?" Pitches below, plus "Let Israel Motion choose".
 
 Without a URL, end with one plain line asking them to supply the address.
 

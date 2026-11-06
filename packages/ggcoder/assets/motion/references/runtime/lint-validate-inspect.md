@@ -9,7 +9,7 @@ For a concrete problem during authoring or editing:
 - Use `lint` for a static-code failure or `check --snapshots` for runtime/layout evidence, not both by default.
 - Look at the returned images before changing the animation: a diagnostic must not become an alternative art direction.
 - Treat layout errors as defects unless a snapshot proves the layering is intentional, in which case mark it with `data-layout-allow-overflow` / `data-layout-allow-overlap` / `data-layout-allow-occlusion` / `data-layout-allow-caption-zone` (caption band only).
-- Existing meaningful motion assertions may remain, but GG does not require a new `*.motion.json` sidecar for every video. Use stills of the render for liveness, especially for canvas/WebGL. No detector or screenshot proves playback was watched.
+- Existing meaningful motion assertions may remain, but Israel Code does not require a new `*.motion.json` sidecar for every video. Use stills of the render for liveness, especially for canvas/WebGL. No detector or screenshot proves playback was watched.
 
 ## lint
 

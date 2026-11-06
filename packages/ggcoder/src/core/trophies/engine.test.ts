@@ -305,9 +305,9 @@ describe("prompt facts", () => {
     expect(mentionedPaths("see Referenced files:\n- a.ts")).toEqual([]);
   });
 
-  it("finds @file mentions but not @Ken or emails", () => {
+  it("finds @file mentions but not @Israel or emails", () => {
     expect(
-      mentionedPaths("@Ken look at @src/App.tsx and me@example.com, then @README.md."),
+      mentionedPaths("@Israel and @ken look at @src/App.tsx and me@example.com, then @README.md."),
     ).toEqual(["src/App.tsx", "README.md"]);
   });
 

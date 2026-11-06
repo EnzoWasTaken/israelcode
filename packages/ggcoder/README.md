@@ -37,7 +37,7 @@ ggcoder login   # pick a provider and sign in
 ggcoder         # start coding in the current folder
 ```
 
-Needs Node.js 22 or newer. Sign-ins are saved in `~/.gg/auth.json`, shared with the desktop app, and refreshed automatically.
+Needs Node.js 22 or newer. Sign-ins are saved in `~/.israelcode/auth.json`, shared with the desktop app, and refreshed automatically.
 
 ## Providers
 
@@ -113,10 +113,10 @@ The agent always has `read`, `write`, `edit`, `bash`, `grep`, `skill`, `ask_user
 
 - **Project instructions.** Put an `AGENTS.md` or `CLAUDE.md` in your repo (or a parent folder) and it's loaded automatically. Per folder, the first match wins: `AGENTS.override.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `CONVENTIONS.md`.
 - **Custom commands.** Each Markdown file in `.gg/commands/` becomes a slash command for that project.
-- **Skills.** Reusable instructions in `~/.gg/skills/` (everywhere) or `.gg/skills/` (one project), as `name.md` or `name/SKILL.md`. The agent loads one when the work matches. Two ship built in: `compliance-guard` (legal exposure such as personal data, payments or marketing) and `durable` (not losing stored data).
-- **MCP servers.** `ggcoder mcp add` uses the same syntax and `mcpServers` format as Claude Code. Servers go in `~/.gg/mcp.json` (everywhere) or `.gg/mcp.json` (one project). Project servers only connect after you trust them in settings.
+- **Skills.** Reusable instructions in `~/.israelcode/skills/` (everywhere) or `.gg/skills/` (one project), as `name.md` or `name/SKILL.md`. The agent loads one when the work matches. Two ship built in: `compliance-guard` (legal exposure such as personal data, payments or marketing) and `durable` (not losing stored data).
+- **MCP servers.** `ggcoder mcp add` uses the same syntax and `mcpServers` format as Claude Code. Servers go in `~/.israelcode/mcp.json` (everywhere) or `.gg/mcp.json` (one project). Project servers only connect after you trust them in settings.
 
-`/rewind` restores files the agent changed with `write` and `edit`. Changes made through `bash` (for example `rm` or code generators) aren't tracked. Checkpoints live in `~/.gg/checkpoints/`, never in your repo.
+`/rewind` restores files the agent changed with `write` and `edit`. Changes made through `bash` (for example `rm` or code generators) aren't tracked. Checkpoints live in `~/.israelcode/checkpoints/`, never in your repo.
 
 ## More commands
 

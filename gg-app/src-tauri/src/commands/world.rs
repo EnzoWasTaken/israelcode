@@ -83,7 +83,7 @@ pub(crate) async fn agent_world_live(
 }
 
 /// Proxy: delete the whole GG World account (`DELETE /world/account`). The
-/// sidecar removes ~/.gg/royale.json once the server confirms.
+/// sidecar removes ~/.israelcode/royale.json once the server confirms.
 #[tauri::command]
 pub(crate) async fn agent_world_account_delete(
     webview: WebviewWindow,

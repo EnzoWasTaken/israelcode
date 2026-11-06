@@ -2270,7 +2270,7 @@ export function App(props: AppProps) {
               }
               try {
                 // Use getAllMcpServers so user-configured servers (from
-                // ~/.gg/mcp.json and ./.gg/mcp.json) survive the reconnect —
+                // ~/.israelcode/mcp.json and ./.gg/mcp.json) survive the reconnect —
                 // getMCPServers returns provider defaults only.
                 const servers = await getAllMcpServers(newProvider, apiKey, props.cwd);
                 const mcpTools = await mcpManager.connectAll(servers);

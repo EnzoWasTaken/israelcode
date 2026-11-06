@@ -49,7 +49,7 @@ const RAW_REASON_CAP = 500;
 
 export const CORPUS_UNVERIFIED_REASON = "Not cross-checked against real-world implementations.";
 
-const DEFAULT_HUMAN_REASON = "Ken flagged this for a human but gave no reason.";
+const DEFAULT_HUMAN_REASON = "Israel flagged this for a human but gave no reason.";
 
 /** Strip a leading/trailing ``` fence (optionally ```prompt) Ken may have wrapped
  *  the prompt body in out of chat habit. */
@@ -146,7 +146,10 @@ export function parseAutopilotVerdict(reply: string): AutopilotVerdict {
     } catch {
       // Malformed structured output must not fall through to keyword recovery.
     }
-    return { kind: "human", reason: "Ken's structured verdict was invalid; review it manually." };
+    return {
+      kind: "human",
+      reason: "Israel's structured verdict was invalid; review it manually.",
+    };
   }
 
   const lines = raw.split("\n");
@@ -194,7 +197,7 @@ export function parseAutopilotVerdict(reply: string): AutopilotVerdict {
       body = stripPromptFence(inline);
     }
     if (!body) {
-      return { kind: "human", reason: "Ken said to continue but gave no prompt." };
+      return { kind: "human", reason: "Israel said to continue but gave no prompt." };
     }
     return { kind: "prompt", body };
   }

@@ -25,6 +25,7 @@ import {
   isInternalDiagnosticsEnabled,
   resetInternalDiagnosticsCacheForTests,
 } from "./internal-diagnostics.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 // The sessions dir is env-overridable precisely so tests never touch the
 // real ~/.gg. The flag file lives under getAppPaths().agentDir (real home),
@@ -35,7 +36,7 @@ let tmpDir: string;
 
 beforeEach(() => {
   tmpHome = mkdtempSync(path.join(os.tmpdir(), "ggdiag-home-"));
-  state.agentDir = path.join(tmpHome, ".gg");
+  state.agentDir = path.join(tmpHome, APP_DIR_NAME);
   tmpDir = path.join(tmpHome, "diag-sessions");
   process.env.GG_DIAGNOSTICS_DIR = tmpDir;
   process.env.GG_INTERNAL = "";
@@ -61,12 +62,12 @@ describe("isInternalDiagnosticsEnabled", () => {
 
   it("turns on via ~/.gg/internal.json diagnostics:true, and nothing else", async () => {
     resetInternalDiagnosticsCacheForTests();
-    await mkdir(path.join(tmpHome, ".gg"), { recursive: true });
-    await writeFile(path.join(tmpHome, ".gg", "internal.json"), `{"diagnostics":true}`);
+    await mkdir(path.join(tmpHome, APP_DIR_NAME), { recursive: true });
+    await writeFile(path.join(tmpHome, APP_DIR_NAME, "internal.json"), `{"diagnostics":true}`);
     expect(isInternalDiagnosticsEnabled()).toBe(true);
 
     resetInternalDiagnosticsCacheForTests();
-    await writeFile(path.join(tmpHome, ".gg", "internal.json"), `{"diagnostics":false}`);
+    await writeFile(path.join(tmpHome, APP_DIR_NAME, "internal.json"), `{"diagnostics":false}`);
     expect(isInternalDiagnosticsEnabled()).toBe(false);
   });
 });

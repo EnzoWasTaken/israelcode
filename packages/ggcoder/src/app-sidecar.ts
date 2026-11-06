@@ -208,7 +208,7 @@ async function main(): Promise<void> {
 
   const paths = await ensureAppDirs();
   // Own log file so the app sidecar never clobbers the interactive CLI's
-  // ~/.gg/debug.log (initLogger truncates on each start).
+  // ~/.israelcode/debug.log (initLogger truncates on each start).
   const sidecarLog = path.join(paths.agentDir, "gg-app-sidecar.log");
   initLogger(sidecarLog);
   // Apply the saved keepAwake setting before any run can acquire the guard.
@@ -277,10 +277,10 @@ async function main(): Promise<void> {
       pathReady = true;
     });
 
-  // Sweep recoverable full tool outputs (~/.gg/tool-output/) older than 48h.
+  // Sweep recoverable full tool outputs (~/.israelcode/tool-output/) older than 48h.
   // Fire-and-forget: cleanup must never delay or break startup.
   void cleanupToolOutputs().catch(() => {});
-  // ~/.gg/diagnostics/sessions records older than 30 days (best-effort, non-blocking).
+  // ~/.israelcode/diagnostics/sessions records older than 30 days (best-effort, non-blocking).
   void pruneDiagnosticsRecords()
     .then(({ removed, freedBytes }) => {
       if (removed > 0) {
@@ -291,7 +291,7 @@ async function main(): Promise<void> {
       }
     })
     .catch(() => {});
-  // ~/.gg/checkpoints/<session> folders untouched for 30 days (best-effort, non-blocking).
+  // ~/.israelcode/checkpoints/<session> folders untouched for 30 days (best-effort, non-blocking).
   void pruneCheckpointSessions()
     .then(({ removed }) => {
       if (removed > 0) {
@@ -323,7 +323,7 @@ async function main(): Promise<void> {
   /**
    * Fan one frame out to every window.
    *
-   * For state that is genuinely global rather than per-session — `~/.gg/auth.json`
+   * For state that is genuinely global rather than per-session — `~/.israelcode/auth.json`
    * is shared by all windows, so connecting a provider in one must refresh the
    * model picker in all of them. Mirrors the memory/jiwa/progress fan-outs.
    */
@@ -395,7 +395,7 @@ async function main(): Promise<void> {
   // XP/rank progress — loaded once per daemon; awards fan out to every window.
   // Each frame is tagged `origin: true` only for the session that earned the
   // XP, so that window alone plays sounds/chips while the rest just re-render.
-  // GG World online save + live tickets (opt-in; one device link in ~/.gg/royale.json).
+  // GG World online save + live tickets (opt-in; one device link in ~/.israelcode/royale.json).
   const world = createWorldLink({ agentDir: paths.agentDir, version: VERSION });
   const progress = await createProgressManager(paths.agentDir, (snapshot, originId) => {
     for (const ctx of sessions.values())
@@ -726,7 +726,7 @@ async function main(): Promise<void> {
       stopRadio();
       // Drop the idle-sleep assertion first: session teardown may hang.
       keepAwake.dispose();
-      // Close the ~/.gg progress fs.watch handle (baseline #8 leak fix).
+      // Close the ~/.israelcode progress fs.watch handle (baseline #8 leak fix).
       progress.dispose();
       await Promise.all([...sessions.values()].map((c) => c.dispose().catch(() => {})));
       server.close();
@@ -1536,7 +1536,7 @@ async function createSession(
 
   // tool_call_end carries no tool name (only the id), so remember each call's
   // name from tool_call_start to log a useful line on completion. Mirrors the
-  // CLI's logging so the app sidecar's ~/.gg/gg-app-sidecar.log records tool
+  // CLI's logging so the app sidecar's ~/.israelcode/gg-app-sidecar.log records tool
   // failures (e.g. repeated invalid-argument errors) instead of leaving the
   // fatal-abort path with no forensic trail.
   const toolCallNames = new Map<string, string>();
@@ -1917,10 +1917,15 @@ async function createSession(
     providerConnected: () => true, // async auth checked below
   });
   if (kenModelOverride && !(await auth.hasProviderAuth(kenModelOverride.provider))) {
-    log("WARN", "app-sidecar", "ken model override provider not connected — following GG", {
-      provider: kenModelOverride.provider,
-      model: kenModelOverride.model,
-    });
+    log(
+      "WARN",
+      "app-sidecar",
+      "ken model override provider not connected — following Israel Code",
+      {
+        provider: kenModelOverride.provider,
+        model: kenModelOverride.model,
+      },
+    );
     kenModelOverride = null;
   }
 

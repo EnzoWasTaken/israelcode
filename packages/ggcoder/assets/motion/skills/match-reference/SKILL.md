@@ -21,7 +21,7 @@ questions total and skip choices the brief or requested reference already settle
 - "Where will people mostly watch this?" only if the example's shape doesn't
   answer it.
 - "Which idea should we go with?" Pitches built on the reference's rules,
-  plus "Let GG Motion choose".
+  plus "Let Israel Motion choose".
 
 If no example is attached, end with one plain line asking them to attach the
 video file. A link to a page is not enough to measure.

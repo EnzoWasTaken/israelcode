@@ -461,7 +461,7 @@ function kenEntry(id: string, data: unknown, kind: string = KEN_TURN_CUSTOM_KIND
 describe("SessionManager.getKenTurns", () => {
   const manager = new SessionManager("/unused");
 
-  it("reads valid Ken turns in file order", () => {
+  it("reads valid Israel turns in file order", () => {
     const entries: SessionEntry[] = [
       kenEntry("k1", { version: 1, question: "what next?", reply: "do X", afterMessageCount: 0 }),
       entry("m1"),
@@ -482,7 +482,7 @@ describe("SessionManager.getKenTurns", () => {
     expect(manager.getKenTurns(entries)).toHaveLength(1);
   });
 
-  it("drops malformed Ken payloads (missing fields / wrong version)", () => {
+  it("drops malformed Israel payloads (missing fields / wrong version)", () => {
     const entries: SessionEntry[] = [
       kenEntry("k1", { version: 2, question: "q", reply: "r" }),
       kenEntry("k2", { version: 1, question: "q" }),
@@ -500,7 +500,7 @@ describe("SessionManager.getKenTurns", () => {
     expect(turns[0]?.afterMessageCount).toBe(0);
   });
 
-  it("round-trips Ken turns through a written session file", async () => {
+  it("round-trips Israel turns through a written session file", async () => {
     const sessionsDir = await makeTempDir();
     const manager2 = new SessionManager(sessionsDir);
     const created = await manager2.create(sessionsDir, "anthropic", "test-model");

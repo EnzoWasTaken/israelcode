@@ -19,9 +19,9 @@ Pick what the prompt leaves open, at most four questions with the idea pitch:
 - "Where will people mostly watch this?" (from the `motion` skill).
 - "Should it have music?" (from the `motion` skill).
 - "What's the one thing it does better than anything else?" Offer two or three
-  guesses from the prompt or their site, plus "Let GG Motion choose".
+  guesses from the prompt or their site, plus "Let Israel Motion choose".
 - "Which idea should we go with?" Two or three pitches (below) about their
-  product, recommended marked, plus "Let GG Motion choose".
+  product, recommended marked, plus "Let Israel Motion choose".
 
 If the product has screens and none were supplied, end with one plain line:
 "Send me a screenshot of each step people take, and your logo if you have one."

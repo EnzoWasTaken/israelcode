@@ -32,7 +32,7 @@ function optionsOf(agent: unknown): AgentSessionOptions {
   return (agent as { opts: AgentSessionOptions }).opts;
 }
 
-describe("GG Goals agent", () => {
+describe("Israel Goals agent", () => {
   let tmp: string;
 
   beforeEach(async () => {
@@ -65,7 +65,7 @@ describe("GG Goals agent", () => {
     const opts = optionsOf(session);
 
     expect(opts.agentPrompt).toBe(buildGoalsAgentPrompt(g));
-    expect(opts.agentPrompt?.startsWith("You are GG Goals")).toBe(true);
+    expect(opts.agentPrompt?.startsWith("You are Israel Goals")).toBe(true);
     expect(opts.agentPrompt).toContain("Find remote roles in Malaysia");
     expect(opts.agentPrompt).toContain(GOAL_START_OPTION);
     expect(opts.agentRole).toBe("primary");
@@ -75,7 +75,7 @@ describe("GG Goals agent", () => {
     expect(opts.onEnterPlan).toBeUndefined();
     expect(opts.onExitPlan).toBeUndefined();
     expect(opts.systemPrompt).toBeUndefined();
-    expect(GOALS_SYSTEM_PROMPT).not.toContain("GG Coder agent");
+    expect(GOALS_SYSTEM_PROMPT).not.toContain("Israel Code agent");
   });
 
   it("reads its attached projects' AGENTS.md and its memory into its brief", async () => {
@@ -118,7 +118,7 @@ describe("GG Goals agent", () => {
     );
   });
 
-  it("holds the question card until GG Goals has greeted the user", async () => {
+  it("holds the question card until Israel Goals has greeted the user", async () => {
     const g = await goal();
     const asked: unknown[] = [];
     const session = createGoalsAgentSession({
@@ -162,7 +162,7 @@ describe("GG Goals agent", () => {
     expect(asked).toHaveLength(1);
   });
 
-  it("tells GG Goals to start the work when the answer it gets back starts the goal", async () => {
+  it("tells Israel Goals to start the work when the answer it gets back starts the goal", async () => {
     // Live run ("Add a blog"): the start question rode on the briefing's card,
     // the kickoff said not to start work in that reply, and GG Goals stopped
     // right after the user started the goal.
@@ -273,7 +273,7 @@ describe("GG Goals agent", () => {
     expect([wrapped.name, wrapped.description]).toEqual(["spawn_agent", "spawn_agent tool"]);
   });
 
-  it("tells GG Goals to do the work itself, and start workers only for big independent parts", () => {
+  it("tells Israel Goals to do the work itself, and start workers only for big independent parts", () => {
     // Live runs: one session beat a single cold worker on every small or
     // connected goal; workers only paid off on separate projects.
     expect(GOALS_SYSTEM_PROMPT).toMatch(/Do the work yourself by default/);
@@ -291,7 +291,7 @@ describe("GG Goals agent", () => {
     );
   });
 
-  it("tells GG Goals to handle each worker as it finishes, retry failures once and escalate blockers", () => {
+  it("tells Israel Goals to handle each worker as it finishes, retry failures once and escalate blockers", () => {
     // Waiting on "all" left early finishers idle until the slowest was done.
     expect(GOALS_SYSTEM_PROMPT).toContain('condition "any"');
     expect(GOALS_SYSTEM_PROMPT).toMatch(/Handle each worker the moment it finishes/);
@@ -378,7 +378,7 @@ describe("GG Goals agent", () => {
   });
 });
 
-describe("GG Goals run marker", () => {
+describe("Israel Goals run marker", () => {
   let tmp: string;
 
   beforeEach(async () => {

@@ -68,7 +68,7 @@ describe("BranchPicker", () => {
   });
 
   it("moves this window into the worktree the sidecar picked", async () => {
-    branchesMock.mockResolvedValue(list({ sharedWith: "2 other open GG Coder windows" }));
+    branchesMock.mockResolvedValue(list({ sharedWith: "2 other open Israel Code windows" }));
     switchMock.mockResolvedValue({
       kind: "moved",
       branch: "feature/login",
@@ -78,7 +78,7 @@ describe("BranchPicker", () => {
     const move = vi.fn().mockResolvedValue(undefined);
     render(<BranchPicker running={false} onMoveToWorktree={move} />);
     expect(
-      await screen.findByText(/2 other open GG Coder windows also use this folder/),
+      await screen.findByText(/2 other open Israel Code windows also use this folder/),
     ).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: /feature\/login/ }));
     await waitFor(() => expect(move).toHaveBeenCalledWith("/w/feature-login", "/s/conv.jsonl"));
@@ -87,7 +87,10 @@ describe("BranchPicker", () => {
 
   it("lets the user switch a shared folder for everyone instead, and shows the setup", async () => {
     branchesMock.mockResolvedValue(
-      list({ sharedWith: "1 other open GG Coder window", setup: "pnpm install --frozen-lockfile" }),
+      list({
+        sharedWith: "1 other open Israel Code window",
+        setup: "pnpm install --frozen-lockfile",
+      }),
     );
     switchMock.mockResolvedValue({ kind: "switched", branch: "feature/login" });
     render(<BranchPicker running={false} />);

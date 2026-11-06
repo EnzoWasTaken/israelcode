@@ -9,7 +9,7 @@ not require zoom, 3D, giant type, circles, nonstop movement or a fixed shot orde
 The previews are time-ordered source renders, not full playback. A project's
 approved local references may be more relevant; do not scan other folders.
 
-`signal-study.html` is an offline, seekable reduction of GG's local signal study.
+`signal-study.html` is an offline, seekable reduction of Israel Code's local signal study.
 Call `seekStudy(seconds)` (0–4); transfer its coupled path/framing state into the
 composition's existing GSAP timeline. It is reference source, not a replacement
 HyperFrames project. The second entry points to the already-bundled library piece.

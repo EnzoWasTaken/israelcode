@@ -148,7 +148,7 @@ export async function discoverSkillsWithBlocked(options: {
 }): Promise<SkillDiscovery> {
   const ctx = newLoadContext(options.cache);
   // Under vitest only an explicit file is used: many suites discover skills
-  // against the real global dir, and tests must never write the real ~/.gg.
+  // against the real global dir, and tests must never write the real ~/.israelcode.
   const cacheFile =
     options.cacheFile ??
     (process.env.VITEST ? undefined : skillScanCacheFile(options.globalSkillsDir));
@@ -211,7 +211,7 @@ async function loadSkillsFromDir(dir: string, source: string, ctx: LoadContext):
       async (entry): Promise<{ skill: Skill; verdict: SkillScanResult; at: string } | null> => {
         const entryPath = path.join(dir, entry.name);
 
-        // Flat layout: ~/.gg/skills/foo.md
+        // Flat layout: ~/.israelcode/skills/foo.md
         if (entry.isFile() && entry.name.endsWith(".md")) {
           try {
             const content = await fs.readFile(entryPath, "utf-8");
@@ -225,7 +225,7 @@ async function loadSkillsFromDir(dir: string, source: string, ctx: LoadContext):
           }
         }
 
-        // Directory layout (skills.sh ecosystem): ~/.gg/skills/foo/SKILL.md
+        // Directory layout (skills.sh ecosystem): ~/.israelcode/skills/foo/SKILL.md
         if (entry.isDirectory()) {
           try {
             const content = await fs.readFile(path.join(entryPath, "SKILL.md"), "utf-8");

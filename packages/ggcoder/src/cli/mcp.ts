@@ -91,7 +91,7 @@ Add examples:
   ggcoder mcp add airtable -- npx -y airtable-mcp-server
 
 Scopes:
-  global   ~/.gg/mcp.json   (all GG Coder sessions)
+  global   ~/.israelcode/mcp.json   (all Israel Code sessions)
   project  ./.gg/mcp.json   (the current project)
 
 Configs are stored in the same { "mcpServers": { … } } shape Claude Code uses.`);

@@ -18,7 +18,7 @@
     <true/>
     <!-- Camera and microphone permissions apply to the responsible parent app.
          This includes dev apps (such as Electron) launched by the agent's
-         sidecar, so GG Coder needs both hardened-runtime entitlements. -->
+         sidecar, so Israel Code needs both hardened-runtime entitlements. -->
     <key>com.apple.security.device.camera</key>
     <true/>
     <key>com.apple.security.device.audio-input</key>

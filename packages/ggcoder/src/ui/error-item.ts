@@ -3,7 +3,7 @@ import { log } from "../core/logger.js";
 import type { ErrorItem } from "./app-items.js";
 
 /** Where GG Coder bugs should be reported. Surfaced in the guidance line. */
-const GGCODER_BUG_REPORT_URL = "github.com/KenKaiii/gg-framework/issues";
+const GGCODER_BUG_REPORT_URL = "github.com/EnzoWasTaken/israelcode/issues";
 
 /**
  * Build an ErrorItem from any thrown value. Centralises headline / message /
@@ -15,7 +15,7 @@ export function toErrorItem(err: unknown, id: string, contextPrefix?: string): E
   const headline = contextPrefix ? `${contextPrefix} — ${f.headline}` : f.headline;
   const guidance =
     f.source === "ggcoder"
-      ? `This looks like a GG Coder bug — please send it to the dev at ${GGCODER_BUG_REPORT_URL}.`
+      ? `This looks like an Israel Code bug — please send it to the dev at ${GGCODER_BUG_REPORT_URL}.`
       : f.guidance;
 
   log("ERROR", "ui-error", headline, {

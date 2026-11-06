@@ -126,8 +126,8 @@ describe("ship log readouts", () => {
   });
 });
 
-describe("Ken's About lines", () => {
-  it("say where GG Coder started, and each fits his box", async () => {
+describe("Israel's About lines", () => {
+  it("say where Israel Code started, and each fits his box", async () => {
     const { aboutLines } = await import("./about-content");
     const { KEN_LINE_MAX } = await import("./goal-ken-talk");
     const lines = aboutLines(buildShipLog(CHANGELOG, "2026-10-14"));

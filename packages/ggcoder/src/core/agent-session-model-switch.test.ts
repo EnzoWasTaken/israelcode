@@ -15,6 +15,7 @@ import { stream, StreamResult, type StreamEvent, type StreamResponse } from "@ke
 import { getModel } from "./model-registry.js";
 import { outputCapForRequest } from "./agent-session.js";
 import { AuthStorage } from "./auth-storage.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-ai", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -64,13 +65,13 @@ beforeEach(async () => {
           })(),
         ),
     );
-  await fs.mkdir(path.join(tempHome, ".gg"), { recursive: true });
+  await fs.mkdir(path.join(tempHome, APP_DIR_NAME), { recursive: true });
   await fs.writeFile(
-    path.join(tempHome, ".gg", "claude-code-version.json"),
+    path.join(tempHome, APP_DIR_NAME, "claude-code-version.json"),
     JSON.stringify({ version: "2.1.75", fetchedAt: Date.now() }),
   );
   await fs.writeFile(
-    path.join(tempHome, ".gg", "auth.json"),
+    path.join(tempHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
       gemini: {
         accessToken: "test-gemini-token",

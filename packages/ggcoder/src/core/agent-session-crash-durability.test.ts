@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 const FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -74,14 +75,14 @@ async function readMessages(sessionPath: string): Promise<{ role: string; text: 
 beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "gg-crash-home-"));
   tmpProject = await fs.mkdtemp(path.join(os.tmpdir(), "gg-crash-project-"));
-  await writeJson(path.join(tmpHome, ".gg", "auth.json"), {
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "auth.json"), {
     anthropic: {
       accessToken: "test-access",
       refreshToken: "test-refresh",
       expiresAt: Date.now() + 3_600_000,
     },
   });
-  await writeJson(path.join(tmpHome, ".gg", "settings.json"), { autoCompact: false });
+  await writeJson(path.join(tmpHome, APP_DIR_NAME, "settings.json"), { autoCompact: false });
 });
 
 afterEach(async () => {

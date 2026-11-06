@@ -4,9 +4,9 @@ import { Modal } from "./Modal";
 import type { WorldSaveStatus } from "./world-save";
 
 export const WORLD_PRIVACY_URL =
-  "https://github.com/KenKaiii/gg-framework/blob/main/GG-WORLD-PRIVACY.md";
+  "https://github.com/EnzoWasTaken/israelcode/blob/main/GG-WORLD-PRIVACY.md";
 export const COMMUNITY_RULES_URL =
-  "https://github.com/KenKaiii/gg-framework/blob/main/COMMUNITY-RULES.md";
+  "https://github.com/EnzoWasTaken/israelcode/blob/main/COMMUNITY-RULES.md";
 
 function DocLink({ href, children }: { href: string; children: string }): React.ReactElement {
   return (

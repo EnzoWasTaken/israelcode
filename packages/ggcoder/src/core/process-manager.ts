@@ -9,6 +9,7 @@ import { killProcessTree } from "../utils/process.js";
 import { getSafeToolEnv } from "../tools/safe-env.js";
 import { resolveShell, type ShellResolution } from "./shell.js";
 import type { AgentNotificationQueue } from "./agent-notifications.js";
+import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
 export interface BackgroundProcess {
   id: string;
@@ -48,7 +49,7 @@ export interface ReadOutputResult {
   output: string;
 }
 
-const BG_DIR = path.join(os.homedir(), ".gg", "bg");
+const BG_DIR = path.join(os.homedir(), APP_DIR_NAME, "bg");
 
 /**
  * How long a background process log survives after its last write.
@@ -280,7 +281,7 @@ export interface ProcessManagerOps {
    */
   notifications?: AgentNotificationQueue;
   /**
-   * Directory for background process logs. Defaults to the real `~/.gg/bg`.
+   * Directory for background process logs. Defaults to the real `~/.israelcode/bg`.
    *
    * Injectable because this manager both writes AND prunes here: a test that
    * calls `start()` without an override operates on the developer's own log
