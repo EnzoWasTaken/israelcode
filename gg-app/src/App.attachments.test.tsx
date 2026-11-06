@@ -468,3 +468,20 @@ describe("dictation mic", () => {
     ).toBe(false);
   });
 });
+
+describe("rewind", () => {
+  it("opens the picker on Esc Esc in an empty composer", async () => {
+    const { input } = await setup();
+    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(await screen.findByRole("dialog", { name: "Rewind" })).toBeDefined();
+  });
+
+  it("opens the picker for /rewind instead of sending it", async () => {
+    const { input, sends } = await setup();
+    fireEvent.change(input, { target: { value: "/rewind" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(await screen.findByRole("dialog", { name: "Rewind" })).toBeDefined();
+    expect(sends).not.toHaveBeenCalled();
+  });
+});

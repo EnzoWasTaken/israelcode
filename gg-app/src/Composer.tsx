@@ -43,6 +43,8 @@ export interface ComposerProps {
   scheduleDraft: boolean;
   /** "ultracode" is in the draft and not dismissed: this prompt runs with Ultracode. */
   ultracodeArmed?: boolean;
+  /** Esc twice in an empty, idle composer opens Rewind. */
+  onRewindShortcut?: () => void;
   onDismissUltracode?: () => void;
   running: boolean;
   kenRunning: boolean;
@@ -130,6 +132,7 @@ export function Composer({
   isFileDragOver,
   scheduleInvalid,
   ultracodeArmed = false,
+  onRewindShortcut,
   onDismissUltracode,
   scheduleDraft,
   running,
@@ -188,6 +191,7 @@ export function Composer({
   const keyAction = sendKeyAction({ shellMode, running, kenRunning, autopilotReviewing });
   const stopping = keyAction !== "send";
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const lastEscRef = useRef(0);
   const setTextarea = useCallback(
     (el: HTMLTextAreaElement | null) => {
       textareaRef.current = el;
@@ -487,7 +491,13 @@ export function Composer({
                 submit();
               } else if (e.key === "Escape") {
                 // Escape stops whatever the send key would stop.
-                if (slashOpen) setInput("");
+                const now = Date.now();
+                const second = now - lastEscRef.current < 600;
+                lastEscRef.current = second ? 0 : now;
+                if (second && onRewindShortcut && input === "" && keyAction === "send") {
+                  e.preventDefault();
+                  onRewindShortcut();
+                } else if (slashOpen) setInput("");
                 else if (keyAction === "stop-run" && !cancelling) requestCancel();
                 else if (keyAction === "stop-ken") void cancelKen();
               }

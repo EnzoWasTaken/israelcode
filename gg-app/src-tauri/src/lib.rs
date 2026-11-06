@@ -189,6 +189,8 @@ pub fn run() {
             commands::agent::agent_autopilot_set,
             commands::agent::agent_ultracode_set,
             commands::agent::agent_transcribe,
+            commands::agent::agent_rewind_points,
+            commands::agent::agent_rewind,
             commands::agent::agent_shell_run,
             commands::agent::agent_shell_cancel,
             commands::agent::agent_shell_trust,

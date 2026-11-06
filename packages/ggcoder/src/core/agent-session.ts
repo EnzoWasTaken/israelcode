@@ -208,6 +208,7 @@ import {
 import type { VerificationEvidence } from "./verification-evidence.js";
 
 import { findUserSessionPrompt, getUserSessionPrompt } from "./session-preview.js";
+import { CheckpointStore, type CheckpointInfo, type RestoreMode } from "./checkpoint-store.js";
 import { normalizeMessageImages } from "./message-images.js";
 import { loadStreamRules } from "./stream-rules.js";
 import crypto from "node:crypto";
@@ -528,6 +529,8 @@ export interface AgentSessionOptions {
   contextLimits?: Partial<ContextLimits>;
   /** Register global + bundled subagents without loading project customization. */
   globalSubagents?: boolean;
+  /** Keep a rewind point per prompt (files + conversation), as the app's code sessions do. */
+  checkpoints?: boolean;
   /**
    * Claude Code's folder for its skills and installed plugins (default
    * ~/.claude; off under vitest unless given). `false` skips it.
@@ -875,6 +878,8 @@ export class AgentSession {
   private additionalRoots: string[] = [];
   // Enabled Claude Code plugins (project sessions only), read once at start.
   private claudePlugins: ClaudePlugin[] = [];
+  private rewindStore: { sessionId: string; store: CheckpointStore; nextTurn: number } | null =
+    null;
 
   private sessionId = "";
   private checkpointGeneration = 0;
@@ -1072,6 +1077,9 @@ export class AgentSession {
       defaultSubAgent: this.opts.defaultSubAgent,
       skills: this.skills,
       blockedSkills: this.blockedSkills,
+      // Snapshot a file before the agent's first change to it in a turn (rewind).
+      onPreFileMutation: (filePath: string) =>
+        this.rewindCheckpoints()?.store.recordPreMutation(filePath),
       contextLimits: this.contextLimits,
       provider: this.provider,
       model: this.model,
@@ -1664,6 +1672,7 @@ export class AgentSession {
 
     // Push user message
     const userMessage: Message = { role: "user", content, provenance };
+    if (provenance.source === "human") await this.openRewindPoint(content, provenance);
     await this.announceNewLanguages();
     if (provenance.source === "human") await this.deliverUserShellContext();
     this.messages.push(userMessage);
@@ -1694,6 +1703,7 @@ export class AgentSession {
       content: parts,
       provenance: { source: "human", kind: "prompt", visibility: "transcript" },
     };
+    await this.openRewindPoint(userMessage.content, userMessage.provenance);
     await this.announceNewLanguages();
     await this.deliverUserShellContext();
     this.messages.push(userMessage);
@@ -3687,6 +3697,99 @@ export class AgentSession {
       branchedFrom: messageEntries.length,
       messagesKept: branchMessages.length,
     };
+  }
+
+  /** This session's checkpoint store, when rewind points are kept. */
+  private rewindCheckpoints(): { store: CheckpointStore; nextTurn: number } | null {
+    if (!this.opts.checkpoints || !this.sessionId || !this.sessionPath) return null;
+    if (this.rewindStore?.sessionId !== this.sessionId) {
+      this.rewindStore = {
+        sessionId: this.sessionId,
+        store: new CheckpointStore({ sessionId: this.sessionId, cwd: this.cwd }),
+        nextTurn: 0,
+      };
+    }
+    return this.rewindStore;
+  }
+
+  /** Open a rewind point just before a typed prompt joins the conversation. */
+  private async openRewindPoint(
+    content: Message["content"],
+    provenance: MessageProvenance | undefined,
+  ): Promise<void> {
+    const rewind = this.rewindCheckpoints();
+    if (!rewind) return;
+    try {
+      if (rewind.nextTurn === 0) {
+        const existing = await rewind.store.listCheckpoints();
+        rewind.nextTurn = (existing.at(-1)?.turnIndex ?? 0) + 1;
+      }
+      await rewind.store.openCheckpoint({
+        turnIndex: rewind.nextTurn++,
+        messageIndex: this.messages.length,
+        leafId: this.currentLeafId,
+        prompt: (getUserSessionPrompt(content, provenance) ?? "").slice(0, 2000),
+      });
+    } catch (err) {
+      log("WARN", "session", "Couldn't open a rewind point", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /** Rewind points for this session, oldest first. */
+  async listRewindPoints(): Promise<CheckpointInfo[]> {
+    return (await this.rewindCheckpoints()?.store.listCheckpoints()) ?? [];
+  }
+
+  /**
+   * Go back to just before a prompt: its files (and every later turn's), the
+   * conversation, or both. The conversation moves the session's leaf back, so
+   * nothing on disk is deleted. Returns the prompt, for the composer.
+   */
+  async rewind(
+    id: string,
+    mode: RestoreMode,
+  ): Promise<{ filesRestored: number; prompt: string; newSession: boolean }> {
+    const rewind = this.rewindCheckpoints();
+    if (!rewind) throw new Error("Rewind isn't available in this session.");
+    const point = (await rewind.store.listCheckpoints()).find((c) => c.id === id);
+    if (!point) throw new Error("That rewind point no longer exists.");
+    const conversation = mode !== "code";
+    let loaded: Awaited<ReturnType<SessionManager["load"]>> | null = null;
+    // Check the conversation can move before touching any file.
+    if (conversation && point.leafId) {
+      loaded = await this.sessionManager.load(this.sessionPath);
+      if (!loaded.entries.some((e) => e.id === point.leafId)) {
+        throw new Error(
+          "The conversation was compacted after this point, so only its files can be restored.",
+        );
+      }
+    }
+    const filesRestored =
+      mode === "conversation" ? 0 : (await rewind.store.restoreTo(id)).filesRestored;
+    if (filesRestored > 0) this.clearReadTracker?.();
+    if (!conversation) return { filesRestored, prompt: point.prompt ?? "", newSession: false };
+
+    await rewind.store.dropFrom(id);
+    if (!point.leafId || !loaded) {
+      // Before the first message: the conversation starts over.
+      await this.newSession();
+      return { filesRestored, prompt: point.prompt ?? "", newSession: true };
+    }
+    this.setSessionPath(loaded.path);
+    this.currentLeafId = point.leafId;
+    await this.sessionManager.updateLeaf(this.sessionPath, point.leafId);
+    const systemMsg = this.messages[0];
+    this.messages = [systemMsg!, ...this.sessionManager.getMessages(loaded.entries, point.leafId)];
+    this.lastPersistedIndex = this.messages.length;
+    this.cacheDiagnostics.reset();
+    this.clearReadTracker?.();
+    this.eventBus.emit("branch_created", {
+      leafId: point.leafId,
+      messagesKept: this.messages.length - 1,
+    });
+    return { filesRestored, prompt: point.prompt ?? "", newSession: false };
   }
 
   /**

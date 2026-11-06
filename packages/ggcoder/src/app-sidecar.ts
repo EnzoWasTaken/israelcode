@@ -1161,6 +1161,8 @@ async function createSession(
     session = new AgentSession({
       ...baseSessionOptions,
       additionalTools: [askUserTool, createTodoWriteTool()],
+      // Rewind points (coding sessions only; Goals has its own branch above).
+      checkpoints: true,
       // A run must not end mid-plan with nothing submitted: nobody could review it.
       planSubmissionGate: true,
       // Plan mode belongs only to the coding agent.

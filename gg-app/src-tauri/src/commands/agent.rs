@@ -915,6 +915,44 @@ pub(crate) async fn agent_autopilot_set(
     sidecar_json(res).await
 }
 
+/// Proxy: the rewind points (one per typed prompt) of THIS window's session.
+#[tauri::command]
+pub(crate) async fn agent_rewind_points(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .get(format!("{}/rewind", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
+/// Proxy: rewind THIS window's session to just before a prompt. `mode` is
+/// "code", "conversation" or "both"; the sidecar validates both fields.
+#[tauri::command]
+pub(crate) async fn agent_rewind(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    id: String,
+    mode: String,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/rewind", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "id": id, "mode": mode }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
 /// Proxy: dictation. `pcm` is 16 kHz mono Int16 audio as base64; the sidecar
 /// runs local Whisper and returns `{ text }`. Bounded generously: the first
 /// use downloads the model.

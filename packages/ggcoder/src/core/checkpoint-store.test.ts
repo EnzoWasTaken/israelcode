@@ -164,3 +164,37 @@ describe("pruneCheckpointSessions", () => {
     await fsp.rm(outside, { recursive: true, force: true });
   });
 });
+
+describe("CheckpointStore.restoreTo", () => {
+  it("undoes the chosen turn and every later one, back to the earliest snapshot", async () => {
+    const a = path.join(cwd, "a.txt");
+    const b = path.join(cwd, "b.txt");
+    await fs.writeFile(a, "v0");
+    const s = store();
+    await s.openCheckpoint({ turnIndex: 1, messageIndex: 1, leafId: null, prompt: "one" });
+    await s.recordPreMutation(a);
+    await fs.writeFile(a, "v1");
+    await s.openCheckpoint({ turnIndex: 2, messageIndex: 3, leafId: "e2", prompt: "two" });
+    await s.recordPreMutation(b);
+    await fs.writeFile(b, "new");
+    await s.recordPreMutation(a);
+    await fs.writeFile(a, "v2");
+
+    expect((await s.listCheckpoints()).map((c) => [c.id, c.prompt, c.leafId, c.files])).toEqual([
+      ["cp-0001", "one", null, ["a.txt"]],
+      ["cp-0002", "two", "e2", ["b.txt", "a.txt"]],
+    ]);
+    expect((await s.restoreTo("cp-0001")).filesRestored).toBe(2);
+    expect(await fs.readFile(a, "utf-8")).toBe("v0");
+    await expect(fs.stat(b)).rejects.toThrow();
+  });
+
+  it("forgets rewound turns and refuses ids that aren't checkpoint names", async () => {
+    const s = store();
+    await s.openCheckpoint({ turnIndex: 1, messageIndex: 1 });
+    await s.openCheckpoint({ turnIndex: 2, messageIndex: 3 });
+    await s.dropFrom("cp-0002");
+    expect((await s.listCheckpoints()).map((c) => c.id)).toEqual(["cp-0001"]);
+    await expect(s.restoreTo("../../escape")).rejects.toThrow("not found");
+  });
+});

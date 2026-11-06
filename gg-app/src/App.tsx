@@ -37,6 +37,7 @@ import {
   listCommands,
   cancelQueued,
   type PromptMeta,
+  type RewindMode,
   type QueuedMessage,
   listHistory,
   listShellSuggestions,
@@ -90,6 +91,7 @@ import { TodoPill } from "./TodoList";
 import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
 import { ultracodePhases, ultracodeTurns, type UltracodePhase } from "./ultracode-phases";
 import { UltracodePhases } from "./UltracodePhases";
+import { RewindModal } from "./RewindModal";
 import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
 import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
 import {
@@ -368,6 +370,8 @@ function App(): React.ReactElement {
   const [kenPowerBanner, setKenPowerBanner] = useState<"on" | "off" | null>(null);
   const [running, setRunning] = useState(false);
   const [ultracodeDismissed, setUltracodeDismissed] = useState(false);
+  // Rewind picker: closed (null), or open preselecting a message's text ("" = newest).
+  const [rewindAt, setRewindAt] = useState<string | null>(null);
   // Last composer keystroke (0 = none since this chat opened). The first
   // keystroke after opening or a >4 min idle pause prewarms the prompt cache.
   const lastKeystrokeAtRef = useRef(0);
@@ -1560,6 +1564,20 @@ function App(): React.ReactElement {
     if (!ultracodeKeyword) setUltracodeDismissed(false);
   }, [ultracodeKeyword]);
 
+  const rewindAvailable = workspaceMode === "code" && !state?.goal;
+  function finishRewind(result: { mode: RewindMode; prompt: string; filesRestored: number }): void {
+    setRewindAt(null);
+    const files = `${result.filesRestored} file${result.filesRestored === 1 ? "" : "s"} restored`;
+    if (result.mode === "code") {
+      toast(`Rewound the code: ${files}.`, "info");
+      return;
+    }
+    // The conversation moved back: reload it, and put the prompt back to edit.
+    resetForChosenProject();
+    setInput(result.prompt);
+    toast(result.mode === "both" ? `Rewound: ${files}.` : "Rewound the conversation.", "info");
+  }
+
   function changeUltracode(next: boolean): void {
     setState((s) => (s ? { ...s, ultracode: next } : s));
     setUltracode(next).catch(() => {
@@ -2405,6 +2423,15 @@ function App(): React.ReactElement {
       return;
     }
 
+    // `/rewind` opens the picker instead of prompting.
+    if (rewindAvailable && /^\/rewind\s*$/i.test(trimmed)) {
+      if (!running) setRewindAt("");
+      else toast("Stop the agent before rewinding.", "error");
+      setInput("");
+      setSlashIndex(0);
+      return;
+    }
+
     // `/ultracode [on|off]` changes the session setting instead of prompting.
     const ultracodeCommand = ultracodeAvailable ? parseUltracodeCommand(trimmed) : null;
     if (ultracodeCommand) {
@@ -3116,6 +3143,7 @@ function App(): React.ReactElement {
                             onContentGrow={maybeScrollToBottom}
                             onAskAnswer={answerAsk}
                             onAskType={typeAskInstead}
+                            onRewind={rewindAvailable && !running ? setRewindAt : undefined}
                             shellActions={shellActions}
                           />
                         );
@@ -3396,6 +3424,7 @@ function App(): React.ReactElement {
                   scheduleInvalid={scheduleInvalid}
                   scheduleDraft={scheduleDraft}
                   ultracodeArmed={ultracodeArmed}
+                  onRewindShortcut={rewindAvailable && !running ? () => setRewindAt("") : undefined}
                   onDismissUltracode={() => setUltracodeDismissed(true)}
                   running={running}
                   kenRunning={kenRunning}
@@ -3456,6 +3485,14 @@ function App(): React.ReactElement {
             <UpdateBanner appUpdate={appUpdate} />
           </div>
         </Activity>
+
+        {rewindAt !== null && rewindAvailable && (
+          <RewindModal
+            initialPrompt={rewindAt || undefined}
+            onClose={() => setRewindAt(null)}
+            onRewound={finishRewind}
+          />
+        )}
 
         {workspaceMode === "code" && showInitGit && (
           <InitGitModal

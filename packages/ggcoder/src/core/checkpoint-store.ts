@@ -29,6 +29,10 @@ export interface CheckpointManifest {
   messageIndex: number;
   timestamp: number;
   files: CheckpointFileEntry[];
+  /** Session leaf entry before this turn's prompt (null: start of the session). */
+  leafId?: string | null;
+  /** The prompt that started the turn, for the rewind picker. */
+  prompt?: string;
 }
 
 export interface CheckpointInfo {
@@ -39,6 +43,10 @@ export interface CheckpointInfo {
   changedFileCount: number;
   /** One-line summary of changed files, e.g. "a.ts, b.ts". */
   summary: string;
+  /** Files the turn changed, relative to the project. */
+  files: string[];
+  leafId?: string | null;
+  prompt?: string;
 }
 
 export interface RestoreResult {
@@ -102,7 +110,12 @@ export class CheckpointStore {
    * Open a fresh checkpoint for a new user turn. Persisted immediately so a turn
    * with no file changes still serves as a conversation-rewind point.
    */
-  async openCheckpoint(meta: { turnIndex: number; messageIndex: number }): Promise<string> {
+  async openCheckpoint(meta: {
+    turnIndex: number;
+    messageIndex: number;
+    leafId?: string | null;
+    prompt?: string;
+  }): Promise<string> {
     await fs.mkdir(this.checkpointsDir, { recursive: true });
     await fs.mkdir(this.blobsDir, { recursive: true });
     const id = `cp-${String(meta.turnIndex).padStart(4, "0")}`;
@@ -112,6 +125,8 @@ export class CheckpointStore {
       messageIndex: meta.messageIndex,
       timestamp: Date.now(),
       files: [],
+      ...(meta.leafId !== undefined ? { leafId: meta.leafId } : {}),
+      ...(meta.prompt !== undefined ? { prompt: meta.prompt } : {}),
     };
     await this.persistCurrent();
     await this.prune();
@@ -180,6 +195,9 @@ export class CheckpointStore {
       timestamp: m.timestamp,
       changedFileCount: m.files.length,
       summary: summarizeFiles(m.files),
+      files: m.files.map((f) => f.relPath),
+      ...(m.leafId !== undefined ? { leafId: m.leafId } : {}),
+      ...(m.prompt !== undefined ? { prompt: m.prompt } : {}),
     }));
   }
 
@@ -211,7 +229,41 @@ export class CheckpointStore {
     return { filesRestored, messageIndex: manifest.messageIndex };
   }
 
+  /**
+   * Put files back as they were before checkpoint `id`'s turn: that turn's and
+   * every later turn's changes are undone, newest first, so each file ends at
+   * its earliest snapshot from `id` on.
+   */
+  async restoreTo(id: string): Promise<RestoreResult> {
+    const target = await this.readManifest(id);
+    if (!target) throw new Error(`Checkpoint ${id} not found`);
+    const later = (await this.listCheckpoints())
+      .filter((c) => c.turnIndex >= target.turnIndex)
+      .sort((a, b) => b.turnIndex - a.turnIndex);
+    const touched = new Set<string>();
+    for (const checkpoint of later) {
+      const manifest = await this.readManifest(checkpoint.id);
+      for (const entry of manifest?.files ?? []) touched.add(entry.absPath);
+      await this.restore(checkpoint.id, "code");
+    }
+    return { filesRestored: touched.size, messageIndex: target.messageIndex };
+  }
+
+  /** Forget checkpoint `id` and every later one (their turns were rewound away). */
+  async dropFrom(id: string): Promise<void> {
+    const target = await this.readManifest(id);
+    if (!target) return;
+    for (const checkpoint of await this.listCheckpoints()) {
+      if (checkpoint.turnIndex >= target.turnIndex) {
+        await fs.rm(this.manifestPath(checkpoint.id), { force: true });
+      }
+    }
+    if (this.current && this.current.turnIndex >= target.turnIndex) this.current = null;
+  }
+
   private async readManifest(id: string): Promise<CheckpointManifest | null> {
+    // Ids come from callers (the app over HTTP); never let one name another path.
+    if (!/^cp-\d+$/.test(id)) return null;
     try {
       const raw = await fs.readFile(this.manifestPath(id), "utf-8");
       return JSON.parse(raw) as CheckpointManifest;

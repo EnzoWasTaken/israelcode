@@ -1806,6 +1806,63 @@ describe("AgentSession plan state and dispose", () => {
     expect(notices[1]).toContain("<approved_plan>");
   });
 
+  it("rewinds files and the conversation to just before a prompt", async () => {
+    shouldCompactMock.mockReturnValue(false);
+    const file = path.join(tmpProject, "a.txt");
+    const created = path.join(tmpProject, "b.txt");
+    await fs.writeFile(file, "v0");
+    const { AgentSession } = await import("./agent-session.js");
+    const session = new AgentSession({
+      provider: "anthropic",
+      model: "claude-test",
+      cwd: tmpProject,
+      checkpoints: true,
+    });
+    await session.initialize();
+    const internals = session as unknown as {
+      messages: Message[];
+      rewindCheckpoints(): { store: { recordPreMutation(p: string): Promise<void> } } | null;
+    };
+    // Stand-in for the edit tool: snapshot, then write.
+    const edit = async (target: string, text: string): Promise<void> => {
+      await internals.rewindCheckpoints()?.store.recordPreMutation(target);
+      await fs.writeFile(target, text);
+    };
+    const steps = [
+      async () => edit(file, "v1"),
+      async () => {
+        await edit(file, "v2");
+        await edit(created, "new");
+      },
+    ];
+    agentLoopMock.mockImplementation(async function* () {
+      await steps.shift()?.();
+      yield { type: "agent_done" };
+    });
+
+    await session.prompt("first change");
+    await session.prompt("second change");
+    const points = await session.listRewindPoints();
+    expect(points.map((p) => p.prompt)).toEqual(["first change", "second change"]);
+
+    const result = await session.rewind(points[1]!.id, "both");
+    expect(result).toEqual({ filesRestored: 2, prompt: "second change", newSession: false });
+    expect(await fs.readFile(file, "utf-8")).toBe("v1");
+    await expect(fs.stat(created)).rejects.toThrow();
+    const userTexts = internals.messages
+      .filter((m) => m.role === "user" && typeof m.content === "string")
+      .map((m) => m.content);
+    expect(userTexts).toContain("first change");
+    expect(userTexts).not.toContain("second change");
+    expect((await session.listRewindPoints()).map((p) => p.prompt)).toEqual(["first change"]);
+
+    // Files only: the conversation stays where it is.
+    const codeOnly = await session.rewind(points[0]!.id, "code");
+    expect(codeOnly.filesRestored).toBe(1);
+    expect(await fs.readFile(file, "utf-8")).toBe("v0");
+    await session.dispose();
+  });
+
   it("tells the model about Ultracode by appended notices, never a prompt rebuild", async () => {
     shouldCompactMock.mockReturnValue(false);
     agentLoopMock.mockImplementation(async function* () {

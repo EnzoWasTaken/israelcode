@@ -450,6 +450,49 @@ export function handleRunControlRoutes(
     return true;
   }
 
+  // Rewind: the prompts this session can go back to, newest last.
+  if (method === "GET" && url === "/rewind") {
+    void ctx.session
+      .listRewindPoints()
+      .then((points) => json(res, 200, { points }))
+      .catch((err: unknown) =>
+        json(res, 500, { error: err instanceof Error ? err.message : String(err) }),
+      );
+    return true;
+  }
+
+  if (method === "POST" && url === "/rewind") {
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let id: string;
+      let mode: "code" | "conversation" | "both";
+      try {
+        const body = JSON.parse(raw) as { id?: unknown; mode?: unknown };
+        if (typeof body.id !== "string" || !/^cp-\d+$/.test(body.id)) throw new Error("id");
+        if (body.mode !== "code" && body.mode !== "conversation" && body.mode !== "both")
+          throw new Error("mode");
+        id = body.id;
+        mode = body.mode;
+      } catch {
+        json(res, 400, { error: "invalid rewind request" });
+        return;
+      }
+      if (ctx.running || ctx.runClaim.active) {
+        json(res, 409, { error: "Stop the agent before rewinding." });
+        return;
+      }
+      try {
+        const result = await ctx.session.rewind(id, mode);
+        if (mode !== "code") ctx.clearPendingPlan();
+        log("INFO", "app-sidecar", "rewound", { id, mode, files: String(result.filesRestored) });
+        json(res, 200, result);
+      } catch (err) {
+        json(res, 409, { error: err instanceof Error ? err.message : String(err) });
+      }
+    });
+    return true;
+  }
+
   if (method === "POST" && url === "/new-session") {
     if (ctx.running) {
       json(res, 409, { error: "cannot start a new session while running" });

@@ -1,5 +1,10 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import { AtIcon, FileTextIcon, FilmStripIcon } from "@phosphor-icons/react";
+import {
+  AtIcon,
+  FileTextIcon,
+  FilmStripIcon,
+  ArrowCounterClockwiseIcon,
+} from "@phosphor-icons/react";
 import { theme } from "./theme";
 import { ChatErrorNotice } from "./ChatErrorNotice";
 import { openImageDataUrl, openProjectPath } from "./agent";
@@ -160,6 +165,7 @@ export const TranscriptRow = memo(function TranscriptRow({
   onContentGrow,
   onAskAnswer,
   onAskType,
+  onRewind,
   shellActions,
 }: {
   item: Item;
@@ -178,6 +184,8 @@ export const TranscriptRow = memo(function TranscriptRow({
     delta: Record<string, string | string[]>,
   ) => void;
   onAskType?: (itemId: number, promptId: string, questionId: string, seed?: string) => void;
+  /** Open Rewind at this user message (coding sessions). */
+  onRewind?: (text: string) => void;
   shellActions?: ShellActions;
 }): React.ReactElement | null {
   const entranceRef = useRef<HTMLDivElement>(null);
@@ -203,6 +211,7 @@ export const TranscriptRow = memo(function TranscriptRow({
       onContentGrow={onContentGrow}
       onAskAnswer={onAskAnswer}
       onAskType={onAskType}
+      onRewind={onRewind}
       shellActions={shellActions}
     />
   );
@@ -223,6 +232,7 @@ function TranscriptRowBody({
   onContentGrow,
   onAskAnswer,
   onAskType,
+  onRewind,
   shellActions,
 }: {
   item: Item;
@@ -239,6 +249,8 @@ function TranscriptRowBody({
   ) => void;
   /** Answer this question by typing in the composer instead of clicking. */
   onAskType?: (itemId: number, promptId: string, questionId: string, seed?: string) => void;
+  /** Open Rewind at this user message (coding sessions). */
+  onRewind?: (text: string) => void;
   /** Run, cancel or stop the user's own `!` commands. */
   shellActions?: ShellActions;
 }): React.ReactElement | null {
@@ -283,6 +295,17 @@ function TranscriptRowBody({
             <span className="queued-pill" aria-hidden={item.promoted}>
               queued
             </span>
+          )}
+          {onRewind && !item.queued && !item.ken && (
+            <button
+              type="button"
+              className="user-rewind"
+              aria-label="Rewind to before this message"
+              title="Rewind to before this message (Esc Esc)"
+              onClick={() => onRewind(item.text)}
+            >
+              <ArrowCounterClockwiseIcon size={13} aria-hidden="true" />
+            </button>
           )}
           {item.images && item.images.length > 0 && (
             <div className="user-img-row">

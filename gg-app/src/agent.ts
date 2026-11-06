@@ -1154,6 +1154,33 @@ export async function setAutopilot(enabled: boolean): Promise<boolean> {
   }
 }
 
+/** A point the session can rewind to: just before one typed prompt. */
+export interface RewindPoint {
+  id: string;
+  turnIndex: number;
+  timestamp: number;
+  changedFileCount: number;
+  summary: string;
+  files: string[];
+  prompt?: string;
+}
+export type RewindMode = "code" | "conversation" | "both";
+
+export async function listRewindPoints(): Promise<RewindPoint[]> {
+  await waitForReady();
+  const res = await invoke<{ points?: RewindPoint[] }>("agent_rewind_points");
+  return res.points ?? [];
+}
+
+/** Rewind to just before a prompt; returns that prompt for the composer. */
+export async function rewindTo(
+  id: string,
+  mode: RewindMode,
+): Promise<{ filesRestored: number; prompt: string; newSession: boolean }> {
+  await waitForReady();
+  return invoke("agent_rewind", { id, mode });
+}
+
 /** Whisper sizes for dictation (mirrors gg-core WHISPER_MODELS). */
 export type DictationModel = "tiny.en" | "base.en" | "small.en" | "base" | "small";
 

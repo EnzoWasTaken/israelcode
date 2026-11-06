@@ -255,11 +255,10 @@ export function createBuiltinCommands(): SlashCommand[] {
       description: "Restore files/conversation to an earlier checkpoint",
       usage: "/rewind — pick a checkpoint, then code / conversation / both",
       execute() {
-        // The real implementation lives in App.tsx (it needs React state to
-        // drive the picker) and intercepts before the registry, so this only
-        // runs where no picker exists — today that's the gg-app sidecar.
+        // The terminal and desktop apps both intercept /rewind before the
+        // registry to open their pickers; this only runs where neither can.
         return isGgApp()
-          ? "/rewind is only available in the ggcoder terminal app — the desktop app has no checkpoint picker yet."
+          ? "Open Rewind with the button beside a message, or press Esc twice in an empty composer."
           : "Checkpoint picker unavailable in this context.";
       },
     },
