@@ -2,8 +2,31 @@
 import { render, screen } from "@testing-library/react";
 import { theme } from "./theme";
 import { INITIAL_ACTIVITY, type TaskActivity, type TaskPhase } from "./task-activity";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ActivityBar } from "./ActivityBar";
+import { setFlavorEnabled } from "./flavor";
+
+// The plain wording is what these tests pin down; the jokes get their own test.
+beforeEach(() => setFlavorEnabled(false));
+
+describe("ActivityBar humour", () => {
+  it("says the same thing in Israel Code's voice when humour is on", () => {
+    setFlavorEnabled(true);
+    render(<ActivityBar {...baseProps} />);
+    expect(screen.getByText("Working, nu…")).toBeTruthy();
+  });
+  it("keeps a prompt for the user plain even with humour on", () => {
+    setFlavorEnabled(true);
+    render(
+      <ActivityBar
+        {...baseProps}
+        running={false}
+        activity={{ ...INITIAL_ACTIVITY, phase: "attention", label: "Your decision needed" }}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toContain("Your call from here");
+  });
+});
 
 const baseProps = {
   running: true,

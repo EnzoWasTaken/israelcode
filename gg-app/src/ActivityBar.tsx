@@ -4,6 +4,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import { theme } from "./theme";
 import { ShimmerText } from "./ShimmerText";
 import { outcomePhrase } from "./activity-copy";
+import { useFlavorEnabled } from "./flavor";
 import { useMotionLevel } from "./window-motion";
 
 // Braille rotation spinner — the native language of CLI coding tools (ora,
@@ -134,6 +135,38 @@ export function ToolsToggle({
   );
 }
 
+// The same terse labels with Israel Code's voice; a label not listed here reads
+// as its plain short form. Outcomes that need action stay plain.
+const FUN_LABELS: Record<string, string> = {
+  "Working…": "Working, nu…",
+  "On it…": "On it, sababa…",
+  "Continuing…": "Continuing, yalla…",
+  "Thinking…": "Thinking, don't rush…",
+  "Thinking it through…": "Thinking it through, slowly…",
+  "Reasoning…": "Reasoning, with opinions…",
+  "Writing…": "Writing, no typos…",
+  "Composing…": "Composing, with feeling…",
+  "Drafting…": "Drafting, first of many…",
+  "Reading code…": "Reading code, judging it…",
+  "Browsing code…": "Browsing code, nosily…",
+  "Examining code…": "Examining code, with a loupe…",
+  "Editing…": "Editing, with chutzpah…",
+  "Updating code…": "Updating code, trust me…",
+  "Applying changes…": "Applying changes, carefully…",
+  "Checking references…": "Checking references, twice…",
+  "Looking up references…": "Asking the docs, politely…",
+  "Reading references…": "Reading the docs, finally…",
+  "Running checks…": "Running checks, like a mother…",
+  "Checking…": "Checking, and double-checking…",
+  "Verifying…": "Verifying, trust but verify…",
+  "Running a command…": "Running a command, hold on…",
+  "Executing a command…": "Executing, no questions…",
+  "Executing…": "Executing, fingers crossed…",
+  "Agents working…": "Agents working, loudly…",
+  "Reviewing…": "Reviewing, with a raised eyebrow…",
+  "Checks passed": "Checks passed. Mazel tov",
+};
+
 // Keep the visible rail terse without discarding the event model's richer context.
 const SHORT_LABELS: Record<string, string> = {
   "Working on your request…": "Working…",
@@ -236,6 +269,7 @@ export function ActivityBar({
         : activity?.phase === "done"
           ? theme.success
           : theme.textMuted;
+  const funCopy = useFlavorEnabled();
   const fullLabel = cancelling
     ? "Stopping the task…"
     : starting
@@ -247,10 +281,11 @@ export function ActivityBar({
           : doneStatus
             ? "Response ready"
             : readyPhrase;
+  const shortLabel = SHORT_LABELS[fullLabel] || fullLabel;
   const label =
     (!active && outcomePhrase(fullLabel, activity?.startedAt ?? 0)) ||
-    SHORT_LABELS[fullLabel] ||
-    fullLabel;
+    (funCopy && FUN_LABELS[shortLabel]) ||
+    shortLabel;
 
   return (
     <div className="task-activity" data-phase={activity?.phase ?? (running ? "working" : "idle")}>

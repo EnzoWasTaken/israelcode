@@ -23,6 +23,7 @@ import {
 } from "./agent";
 import { useAppUpdate } from "./update";
 import { toast } from "./toast";
+import { fl, hourGreeting, useFlavorEnabled } from "./flavor";
 
 // A failed setup check leaves the workspace buttons dimmed, so leave a trace in
 // the app log instead of failing silently. The next focus retries.
@@ -131,10 +132,13 @@ export function HomeScreen({
     // Take the user to the missing prerequisite: the folder first (General),
     // then a provider.
     if (!folderSet) {
-      toast("Set a workspace folder first.", "warning");
+      toast(fl("Set a workspace folder first.", "Nu, pick a workspace folder first."), "warning");
       onSettings("general");
     } else if (!providerConnected) {
-      toast("Connect an AI provider first.", "warning");
+      toast(
+        fl("Connect an AI provider first.", "Connect an AI provider first. We're not magicians."),
+        "warning",
+      );
       onSettings("providers");
     }
   }
@@ -145,6 +149,9 @@ export function HomeScreen({
   const [visitBiome] = useRandomBiome();
   const biome = backgroundOn ? withScenery(visitBiome) : visitBiome;
   const hour = useLocalHour();
+  const funCopy = useFlavorEnabled();
+  // Keyed on the hour so a long-open window keeps the greeting current.
+  const greeting = useMemo(() => hourGreeting(hour, new Date().getDay(), funCopy), [hour, funCopy]);
   const sceneStyle = useMemo(
     (): (CSSProperties & Record<"--scene-ground", string>) | undefined =>
       backgroundOn ? { "--scene-ground": groundFilter(lightAt(hour)) } : undefined,
@@ -176,9 +183,15 @@ export function HomeScreen({
       </div>
       <HomeTitle />
       <div className="home-tagline">Cause the other coding agents piss me off</div>
+      <div className="home-greeting">{greeting}</div>
       <div className="home-actions">
         {/* GG Royale's plate buttons, its word in Alagard, each with a pixel tip. */}
-        <PixelTip text="Code: open a project and build it with the agent.">
+        <PixelTip
+          text={fl(
+            "Code: open a project and build it with the agent.",
+            "Code: open a project and build it with the agent. Yalla.",
+          )}
+        >
           <PlateButton
             className="home-action"
             label="Code"
@@ -186,7 +199,12 @@ export function HomeScreen({
             onClick={() => handleWorkspace(onProjects)}
           />
         </PixelTip>
-        <PixelTip text="Goals: hand over a bigger goal and let a team of agents work on it.">
+        <PixelTip
+          text={fl(
+            "Goals: hand over a bigger goal and let a team of agents work on it.",
+            "Goals: hand over a bigger goal to a team of agents. They argue, then it gets done.",
+          )}
+        >
           <PlateButton
             className="home-action"
             label="Goals"
@@ -194,7 +212,12 @@ export function HomeScreen({
             onClick={() => handleWorkspace(onGoals)}
           />
         </PixelTip>
-        <PixelTip text="Chat: talk things through, no project needed.">
+        <PixelTip
+          text={fl(
+            "Chat: talk things through, no project needed.",
+            "Chat: talk things through, no project needed. Like a café, minus the bill.",
+          )}
+        >
           <PlateButton
             className="home-action"
             label="Chat"
@@ -202,7 +225,12 @@ export function HomeScreen({
             onClick={() => handleWorkspace(onChat)}
           />
         </PixelTip>
-        <PixelTip text="Motion: make videos and animations.">
+        <PixelTip
+          text={fl(
+            "Motion: make videos and animations.",
+            "Motion: make videos and animations. Eurovision-grade optional.",
+          )}
+        >
           <PlateButton
             className="home-action"
             label="Motion"
@@ -241,7 +269,12 @@ export function HomeScreen({
         </div>
       </div>
       {/* Settings: a GG Royale pixel gear. */}
-      <PixelTip text="Settings: AI providers, your projects folder, and more.">
+      <PixelTip
+        text={fl(
+          "Settings: AI providers, your projects folder, and more.",
+          "Settings: AI providers, your projects folder, and the Humour switch (we won't be offended).",
+        )}
+      >
         <PixelIconButton
           className="home-settings"
           icon="gear"

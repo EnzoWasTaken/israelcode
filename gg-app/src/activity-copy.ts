@@ -1,3 +1,5 @@
+import { isFlavorEnabled } from "./flavor";
+
 // Presentation only: these phrases never decide the outcome or its colour.
 // Keep each pool semantically equivalent, short, and stable for one request.
 export const OUTCOME_PHRASES: Record<string, readonly string[]> = {
@@ -140,8 +142,70 @@ export const OUTCOME_PHRASES: Record<string, readonly string[]> = {
 };
 OUTCOME_PHRASES["Changed · verification incomplete"] = OUTCOME_PHRASES["Verification incomplete"]!;
 
+// The same outcomes in Israel Code's voice (Settings → Effects → Humour). Only
+// the settled outcomes get jokes; anything that needs the user's action keeps
+// the plain pool, so a prompt never reads like a punchline.
+export const FUN_OUTCOME_PHRASES: Record<string, readonly string[]> = {
+  "Response ready": [
+    "Answer ready. Nu, read it",
+    "Answer’s in. Enjoy, habibi",
+    "Answer served, with pita",
+    "Fresh answer. Sababa",
+    "Answer ready. Mazel tov",
+    "Your answer. No charge",
+  ],
+  "Findings ready": [
+    "Findings in. Oy, findings",
+    "Findings ready. Sit down",
+    "Rundown ready. Nu, read",
+    "Findings, fresh as pita",
+    "Findings on the table",
+    "Found things. Many things",
+  ],
+  "Changes saved": [
+    "Edits in. Mazel tov",
+    "Changes saved. Sababa",
+    "Edits in. Have a look, nu",
+    "Changes made, no balagan",
+    "Edits ready. Your move",
+    "Changes saved. Kol tov",
+  ],
+  "Tool work finished": [
+    "Tools done. Yalla, read",
+    "Tool results in. Sababa",
+    "Tools wrapped. Mazel tov",
+    "Tool output, hot and ready",
+    "Tool run done. Nu?",
+    "Results in. Your move",
+  ],
+  "Done · checks passed": [
+    "Checks passed. Mazel tov",
+    "Green checks. Sababa",
+    "Checks green. Kol hakavod",
+    "All green. No balagan",
+    "Checks passed. Nu, ship it",
+    "Green checks. Yofi",
+  ],
+  "Checks failed": [
+    "Checks red. Oy vey",
+    "Checks failed. Balagan",
+    "Red checks. Nu, fix next",
+    "Checks failed. Not the end",
+    "Checks red. Fix, then nosh",
+    "Checks hit a snag. Oy",
+  ],
+  "Task failed": [
+    "Run failed. Oy vey",
+    "Run hit a snag. Regroup",
+    "Run failed. Try again",
+    "Run broke. Balagan",
+    "Run error. Take a look",
+    "Run failed. Not the end",
+  ],
+};
+
 export function outcomePhrase(label: string, seed: number): string | undefined {
-  const choices = OUTCOME_PHRASES[label];
+  const choices = (isFlavorEnabled() && FUN_OUTCOME_PHRASES[label]) || OUTCOME_PHRASES[label];
   if (!choices) return undefined;
   const index = Number.isFinite(seed) ? Math.abs(Math.trunc(seed)) % choices.length : 0;
   return choices[index];

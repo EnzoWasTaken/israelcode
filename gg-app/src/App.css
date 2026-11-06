@@ -60,15 +60,15 @@
 
   /* Accent — cobalt, light enough to carry the dark --on-primary label on a
      fill (8.1:1) and to read as text on every surface. */
-  --primary: #8fa3ff;
-  --primary-hi: #a9b8ff;
+  --primary: #7f9dff;
+  --primary-hi: #9fb5ff;
   --on-primary: #050a2e;
   /* Filled accent controls (send, Commit, the home buttons): the same
      periwinkle and dark ink in both themes, so a primary button looks the
      same in light and dark. --primary itself darkens in light mode, for
      accent text and icons on light surfaces. */
-  --primary-fill: #8fa3ff;
-  --primary-fill-hi: #a9b8ff;
+  --primary-fill: #7f9dff;
+  --primary-fill-hi: #9fb5ff;
   --on-primary-fill: #050a2e;
 
   --success: #7fdc95;
@@ -83,7 +83,7 @@
   /* Between warning and error: "improving, not there yet" (Project Health). */
   --caution: #ff9f5c;
   --on-error: #240704;
-  --secondary: #8fa3ff;
+  --secondary: #7f9dff;
   --info: #62e8d8;
 
   /* Ambient glow behind the window. Alloy keeps it faint: the material, not a
@@ -1571,6 +1571,19 @@ select {
   color: #f6d0a8;
   text-shadow: 0 var(--home-px) 0 #1e0c1f;
   text-align: center;
+}
+.home-greeting {
+  margin-top: calc(6 * var(--home-px));
+  font-family: "Alagard", serif;
+  font-size: calc(12 * var(--home-px));
+  line-height: calc(12 * var(--home-px));
+  -webkit-font-smoothing: none;
+  color: #ffe9c8;
+  opacity: 0.85;
+  text-shadow: 0 var(--home-px) 0 #1e0c1f;
+  text-align: center;
+  position: relative;
+  z-index: 1;
 }
 .home-link {
   /* Links read as links: the accent, never plain white (which vanished on

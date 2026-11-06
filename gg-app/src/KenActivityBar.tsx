@@ -4,6 +4,7 @@ import { theme } from "./theme";
 import { formatElapsed, formatTokenCount, ToolsToggle } from "./ActivityBar";
 import { ShimmerText } from "./ShimmerText";
 import { useMotionLevel } from "./window-motion";
+import { useFlavorEnabled } from "./flavor";
 
 interface Props {
   /** Timestamp (ms) Ken's run began, or null when not running. */
@@ -29,6 +30,8 @@ export function KenActivityBar({
   const orbTintId = useId();
   const [now, setNow] = useState(() => Date.now());
   const motion = useMotionLevel();
+  const funCopy = useFlavorEnabled();
+  const kenThinking = funCopy ? "Israel is thinking. Nu, patience…" : "Israel is thinking…";
 
   // Same clock as ActivityBar: ticks in a visible window, catches up when shown.
   useEffect(() => {
@@ -63,9 +66,9 @@ export function KenActivityBar({
               aria-hidden="true"
               style={{ flexShrink: 0, filter: `url(#${orbTintId})` }}
             />
-            <span className="activity-label-reveal" title="Israel is thinking…">
+            <span className="activity-label-reveal" title={kenThinking}>
               <ShimmerText base={theme.ken} bright={theme.text}>
-                {"Israel is thinking…"}
+                {kenThinking}
               </ShimmerText>
             </span>
           </span>

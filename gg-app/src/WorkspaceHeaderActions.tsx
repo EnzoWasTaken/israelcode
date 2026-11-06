@@ -1,4 +1,5 @@
 import type { ProjectTask, WorkspaceMode } from "./agent";
+import { fl } from "./flavor";
 import { Icon } from "./icons";
 import { WindowLayoutButton } from "./WindowLayoutButton";
 import { describeTally, type GoalTally } from "./goal-progress";
@@ -145,7 +146,10 @@ export function TitleBarActions({
             <span className="well">{dirtyCount}</span>
           </button>
         ) : commitCommand ? (
-          <span className="clean-mark" title="Nothing to commit">
+          <span
+            className="clean-mark"
+            title={fl("Nothing to commit", "Nothing to commit. Clean as a Friday kitchen")}
+          >
             Clean
           </span>
         ) : null)}
@@ -240,7 +244,10 @@ export function DeckMenu({
           role="switch"
           aria-checked={autopilot}
           disabled={running || autopilotReviewing}
-          title="Autopilot: after each run, Israel reviews the work and Israel Code continues if it needs changes"
+          title={fl(
+            "Autopilot: after each run, Israel reviews the work and Israel Code continues if it needs changes",
+            "Autopilot: after each run, Israel reviews the work like a proud, critical parent, and Israel Code continues if it needs changes",
+          )}
           onClick={() => onAutopilotChange(!autopilot)}
         >
           Autopilot
@@ -265,7 +272,10 @@ export function DeckMenu({
           type="button"
           className="key"
           aria-pressed={showChecklist}
-          title="Check this project's health: tests, CI, security, design and more"
+          title={fl(
+            "Check this project's health: tests, CI, security, design and more",
+            "Check this project's health: tests, CI, security, design and more. A full check-up, no waiting room",
+          )}
           onClick={onOpenChecklist}
         >
           Checklist

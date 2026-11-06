@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setFlavorEnabled } from "./flavor";
 import {
   clearSpot,
   PATCH_COLS,
   patchOffset,
   WAKE_LINES,
+  FUN_WAKE_LINES,
   WakeScreen,
   withEyesClosed,
   type WakeMode,
@@ -40,15 +42,30 @@ function typeToRest(container: HTMLElement): void {
 const bubbleText = (container: HTMLElement): string =>
   container.querySelector(".wake-bubble-text")?.textContent ?? "";
 
+beforeEach(() => setFlavorEnabled(false));
+
 describe("WAKE_LINES", () => {
   it.each(MODES)("%s has five distinct line sets, each ending on its own invitation", (mode) => {
-    const sets = WAKE_LINES[mode];
-    expect(sets).toHaveLength(5);
-    expect(new Set(sets.map((set) => set.join("|"))).size).toBe(5);
-    expect(new Set(sets.map((set) => set[set.length - 1])).size).toBe(5);
-    for (const set of sets) {
-      expect(set.length).toBeGreaterThanOrEqual(2);
-      for (const line of set) expect(line.trim()).toBe(line);
+    for (const sets of [WAKE_LINES[mode], FUN_WAKE_LINES[mode]]) {
+      expect(sets).toHaveLength(5);
+      expect(new Set(sets.map((set) => set.join("|"))).size).toBe(5);
+      expect(new Set(sets.map((set) => set[set.length - 1])).size).toBe(5);
+      for (const set of sets) {
+        expect(set.length).toBeGreaterThanOrEqual(2);
+        for (const line of set) expect(line.trim()).toBe(line);
+      }
+    }
+  });
+  it("speaks with humour when the switch is on", () => {
+    setFlavorEnabled(true);
+    const matchMedia = vi.fn().mockReturnValue({ matches: true });
+    vi.stubGlobal("matchMedia", matchMedia);
+    try {
+      const { container } = render(<WakeScreen chat random={fixed(0.2)} />);
+      const set = FUN_WAKE_LINES.chat[1];
+      expect(bubbleText(container)).toBe(set[set.length - 1]);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

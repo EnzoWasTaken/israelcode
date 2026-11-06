@@ -15,6 +15,7 @@ import { toast } from "./toast";
 import { SoundButton } from "./SoundButton";
 import { AppearancePicker } from "./AppearancePicker";
 import { HomeBackgroundButton } from "./HomeBackgroundButton";
+import { HumorButton } from "./HumorButton";
 import { KeepAwakeButton } from "./KeepAwakeButton";
 import { Dropdown } from "./Dropdown";
 import { DICTATION_MODELS, loadDictationModel, saveDictationModel } from "./dictation";
@@ -150,11 +151,12 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
           </SettingsSection>
           <SettingsSection
             title="Effects"
-            description="Sounds, and the home screen's moving background."
+            description="Sounds, the home screen's moving background, and the jokes."
           >
             <div className="modal-row">
               <SoundButton variant="settings" />
               <HomeBackgroundButton />
+              <HumorButton />
             </div>
           </SettingsSection>
           <SettingsSection

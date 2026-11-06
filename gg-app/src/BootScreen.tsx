@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isFlavorEnabled } from "./flavor";
 import "./BootScreen.css";
 
 /**
@@ -139,7 +140,7 @@ export function BootScreen({ onDone }: { onDone: () => void }): React.ReactEleme
 
 /** Wraps the app: shows the boot screen once per launch, on top of it. */
 export function BootGate(): React.ReactElement | null {
-  const [visible, setVisible] = useState(() => !bootAlreadySeen());
+  const [visible, setVisible] = useState(() => isFlavorEnabled() && !bootAlreadySeen());
   const onDone = useCallback(() => setVisible(false), []);
   return visible ? <BootScreen onDone={onDone} /> : null;
 }

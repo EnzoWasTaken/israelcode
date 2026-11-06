@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { fl } from "./flavor";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "@phosphor-icons/react";
 import { ShellCommandMenu } from "./ShellCommandMenu";
@@ -303,7 +304,7 @@ export function Composer({
         />
         <button
           className="icon-circle"
-          title="Attach files"
+          title={fl("Attach files", "Attach files. Screenshots, PDFs, your grandmother's recipe")}
           onClick={() => fileInputRef.current?.click()}
         >
           <PaperclipIcon size={15} />
@@ -539,7 +540,10 @@ export function Composer({
               type="button"
               className={`key key-sm enhance-key${enhancing ? " enhancing" : ""}`}
               data-visible={enhanceHintVisible || undefined}
-              title="Rewrite your prompt with clearer wording and the right terms"
+              title={fl(
+                "Rewrite your prompt with clearer wording and the right terms",
+                "Rewrite your prompt with clearer wording and the right terms. Less balagan, more plan",
+              )}
               disabled={enhancing || !enhanceHintVisible}
               aria-hidden={!enhanceHintVisible}
               tabIndex={enhanceHintVisible ? undefined : -1}

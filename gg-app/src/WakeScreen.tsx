@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isFlavorEnabled } from "./flavor";
 import { CritterTerrain } from "./CritterTerrain";
 import { CRITTER_CELLS, CRITTERS, renderCritterFrame, type CritterDef } from "./critter-sprites";
 import {
@@ -83,6 +84,66 @@ export const WAKE_LINES = {
     ],
     ["Hi!", "Israel Goals is getting the lay of the land.", "Questions incoming."],
     ["*opens notebook*\u2026", "Israel Goals is taking notes.", "We\u2019ll plan it together."],
+  ],
+} as const satisfies Record<WakeMode, readonly (readonly string[])[]>;
+
+/** The same welcomes in Israel Code's voice, used while humour is on. */
+export const FUN_WAKE_LINES = {
+  code: [
+    ["*yawn*… nu, you're here!", "The critters had their coffee.", "What are we building today?"],
+    ["Psst…", "The codebase is warmed up like a pita.", "What should we make?"],
+    ["Oh! A visitor.", "Tools sharpened, hummus packed.", "What are we coding today? Yalla."],
+    ["*stretches*…", "Ready when you are. No pressure. Some pressure.", "What’s the plan?"],
+    ["Shalom shalom!", "Every critter is at its desk, arguing.", "Where should we start?"],
+  ],
+  chat: [
+    ["Coffee’s on…", "Pull up a cushion, bubbeleh.", "What’s on your mind?"],
+    ["Oh, hello!", "The cozy corner is free. Sit, sit.", "What shall we talk about?"],
+    ["*settles in*…", "No rush. Well, a little rush.", "What are you thinking about?"],
+    ["Hey there.", "I saved you a seat by the window.", "What’s on your mind today?"],
+    ["Hi!", "The critters are all ears. Big ears.", "Tell me anything. Nu?"],
+  ],
+  motion: [
+    [
+      "Lights…",
+      "The critters are setting up the stage.",
+      "Tell me what to make. Let’s make it move.",
+    ],
+    [
+      "Curtains up!",
+      "Drop in a website, a PDF, or an idea.",
+      "What should we animate? Eurovision rules apply.",
+    ],
+    ["*taps the mic*…", "The stage is set. The falafel is hot.", "What are we bringing to life?"],
+    ["Ooh, showtime?", "Cameras are rolling, sababa.", "What should we make move?"],
+    ["Shalom!", "Got a page, a PDF, or a doodle?", "Yalla, let’s make it move."],
+  ],
+  goals: [
+    [
+      "*unrolls the map*…",
+      "Israel Goals is reading your goal. Twice.",
+      "Back in a moment with questions.",
+    ],
+    [
+      "Oh, a big one!",
+      "Israel Goals is looking through your context.",
+      "I’ll check in before we start. Nu, patience.",
+    ],
+    [
+      "*sharpens pencil*…",
+      "Israel Goals is sizing up the goal.",
+      "Let’s make sure we agree first. We won’t, but let’s try.",
+    ],
+    [
+      "Shalom!",
+      "Israel Goals is getting the lay of the land.",
+      "Questions incoming. Many questions.",
+    ],
+    [
+      "*opens notebook*…",
+      "Israel Goals is taking notes.",
+      "We’ll plan it together, like a family dinner.",
+    ],
   ],
 } as const satisfies Record<WakeMode, readonly (readonly string[])[]>;
 
@@ -371,7 +432,8 @@ export function WakeScreen({
   // One critter and one set of lines per screen, picked once.
   const [critter] = useState(() => pick(CRITTERS, random));
   const [setIndex] = useState(() => Math.floor(random() * WAKE_LINES[mode].length));
-  const lines = WAKE_LINES[mode][setIndex] ?? WAKE_LINES[mode][0];
+  const [wakeLines] = useState(() => (isFlavorEnabled() ? FUN_WAKE_LINES : WAKE_LINES));
+  const lines = wakeLines[mode][setIndex] ?? wakeLines[mode][0];
 
   const { text, done } = useTypedLines(lines, reduced);
   const { blink, flip } = useIdleLife(reduced, random);

@@ -213,12 +213,13 @@ import { usePromptHistory } from "./usePromptHistory";
 import { usePromptEnhance } from "./usePromptEnhance";
 import { shellCommandFromInput, shellItemFromHistory, useShellRuns } from "./useShellRuns";
 import { filterShellSuggestions, shellEnterPicks } from "./shell-menu";
+import { useFlavorEnabled } from "./flavor";
 import "./App.css";
 import "./Deck.css";
 import "./Trophies.css";
 
 const DEFAULT_INPUT_PLACEHOLDER = "Type a message, / commands, @ files, @Israel for help";
-const INPUT_PLACEHOLDERS = [
+const PLAIN_INPUT_PLACEHOLDERS = [
   DEFAULT_INPUT_PLACEHOLDER,
   "Need a second opinion? Ask @Israel",
   "Start with ! to run a command, like !git status",
@@ -230,13 +231,35 @@ const INPUT_PLACEHOLDERS = [
   "!ls runs in this project. Israel Code sees the output next message",
   "Need a quick review? Ask @Israel",
 ] as const;
-const RUNNING_INPUT_PLACEHOLDERS = [
+// Same hints, said the Israeli way: every line still teaches /, @ or !.
+const FUN_INPUT_PLACEHOLDERS = [
+  "Nu? Type a message, / commands, @ files, @Israel for help",
+  "Need a second opinion? Ask @Israel. You'll get three",
+  "Start with ! to run a command, like !git status. Yalla",
+  "Stuck? Ask @Israel. Asking is free, the advice is unsolicited anyway",
+  DEFAULT_INPUT_PLACEHOLDER,
+  "Run !pnpm test yourself, then let Israel Code fix the balagan",
+  "Want someone to argue with your code? Ask @Israel",
+  "Not sure how to proceed? Ask @Israel, it has an opinion",
+  "!ls runs in this project. Israel Code sees the output next message",
+  "Need a quick review? Ask @Israel. Mazel tov in advance",
+] as const;
+const PLAIN_RUNNING_INPUT_PLACEHOLDERS = [
   "Agent is working. Add a follow-up if you want",
   "Got another thought? Queue it here",
   "Run a command while you wait, like !git diff",
   "Agent is on it. You can stack the next note",
   "Thinking ahead? Drop the next instruction",
   "Keep going. Your next message will queue up",
+  "Check something yourself with !, it won't interrupt Israel Code",
+] as const;
+const FUN_RUNNING_INPUT_PLACEHOLDERS = [
+  "Agent is working. Add a follow-up, it can multitask like a Tel Aviv waiter",
+  "Got another thought? Queue it here. Sababa",
+  "Run a command while you wait, like !git diff",
+  "Agent is on it. Stack the next note, no need to shout",
+  "Thinking ahead? Drop the next instruction, it queues up",
+  "Keep going. Your next message waits its turn (a rare thing here)",
   "Check something yourself with !, it won't interrupt Israel Code",
 ] as const;
 const INPUT_PLACEHOLDER_INTERVAL_MS = 12_000;
@@ -830,9 +853,15 @@ function App(): React.ReactElement {
     deckPanel === null &&
     workspaceMode === "code" &&
     input.length === 0;
-  const inputPlaceholder = running
-    ? RUNNING_INPUT_PLACEHOLDERS[placeholderIndex % RUNNING_INPUT_PLACEHOLDERS.length]
-    : INPUT_PLACEHOLDERS[placeholderIndex % INPUT_PLACEHOLDERS.length];
+  const funCopy = useFlavorEnabled();
+  const placeholderPool = running
+    ? funCopy
+      ? FUN_RUNNING_INPUT_PLACEHOLDERS
+      : PLAIN_RUNNING_INPUT_PLACEHOLDERS
+    : funCopy
+      ? FUN_INPUT_PLACEHOLDERS
+      : PLAIN_INPUT_PLACEHOLDERS;
+  const inputPlaceholder = placeholderPool[placeholderIndex % placeholderPool.length]!;
   const setAnimatedPlaceholder = useCallback((text: string) => {
     displayPlaceholderRef.current = text;
     setDisplayPlaceholder(text);

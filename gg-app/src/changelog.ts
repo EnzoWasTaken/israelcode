@@ -22,6 +22,16 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.107.0",
+    date: "2026-11-06",
+    items: [
+      "The whole app now talks like `Israel Code`: composer hints, the working and done lines in the activity bar, the welcome critter, home-screen tips and toasts, and the Goals farm, all with the same meaning and a lot more chutzpah.",
+      "A greeting under the home title follows the clock: boker tov, erev tov, and Shabbat shalom from Friday afternoon.",
+      "Settings → Effects gets a `Humour` switch: off is the exact same app with plain wording and no boot screen.",
+      "Dark theme's accent moves a touch closer to flag blue to match the light theme.",
+    ],
+  },
+  {
     version: "0.106.0",
     date: "2026-11-06",
     items: [
