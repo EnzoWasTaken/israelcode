@@ -1,5 +1,6 @@
+import { useCallback, useRef } from "react";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
-import { ArrowUpIcon, PaperclipIcon, SquareIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "@phosphor-icons/react";
 import { ShellCommandMenu } from "./ShellCommandMenu";
 import type { ShellSuggestion } from "./agent";
 import {
@@ -26,6 +27,9 @@ import { ScheduleHint } from "./ScheduleHint";
 import { ShimmerText } from "./ShimmerText";
 import { SlashMenu } from "./SlashMenu";
 import { theme } from "./theme";
+import { splitUltracode } from "./ultracode";
+import { insertDictation } from "./dictation";
+import { useDictation } from "./useDictation";
 import { toast } from "./toast";
 import { WorkingBeam } from "./WorkingBeam";
 import { sendKeyAction } from "./send-key";
@@ -183,6 +187,28 @@ export function Composer({
 }: ComposerProps): React.ReactElement {
   const keyAction = sendKeyAction({ shellMode, running, kenRunning, autopilotReviewing });
   const stopping = keyAction !== "send";
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const setTextarea = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      textareaRef.current = el;
+      attachInput(el);
+    },
+    [attachInput],
+  );
+  const dictation = useDictation({
+    onText: (text) => {
+      const next = insertDictation(input, caret, text);
+      setInput(next.value);
+      setCaret(next.caret);
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        requestAnimationFrame(() => el.setSelectionRange(next.caret, next.caret));
+      }
+    },
+    onError: (message) => toast(message, "error"),
+  });
+  const dictating = dictation.state !== "idle";
   return (
     <div
       ref={composerRef}
@@ -272,6 +298,42 @@ export function Composer({
         >
           <PaperclipIcon size={15} />
         </button>
+        <button
+          type="button"
+          className="icon-circle mic-btn"
+          data-state={dictation.state}
+          aria-pressed={dictation.state === "recording"}
+          aria-label={
+            dictation.state === "recording"
+              ? "Stop dictating"
+              : dictation.state === "transcribing"
+                ? "Transcribing"
+                : "Dictate (Ctrl+Shift+Space)"
+          }
+          title={
+            dictation.state === "recording"
+              ? "Stop and transcribe"
+              : "Dictate, transcribed offline on this computer (Ctrl+Shift+Space)"
+          }
+          disabled={dictation.state === "starting" || dictation.state === "transcribing"}
+          onClick={dictation.toggle}
+          style={
+            dictation.state === "recording"
+              ? ({ "--mic-level": dictation.level.toFixed(2) } as React.CSSProperties)
+              : undefined
+          }
+        >
+          <MicrophoneIcon size={15} weight={dictation.state === "recording" ? "fill" : "regular"} />
+        </button>
+        {dictating && dictation.state !== "starting" && (
+          <span className="mic-status" role="status">
+            {dictation.state === "recording"
+              ? "Listening…"
+              : dictation.progress !== null
+                ? `Downloading speech model ${dictation.progress}%`
+                : "Transcribing…"}
+          </span>
+        )}
         <div className="input-stack">
           {enhanceAnim && (
             <EnhanceDissolve
@@ -292,13 +354,26 @@ export function Composer({
               {kenInputParts.rest}
             </div>
           )}
+          {ultracodeArmed && !kenActive && (
+            <div className="ken-input-highlight" aria-hidden="true">
+              {splitUltracode(input).map((part, i) =>
+                part.hit ? (
+                  <span key={i} className="ultracode-token">
+                    {part.text}
+                  </span>
+                ) : (
+                  part.text
+                ),
+              )}
+            </div>
+          )}
           <textarea
-            ref={attachInput}
+            ref={setTextarea}
             // AskBand's number keys still pick an option while this is empty.
             data-composer-input=""
             className={`input${enhanceAnim ? " input-anim" : ""}${kenActive ? " input-ken" : ""}${
-              shellMode ? " input-shell" : ""
-            }`}
+              ultracodeArmed && !kenActive ? " input-ultracode" : ""
+            }${shellMode ? " input-shell" : ""}`}
             rows={1}
             // Lock the input while the dissolve→decode animation plays: the caret
             // is invisible, so typing would be silently discarded and Enter would
@@ -353,6 +428,11 @@ export function Composer({
               // swallow keys so Enter can't submit the un-enhanced draft.
               if (enhanceAnim) {
                 e.preventDefault();
+                return;
+              }
+              if (e.ctrlKey && e.shiftKey && e.code === "Space") {
+                e.preventDefault();
+                dictation.toggle();
                 return;
               }
               // Alt+W: send this draft without Ultracode even though it says "ultracode".

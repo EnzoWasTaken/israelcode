@@ -9018,6 +9018,22 @@ select {
     filter var(--t-fast),
     opacity var(--t-composer);
 }
+/* Dictation: the mic glows with the voice level while it listens. */
+.mic-btn[data-state="recording"] {
+  color: var(--error);
+  box-shadow: 0 0 0 calc(var(--mic-level, 0) * 4px)
+    color-mix(in srgb, var(--error) 30%, transparent);
+}
+.mic-btn[data-state="transcribing"] {
+  opacity: 0.6;
+}
+.mic-status {
+  align-self: center;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
 .icon-circle {
   display: grid;
   place-items: center;
@@ -9141,6 +9157,14 @@ select {
 .input-stack .input.input-ken {
   color: transparent;
   caret-color: var(--ken);
+}
+/* "ultracode" in the draft: same overlay trick, with the keyword in the accent. */
+.input-stack .input.input-ultracode {
+  color: transparent;
+  caret-color: var(--text);
+}
+.ken-input-highlight .ultracode-token {
+  color: var(--primary);
 }
 .input-stack .input.input-ken::placeholder {
   color: var(--text-dim);

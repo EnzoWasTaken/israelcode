@@ -13,12 +13,22 @@ import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { log } from "../core/logger.js";
 import { readBody, json } from "./http.js";
 import { MAX_PROMPT_BODY_BYTES } from "../utils/http-body.js";
+import {
+  int16Base64ToFloat32,
+  isWhisperModel,
+  transcribePcm,
+  type WhisperModel,
+} from "@kenkaiiii/gg-core";
+
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
 import { loadUltracodeDefault, saveAutopilot, saveUltracodeDefault } from "./app-settings.js";
 import { lastAssistantText, buildKenContext } from "./ken-context.js";
 import { keepAwake } from "./keep-awake.js";
 import type { SessionRouteContext } from "./route-context.js";
 import { mentionedPaths, slashCommandName } from "../core/trophies/engine.js";
+
+// 180 s of 16 kHz Int16 is 5.8 MB, about 7.7 MB once base64 encoded.
+const MAX_TRANSCRIBE_BODY_BYTES = 8 * 1024 * 1024;
 
 /**
  * Count a sent prompt toward trophies: a slash command (and whether it's the
@@ -464,6 +474,50 @@ export function handlePromptRoutes(
       log("INFO", "app-sidecar", "autopilot toggled", { enabled: String(enabled) });
       ctx.broadcast("autopilot", { autopilot: enabled });
       json(res, 200, { autopilot: enabled });
+    });
+    return true;
+  }
+
+  // Dictation: the composer's recording (16 kHz mono Int16, base64) becomes
+  // text with local Whisper. Touches no session state, so it runs mid-run too.
+  if (method === "POST" && url === "/transcribe") {
+    void readBody(req, res, MAX_TRANSCRIBE_BODY_BYTES).then(async (raw) => {
+      if (raw === null) return;
+      let pcm: Float32Array;
+      let model: WhisperModel | undefined;
+      try {
+        const body = JSON.parse(raw) as { pcm?: unknown; model?: unknown };
+        if (typeof body.pcm !== "string") throw new Error("pcm");
+        pcm = int16Base64ToFloat32(body.pcm);
+        model = isWhisperModel(body.model) ? body.model : undefined;
+      } catch {
+        json(res, 400, { error: "invalid JSON body" });
+        return;
+      }
+      let lastShown = "";
+      try {
+        const text = await transcribePcm(pcm, {
+          model,
+          onProgress: (info) => {
+            // Download progress only, one frame per whole percent per file.
+            if (info.status !== "progress" || typeof info.progress !== "number") return;
+            const key = `${info.file ?? ""}:${Math.floor(info.progress)}`;
+            if (key === lastShown) return;
+            lastShown = key;
+            ctx.broadcast("transcribe_progress", {
+              file: info.file ?? null,
+              progress: Math.floor(info.progress),
+            });
+          },
+        });
+        json(res, 200, { text });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        log("WARN", "app-sidecar", "transcription failed", { error: message });
+        json(res, 500, { error: `Couldn't transcribe: ${message}` });
+      } finally {
+        if (lastShown) ctx.broadcast("transcribe_progress", { done: true });
+      }
     });
     return true;
   }

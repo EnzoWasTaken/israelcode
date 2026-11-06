@@ -17,3 +17,15 @@ describe("ultracode composer helpers", () => {
     expect(parseUltracodeCommand("ultracode")).toBeNull();
   });
 });
+
+describe("splitUltracode", () => {
+  it("marks each keyword for the composer highlight", async () => {
+    const { splitUltracode } = await import("./ultracode");
+    expect(splitUltracode("go ultracode now")).toEqual([
+      { text: "go ", hit: false },
+      { text: "ultracode", hit: true },
+      { text: " now", hit: false },
+    ]);
+    expect(splitUltracode("ultracode-x")).toEqual([{ text: "ultracode-x", hit: false }]);
+  });
+});

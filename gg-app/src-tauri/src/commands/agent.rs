@@ -915,6 +915,29 @@ pub(crate) async fn agent_autopilot_set(
     sidecar_json(res).await
 }
 
+/// Proxy: dictation. `pcm` is 16 kHz mono Int16 audio as base64; the sidecar
+/// runs local Whisper and returns `{ text }`. Bounded generously: the first
+/// use downloads the model.
+#[tauri::command]
+pub(crate) async fn agent_transcribe(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    pcm: String,
+    model: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/transcribe", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "pcm": pcm, "model": model }))
+        .timeout(std::time::Duration::from_secs(15 * 60))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
 /// Proxy: toggle Ultracode for THIS window's coding session; the choice is also
 /// kept as the default for new sessions. Returns `{ ultracode }`.
 #[tauri::command]

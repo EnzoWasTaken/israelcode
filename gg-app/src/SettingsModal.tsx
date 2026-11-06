@@ -16,6 +16,8 @@ import { SoundButton } from "./SoundButton";
 import { AppearancePicker } from "./AppearancePicker";
 import { HomeBackgroundButton } from "./HomeBackgroundButton";
 import { KeepAwakeButton } from "./KeepAwakeButton";
+import { Dropdown } from "./Dropdown";
+import { DICTATION_MODELS, loadDictationModel, saveDictationModel } from "./dictation";
 import { SettingsSection } from "./settings-section";
 import { useSettingsPageReady } from "./settings-ready";
 
@@ -156,6 +158,14 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
             </div>
           </SettingsSection>
           <SettingsSection
+            title="Dictation"
+            description="Speech for the composer's mic. It runs offline on this computer; the model downloads once."
+          >
+            <div className="modal-row">
+              <DictationModelPicker />
+            </div>
+          </SettingsSection>
+          <SettingsSection
             title="Power"
             description="Stop your computer sleeping mid-task. The screen can still turn off."
           >
@@ -211,5 +221,22 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
         </div>
       </div>
     </Modal>
+  );
+}
+
+function DictationModelPicker(): React.ReactElement {
+  const [model, setModel] = useState(loadDictationModel);
+  return (
+    <Dropdown
+      label="Speech model"
+      options={DICTATION_MODELS.map((m) => ({ value: m.id, label: m.label }))}
+      value={model}
+      onChange={(value) => {
+        const picked = DICTATION_MODELS.find((m) => m.id === value)?.id;
+        if (!picked) return;
+        setModel(picked);
+        saveDictationModel(picked);
+      }}
+    />
   );
 }

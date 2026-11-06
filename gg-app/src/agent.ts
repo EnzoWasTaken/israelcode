@@ -1154,6 +1154,16 @@ export async function setAutopilot(enabled: boolean): Promise<boolean> {
   }
 }
 
+/** Whisper sizes for dictation (mirrors gg-core WHISPER_MODELS). */
+export type DictationModel = "tiny.en" | "base.en" | "small.en" | "base" | "small";
+
+/** Dictation: 16 kHz mono Int16 PCM (base64) to text, with local Whisper. */
+export async function transcribe(pcm: string, model?: DictationModel): Promise<string> {
+  await waitForReady();
+  const res = await invoke<{ text?: string }>("agent_transcribe", { pcm, model: model ?? null });
+  return res.text ?? "";
+}
+
 /** Toggle Ultracode for this window's coding session (also the new-session
  *  default). Returns the value the sidecar now holds. */
 export async function setUltracode(enabled: boolean): Promise<boolean> {

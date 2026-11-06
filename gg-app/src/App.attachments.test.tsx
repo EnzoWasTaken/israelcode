@@ -444,3 +444,27 @@ describe("ultracode keyword", () => {
     expect(sends.mock.calls[0]?.[0]).toMatchObject({ meta: null });
   });
 });
+
+describe("dictation mic", () => {
+  it("explains a blocked microphone and stays ready to retry", async () => {
+    await setup();
+    const getUserMedia = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error("denied"), { name: "NotAllowedError" }));
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Dictate (Ctrl+Shift+Space)" }));
+    await waitFor(() =>
+      expect(notifications.toast).toHaveBeenCalledWith(expect.stringContaining("blocked"), "error"),
+    );
+    expect(getUserMedia).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: expect.anything() }),
+    );
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: "Dictate (Ctrl+Shift+Space)" })
+        .disabled,
+    ).toBe(false);
+  });
+});
