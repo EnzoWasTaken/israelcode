@@ -142,8 +142,16 @@ jobs:
               Windows)
                 # The Chocolatey community feed intermittently 504s; retry
                 # with backoff, and still fail the step if every attempt fails.
+                # The pinned version is preferred; when the feed cannot serve
+                # it ("package was not found" during feed trouble), the last
+                # attempt takes whatever current ffmpeg the feed has, so a feed
+                # hiccup does not block the Windows gate for unrelated code.
                 for attempt in 1 2 3 4; do
                   if choco install ffmpeg --version=8.0.1 -y --no-progress; then
+                    break
+                  fi
+                  if [ "$attempt" -eq 3 ] && choco install ffmpeg -y --no-progress; then
+                    echo "installed current ffmpeg instead of the pinned 8.0.1" >&2
                     break
                   fi
                   if [ "$attempt" -eq 4 ]; then
