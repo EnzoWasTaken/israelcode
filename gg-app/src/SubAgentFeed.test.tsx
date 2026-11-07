@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CRITTERS, renderCritterFrame } from "./critter-sprites";
 import {
@@ -7,6 +7,7 @@ import {
   formatSubAgentTokens,
   SubAgentFeed,
   summarizeCritters,
+  workerModelNote,
   type SubAgentLine,
 } from "./SubAgentFeed";
 
@@ -153,5 +154,34 @@ describe("SubAgentFeed", () => {
   it("renders nothing for an empty group", () => {
     const { container } = render(<SubAgentFeed agents={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it("names the Worker model when it differs from the main model", () => {
+    const worker = { ...agent("done"), model: "gpt-6-luna" };
+    const { container } = render(<SubAgentFeed agents={[worker]} mainModel="claude-opus-5-5" />);
+    expect(container.textContent).toContain("(on gpt-6-luna)");
+  });
+
+  it("stays quiet when the worker runs on the main model or none was reported", () => {
+    const same = { ...agent("done"), model: "claude-opus-5-5" };
+    const { container } = render(<SubAgentFeed agents={[same]} mainModel="claude-opus-5-5" />);
+    expect(container.textContent).not.toContain("(on ");
+    cleanup();
+    const unnamed = render(<SubAgentFeed agents={[agent("done")]} mainModel="claude-opus-5-5" />);
+    expect(unnamed.container.textContent).not.toContain("(on ");
+  });
+});
+
+describe("workerModelNote", () => {
+  it("lists each distinct other model once, by display name when known", () => {
+    const models = [{ id: "gpt-6-luna", name: "GPT-6 Luna", provider: "openai" }];
+    const agents = [
+      { ...agent("done"), model: "gpt-6-luna" },
+      { ...agent("done"), model: "gpt-6-luna" },
+      { ...agent("done"), model: "claude-opus-5-5" },
+    ];
+    expect(workerModelNote(agents, "claude-opus-5-5", models)).toBe("on GPT-6 Luna");
+    expect(workerModelNote(agents, "gpt-6-luna", models)).toBe("on claude-opus-5-5");
+    expect(workerModelNote([agent("done")], "claude-opus-5-5")).toBeNull();
   });
 });

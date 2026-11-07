@@ -28,7 +28,7 @@ const MODELS: ModelOption[] = [
 
 const STATE = { provider: "anthropic", model: "claude-opus-5-5" } as AgentState;
 
-function renderPanel(second: SecondAgent | null = null) {
+function renderPanel(second: SecondAgent | null = null, third?: SecondAgent | null) {
   const onSelectModel = vi.fn();
   const onClose = vi.fn();
   render(
@@ -39,6 +39,7 @@ function renderPanel(second: SecondAgent | null = null) {
       running={false}
       onSelectModel={onSelectModel}
       second={second}
+      third={third}
       onClose={onClose}
     />,
   );
@@ -111,5 +112,65 @@ describe("ModelPanel — a model that spends real money", () => {
     expect(paid.textContent).toContain("main chat only");
     fireEvent.click(paid);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe("ModelPanel — the Workers (native orchestration)", () => {
+  const workers = (
+    onSelect: (id: string | null) => void,
+    model = "claude-opus-5-5",
+  ): SecondAgent => ({
+    name: "Workers",
+    followLabel: "Israel Code",
+    model,
+    following: model === "claude-opus-5-5",
+    disabled: false,
+    onSelect,
+  });
+
+  it("shows no Workers target when the window has none", () => {
+    renderPanel();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Workers/ })).toBeNull();
+  });
+
+  it("adds a Workers target and pins the chosen model", () => {
+    const onSelect = vi.fn();
+    const { onSelectModel } = renderPanel(null, workers(onSelect));
+    const key = screen.getByRole("radio", { name: /^Workers/ });
+    expect(key.textContent).toContain("= Israel Code");
+    fireEvent.click(key);
+    expect(key.getAttribute("aria-checked")).toBe("true");
+    expect(option(/^Follow Israel Code/)).toBeTruthy();
+    fireEvent.click(option(/^Claude Opus 5\.5$/));
+    expect(onSelect).toHaveBeenCalledWith("claude-opus-5-5");
+    expect(onSelectModel).not.toHaveBeenCalled();
+  });
+
+  it("clears the pin from the Follow row", () => {
+    const onSelect = vi.fn();
+    renderPanel(null, workers(onSelect, "claude-opus-5-5-fast"));
+    fireEvent.click(screen.getByRole("radio", { name: /^Workers/ }));
+    fireEvent.click(option(/^Follow Israel Code/));
+    expect(onSelect).toHaveBeenCalledWith(null);
+  });
+
+  it("sits next to the second agent when both are given", () => {
+    renderPanel(
+      {
+        name: "Israel",
+        followLabel: "Israel Code",
+        model: "claude-opus-5-5",
+        following: true,
+        disabled: false,
+        onSelect: vi.fn(),
+      },
+      workers(vi.fn()),
+    );
+    expect(screen.getAllByRole("radio").map((r) => r.firstChild?.textContent)).toEqual([
+      "Israel Code",
+      "Israel",
+      "Workers",
+    ]);
   });
 });

@@ -204,7 +204,7 @@ const CONTROL_CHAR = /[\u001B\u009B\u0000-\u0008\u000B\u000E-\u001F\u007F]/;
 /** Fast gate: any code unit a HID-03..07 rule could care about. */
 const ANY_HIDDEN =
   // eslint-disable-next-line no-control-regex -- see CONTROL_CHAR
-  /[\u0000-\u0008\u000B\u000E-\u001F\u007F\u009B\u200B-\u200D\u202A-\u202E\u2060-\u2069\u206A-\u206F\uFEFF\uDB40\uFE00-\uFE0F\u3164\u115F\u1160]/;
+  /[\u0000-\u0008\u000B\u000E-\u001F\u007F\u009B\u200B-\u200D\u202A-\u202E\u2060-\u2069\u206A-\u206F\uFEFF\uDB40\u3164\u115F\u1160]|[\uFE00-\uFE0F]/;
 
 // EXE
 const POWERSHELL_DOWNLOAD_RUN =
@@ -274,7 +274,7 @@ const PLAIN_HTTP_DOWNLOAD =
 const PERSISTENCE: Array<{ re: RegExp; what: string; severity: InstallScanSeverity }> = [
   { re: /\bauthorized_keys\b/, what: "writes SSH authorized_keys", severity: "critical" },
   {
-    re: /\bcrontab\s+(?:-[a-z]+\b|\S+\.(?:txt|cron)\b|-)|\(crontab\s+-l/i,
+    re: /\bcrontab\s+(?:-[a-z]*[^l\s-][a-z]*\b|\S+\.(?:txt|cron)\b|-(?:\s|$))/i,
     what: "installs a cron job",
     severity: "high",
   },
@@ -570,6 +570,18 @@ function scanTextLines(
     ) {
       const url = skillUrlsIn(t)[0] ?? "";
       hit("INJ-07", l, `tells the agent to send secrets to ${skillHostOf(url)}`);
+    }
+
+    // INJ-08: a setup section telling the user to paste something into a
+    // terminal, or to fetch a binary/archive from a non-vendor host.
+    if (kind === "markdown" && !l.inCode && (l.imperative || INSTALL_VERB.test(t))) {
+      const paste = PASTE_LURE.exec(t);
+      const bin = hasUrl ? SKILL_SCAN_PATTERNS.prereqBinary.exec(t) : null;
+      if (paste && l.imperative) {
+        hit("INJ-08", l, `tells you to paste something into a terminal ("${paste[0]}")`);
+      } else if (bin && isSuspiciousSkillInstallUrl(bin[0])) {
+        hit("INJ-08", l, `tells you to download and run a file from ${skillHostOf(bin[0])}`);
+      }
     }
 
     // ── EXE ──

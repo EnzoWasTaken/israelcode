@@ -22,6 +22,14 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.108.0",
+    date: "2026-11-07",
+    items: [
+      "Native orchestration: pick a `Workers` model next to your main one in the model panel, flip the `Orchestrate` switch (or type `orchestrate`), and your main model plans, splits the work across workers on the cheaper model, then reviews every result before it answers. Each worker row shows which model it ran on.",
+      "Settings → `Skills` finds skills on `skills.sh` and GitHub, shows what each one does, and scans it with `34` security rules before install: prompt injection, hidden text, curl-to-shell, credential grabs, exfil endpoints and more. Blocking findings stop the install unless you say `Install anyway`; nothing from a skill ever runs during the scan.",
+    ],
+  },
+  {
     version: "0.107.0",
     date: "2026-11-06",
     items: [

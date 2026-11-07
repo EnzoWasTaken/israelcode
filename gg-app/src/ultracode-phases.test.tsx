@@ -80,6 +80,27 @@ describe("ultracodeTurns", () => {
     expect([...turns.keys()]).toEqual([1]);
     expect(turns.get(1)?.map((it) => it.id)).toEqual([2, 5]);
   });
+
+  it("gives an Orchestrate turn the same strip as an Ultracode one", () => {
+    const rows = [todos, group(3, [agent("api", "running")])];
+    const tail: TranscriptItem[] = [{ kind: "user", id: 6, text: "small" }, group(7, [])];
+    const orchestrated = ultracodeTurns([
+      { kind: "user", id: 1, text: "big", orchestrate: true },
+      ...rows,
+      ...tail,
+    ]);
+    const ultra = ultracodeTurns([
+      { kind: "user", id: 1, text: "big", ultracode: true },
+      ...rows,
+      ...tail,
+    ]);
+    expect([...orchestrated.keys()]).toEqual([1]);
+    expect(orchestrated.get(1)).toEqual(ultra.get(1));
+    expect(statuses(ultracodePhases(orchestrated.get(1)!, true))).toEqual(
+      statuses(ultracodePhases(ultra.get(1)!, true)),
+    );
+    expect(statuses(ultracodePhases(orchestrated.get(1)!, true))?.[1]).toBe("build:active");
+  });
 });
 
 describe("UltracodePhases", () => {

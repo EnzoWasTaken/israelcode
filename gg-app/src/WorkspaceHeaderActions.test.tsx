@@ -49,6 +49,12 @@ function renderMenu(
   workspaceMode: WorkspaceMode,
   isGoal = false,
   onUltracodeChange?: (next: boolean) => void,
+  orchestration?: {
+    on: boolean;
+    onChange: (next: boolean) => void;
+    orchestratorName?: string;
+    workerName?: string;
+  },
 ): void {
   render(
     <DeckMenu
@@ -60,6 +66,10 @@ function renderMenu(
       onAutopilotChange={vi.fn()}
       ultracode={false}
       onUltracodeChange={onUltracodeChange}
+      orchestrate={orchestration?.on}
+      onOrchestrateChange={orchestration?.onChange}
+      orchestratorName={orchestration?.orchestratorName}
+      workerName={orchestration?.workerName}
       onNewSession={vi.fn()}
       onOpenNotes={vi.fn()}
       onOpenMemories={vi.fn()}
@@ -190,6 +200,43 @@ describe("DeckMenu", () => {
     expect(key.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(key);
     expect(onUltracodeChange).toHaveBeenCalledWith(true);
+  });
+
+  it("toggles Orchestrate from the coding deck and names both models", () => {
+    const onChange = vi.fn();
+    renderMenu("code", false, undefined, {
+      on: false,
+      onChange,
+      orchestratorName: "Claude Opus 5.5",
+      workerName: "GPT-6 Luna",
+    });
+    const key = screen.getByRole("switch", { name: "Orchestrate" });
+    expect(key.getAttribute("aria-checked")).toBe("false");
+    expect(key.getAttribute("title")).toBe(
+      "Plan with Claude Opus 5.5, build with GPT-6 Luna, review before replying",
+    );
+    fireEvent.click(key);
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it("shows Orchestrate on and asks to turn it off", () => {
+    const onChange = vi.fn();
+    renderMenu("code", false, undefined, { on: true, onChange });
+    const key = screen.getByRole("switch", { name: "Orchestrate" });
+    expect(key.getAttribute("aria-checked")).toBe("true");
+    expect(key.getAttribute("title")).toBe(
+      "Plan with the main model, build with the Worker model, review before replying",
+    );
+    fireEvent.click(key);
+    expect(onChange).toHaveBeenCalledWith(false);
+  });
+
+  it("has no Orchestrate key without a handler or outside a code window", () => {
+    renderMenu("code");
+    expect(screen.queryByRole("switch", { name: "Orchestrate" })).toBeNull();
+    cleanup();
+    renderMenu("chat", false, undefined, { on: false, onChange: vi.fn() });
+    expect(screen.queryByRole("switch", { name: "Orchestrate" })).toBeNull();
   });
 
   it("offers Brain and New chat in a chat window, and no project tools", () => {

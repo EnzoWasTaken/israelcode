@@ -2,7 +2,7 @@
 
 pub(crate) mod agent;
 pub(crate) mod agent_admin;
+pub(crate) mod files;
 pub(crate) mod orchestration;
 pub(crate) mod skills;
-pub(crate) mod files;
 pub(crate) mod world;
