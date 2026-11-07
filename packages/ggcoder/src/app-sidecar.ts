@@ -147,6 +147,7 @@ import {
   loadBudgetPref,
   loadVerifyEnabled,
   loadHooksEnabled,
+  loadCompactionPref,
   projectModelKey,
   loadWorkerModelPref,
   loadPermissionModeDefault,
@@ -167,6 +168,8 @@ import { handleVerifyRoutes } from "./app-sidecar/verify-routes.js";
 import { createVerifyController, type VerifyController } from "./app-sidecar/verify.js";
 import { loadVerifyConfig } from "./core/verify-loop.js";
 import { handleHooksRoutes } from "./app-sidecar/hooks-routes.js";
+import { handleCompactionRoutes } from "./app-sidecar/compaction-routes.js";
+import { createCompactionController, type CompactionController } from "./app-sidecar/compaction.js";
 import { createHooksController, type HooksController } from "./app-sidecar/hooks.js";
 import { loadHooksConfig } from "./core/hook-presets.js";
 import { readDayUsage } from "./core/budget-guard.js";
@@ -1150,6 +1153,7 @@ async function createSession(
   let budget: BudgetController | null = null;
   let verify: VerifyController | null = null;
   let hooks: HooksController | null = null;
+  let compaction: CompactionController | null = null;
   if (mode === "chat") {
     session = createChatAgent(chatAgent, {
       ...baseSessionOptions,
@@ -1203,6 +1207,8 @@ async function createSession(
       requestApproval: (request, signal) => approvals.request(request, signal),
       // Hook presets (.gg/hooks.json) around write/edit/bash; read per call.
       getHooksRuntime: () => hooks?.runtime(),
+      // Pinned facts (compaction control): the summariser keeps them verbatim.
+      getPinnedFacts: () => compaction?.pref.pins ?? [],
       // A run must not end mid-plan with nothing submitted: nobody could review it.
       planSubmissionGate: true,
       // Plan mode belongs only to the coding agent.
@@ -1268,6 +1274,13 @@ async function createSession(
     });
     // Hook presets: format/lint after edits, protected paths, dangerous
     // commands, notify when done. Config is shared through .gg/hooks.json.
+    // Compaction control: per-project trigger override and pinned facts,
+    // applied to the live session; compact now / undo through its routes.
+    compaction = createCompactionController({
+      session,
+      pref: await loadCompactionPref(cwd),
+      broadcast,
+    });
     hooks = createHooksController({
       cwd,
       enabled: await loadHooksEnabled(cwd),
@@ -1806,6 +1819,7 @@ async function createSession(
   session.eventBus.on("compaction_start", (d) => broadcast("compaction_start", d));
   session.eventBus.on("compaction_end", (d) => {
     broadcast("compaction_end", d);
+    compaction?.announce();
     if (d.compacted) void trophies.count("compactions", opts.id);
   });
   // Cold-prompt-cache notice: push the fresh TTL anchor + context size whenever
@@ -2991,6 +3005,9 @@ async function createSession(
     get hooks() {
       return hooks;
     },
+    get compaction() {
+      return compaction;
+    },
     syncKenAutoModel,
     get autopilotReviewing() {
       return autopilotReviewing;
@@ -3137,6 +3154,7 @@ async function createSession(
     if (handleBudgetRoutes(routeCtx, req, res, url, method)) return;
     if (handleVerifyRoutes(routeCtx, req, res, url, method)) return;
     if (handleHooksRoutes(routeCtx, req, res, url, method)) return;
+    if (handleCompactionRoutes(routeCtx, req, res, url, method)) return;
     if (handleHistoryRoutes(routeCtx, req, res, url, method)) return;
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;

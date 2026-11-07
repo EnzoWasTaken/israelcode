@@ -8,6 +8,7 @@ import {
   type GitOverview,
   type AgentState,
   type BackgroundTask,
+  type CompactionState,
   type GitHubCI,
   type ModelOption,
   type ProgressSnapshot,
@@ -16,6 +17,7 @@ import {
 import type { ActiveSchedule } from "./RunningSchedulesButton";
 import { RunningSchedulesButton } from "./RunningSchedulesButton";
 import { BranchPicker } from "./BranchPicker";
+import { CompactionControl } from "./CompactionControl";
 import { CIIndicator } from "./CIIndicator";
 import { PanelHead } from "./DeckPanelHead";
 import { useDeckEscape } from "./deck-escape";
@@ -82,6 +84,9 @@ export interface DeckProps {
   menu: ReactNode;
   running: boolean;
   contextPct: number;
+  /** Compaction control (code windows): the gauge opens its popover; absent → the Usage panel. */
+  compaction?: CompactionState | null;
+  onCompactionChange?: (next: CompactionState) => void;
   models: readonly ModelOption[];
   modelsFailed: boolean;
   onSelectModel: (modelId: string) => void;
@@ -234,6 +239,9 @@ function Rail({
   showGit,
   panel,
   contextPct,
+  compaction,
+  onCompactionChange,
+  running,
   models,
   second,
   tasks,
@@ -293,7 +301,16 @@ function Rail({
       {schedules.length > 0 && (
         <RunningSchedulesButton schedules={schedules} onStop={onStopSchedule} />
       )}
-      {hydrated && (
+      {hydrated && compaction && onCompactionChange && (
+        <CompactionControl
+          compaction={compaction}
+          contextPct={contextPct}
+          running={running}
+          onChange={onCompactionChange}
+          onOpenUsage={() => toggle("usage", { detail: 1 } as React.MouseEvent<HTMLElement>)}
+        />
+      )}
+      {hydrated && !(compaction && onCompactionChange) && (
         <button
           type="button"
           className="key rail-key ctx-key"

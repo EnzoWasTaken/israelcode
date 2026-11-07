@@ -3,6 +3,7 @@
 pub(crate) mod agent;
 pub(crate) mod agent_admin;
 pub(crate) mod budget;
+pub(crate) mod compaction;
 pub(crate) mod files;
 pub(crate) mod hooks;
 pub(crate) mod orchestration;

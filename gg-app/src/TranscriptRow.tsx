@@ -498,6 +498,7 @@ function TranscriptRowBody({
           variantKey={`compaction-${item.id}`}
           originalCount={item.originalCount}
           newCount={item.newCount}
+          undoHint={item.undoHint}
         />
       );
     default:

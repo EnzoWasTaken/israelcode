@@ -117,6 +117,8 @@ export type Item =
       status: "running" | "done";
       originalCount?: number;
       newCount?: number;
+      /** Live compaction: the control in the context gauge can undo it. */
+      undoHint?: boolean;
     }
   // The verify loop for one turn: every round's checks, updated in place as
   // `verify_progress` arrives; `result` once the loop ends.

@@ -21,6 +21,8 @@ const {
   saveVerifyEnabled,
   loadHooksEnabled,
   saveHooksEnabled,
+  loadCompactionPref,
+  saveCompactionPref,
   loadOrchestrateDefault,
   loadWorkerModelPref,
   saveAutopilot,
@@ -230,5 +232,40 @@ describe("hooks settings", () => {
       }),
     );
     expect((await loadAppSettings()).hooks).toEqual({ [path.resolve("/on")]: { enabled: true } });
+  });
+});
+
+describe("compaction settings", () => {
+  it("saves the trigger and pins per project and drops an empty entry", async () => {
+    expect(await loadCompactionPref("/proj")).toEqual({ pins: [] });
+    const saved = await saveCompactionPref("/proj", {
+      threshold: 0.7,
+      atTokens: null,
+      pins: [" keep this ", "", "keep this"],
+    });
+    expect(saved).toEqual({ threshold: 0.7, atTokens: null, pins: ["keep this"] });
+    expect(await loadCompactionPref("/proj")).toEqual(saved);
+    expect(await loadCompactionPref("/other")).toEqual({ pins: [] });
+    expect((await readFile()).compaction).toEqual({ [path.resolve("/proj")]: saved });
+    await saveCompactionPref("/proj", { pins: [] });
+    expect("compaction" in (await readFile())).toBe(false);
+  });
+
+  it("ignores malformed compaction entries on load", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(
+      appSettingsFile(),
+      JSON.stringify({
+        projectsRoot: "/root",
+        compaction: {
+          [path.resolve("/ok")]: { threshold: 0.6, pins: ["a"] },
+          [path.resolve("/low")]: { threshold: 0.1 },
+          [path.resolve("/junk")]: 3,
+        },
+      }),
+    );
+    expect((await loadAppSettings()).compaction).toEqual({
+      [path.resolve("/ok")]: { threshold: 0.6, pins: ["a"] },
+    });
   });
 });

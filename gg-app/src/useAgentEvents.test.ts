@@ -1884,6 +1884,39 @@ describe("verify loop events", () => {
   });
 });
 
+describe("compaction control events", () => {
+  it("stores compaction_state on the agent state", () => {
+    const { hook, getState } = setup();
+    const compaction = {
+      pref: { threshold: 0.7, pins: ["keep the API"] },
+      info: {
+        threshold: 0.7,
+        atTokens: null,
+        contextWindow: 200_000,
+        activeTokens: 50_000,
+        lastCompactionRewindId: null,
+      },
+    };
+    act(() => {
+      hook.result.current.handleEvent(ev("compaction_state", compaction));
+    });
+    expect(getState()?.compaction).toEqual(compaction);
+  });
+
+  it("marks a finished live compaction as undoable", () => {
+    const { hook, getItems } = setup();
+    act(() => {
+      hook.result.current.handleEvent(ev("compaction_start", { messageCount: 40 }));
+      hook.result.current.handleEvent(
+        ev("compaction_end", { compacted: true, originalCount: 40, newCount: 3 }),
+      );
+    });
+    expect(getItems()).toEqual([
+      expect.objectContaining({ kind: "compaction", status: "done", undoHint: true }),
+    ]);
+  });
+});
+
 describe("hook presets events", () => {
   it("stores hooks_state on the agent state", () => {
     const { hook, getState } = setup();

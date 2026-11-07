@@ -232,6 +232,8 @@ export interface AgentState {
   verify?: VerifyState | null;
   /** Hook presets: the per-project switch (coding sessions); null elsewhere. */
   hooks?: HooksState | null;
+  /** Compaction control: the project pref and where the session stands (coding sessions); null elsewhere. */
+  compaction?: CompactionState | null;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -1394,6 +1396,68 @@ export async function setVerify(change: {
 export async function runVerify(): Promise<{ started: boolean }> {
   await waitForReady();
   return invoke<{ started: boolean }>("agent_run_verify");
+}
+
+// ── Compaction control ──────────────────────────────────────────────────────
+
+/** A project's compaction preference, saved per project in gg-app.json. */
+export interface CompactionPref {
+  /** Fraction of the window that triggers compaction; absent → the global setting. */
+  threshold?: number;
+  /** Absolute token trigger; null/absent → the global setting. */
+  atTokens?: number | null;
+  /** Facts the summariser must keep verbatim (max 20, 200 chars each). */
+  pins: string[];
+}
+
+/** Where the session stands against its compaction trigger. */
+export interface CompactionInfo {
+  threshold: number;
+  atTokens: number | null;
+  contextWindow: number;
+  activeTokens: number;
+  lastCompactionAt?: number;
+  /** The rewind point opened before the last compaction; null when none can be undone. */
+  lastCompactionRewindId: string | null;
+}
+
+/** `/compaction`, the ready frame, `compaction_state` events and `AgentState.compaction`. */
+export interface CompactionState {
+  pref: CompactionPref;
+  info: CompactionInfo;
+}
+
+export async function getCompaction(): Promise<CompactionState> {
+  await waitForReady();
+  return invoke<CompactionState>("agent_get_compaction");
+}
+
+/** Save the trigger (`null` drops an override) and/or the pins; applied to the live session. */
+export async function setCompaction(change: {
+  threshold?: number | null;
+  atTokens?: number | null;
+  pins?: string[];
+}): Promise<CompactionState> {
+  await waitForReady();
+  return invoke<CompactionState>("agent_set_compaction", {
+    ...(change.threshold !== undefined ? { threshold: change.threshold } : {}),
+    ...(change.atTokens !== undefined ? { atTokens: change.atTokens } : {}),
+    ...(change.pins !== undefined ? { pins: change.pins } : {}),
+  });
+}
+
+/** Compact the conversation now, as a run of its own (Stop applies; refused mid-run). */
+export async function compactNow(
+  focus?: string,
+): Promise<{ compacted: boolean; originalCount: number; newCount: number }> {
+  await waitForReady();
+  return invoke("agent_compact_now", focus ? { focus } : {});
+}
+
+/** Put the conversation back as it was before the last compaction. */
+export async function undoCompaction(): Promise<{ restoredCount: number; newCount: number }> {
+  await waitForReady();
+  return invoke("agent_undo_compaction");
 }
 
 // ── Hook presets ────────────────────────────────────────────────────────────

@@ -27,6 +27,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "Native orchestration: pick a `Workers` model next to your main one in the model panel, flip the `Orchestrate` switch (or type `orchestrate`), and your main model plans, splits the work across workers on the cheaper model, then reviews every result before it answers. Each worker row shows which model it ran on.",
       "Settings → `Skills` finds skills on `skills.sh` and GitHub, shows what each one does, and scans it with `34` security rules before install: prompt injection, hidden text, curl-to-shell, credential grabs, exfil endpoints and more. Blocking findings stop the install unless you say `Install anyway`; nothing from a skill ever runs during the scan.",
+      "Budget guardrails: set a session or daily token cap from the new meter in the title bar. You get a nudge at 50% and 80%, a hard stop at the cap with `Continue anyway`, and a runaway-loop breaker that halts a run stuck repeating the same failing step.",
+      "Verify loop: switch on `Verify` and Israel Code runs your project's tests, typecheck and lint after each change, feeds only the failures back, and fixes up to 3 rounds. Each round shows pass/fail under the reply.",
+      "Hook presets: Settings → `Hooks` turns on format-on-edit, lint-on-edit, protected paths, blocked dangerous commands (force-push, reset --hard, rm -rf outside the project, publishing) and a desktop notification when a run ends, with no scripts to write. Custom command hooks too.",
+      "Compaction control: click the context gauge to set when compaction happens (60/70/85% or a token count), pin facts the summary must keep word for word, compact now, or undo the last compaction. Every compaction now opens a rewind point first.",
     ],
   },
   {

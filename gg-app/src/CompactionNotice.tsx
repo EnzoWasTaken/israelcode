@@ -8,7 +8,11 @@ interface Props {
   variantKey: string;
   originalCount?: number;
   newCount?: number;
+  /** Append where the undo lives (live compactions only). */
+  undoHint?: boolean;
 }
+
+export const COMPACTION_UNDO_HINT = "Undo is in the context gauge.";
 
 /**
  * Five ways to say each state, so back-to-back compactions don't repeat
@@ -67,13 +71,17 @@ export function CompactionNotice({
   variantKey,
   originalCount,
   newCount,
+  undoHint,
 }: Props): React.ReactElement {
   const critter = useMemo(() => pickCritter(undefined, variantKey, new Set()), [variantKey]);
   return (
     <CritterLine
       critter={critter}
       tone={status === "running" ? "working" : "done"}
-      text={describeCompaction(status, variantKey, originalCount, newCount)}
+      text={
+        describeCompaction(status, variantKey, originalCount, newCount) +
+        (status === "done" && undoHint ? ` ${COMPACTION_UNDO_HINT}` : "")
+      }
     />
   );
 }

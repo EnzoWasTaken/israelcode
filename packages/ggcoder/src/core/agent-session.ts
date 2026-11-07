@@ -154,6 +154,7 @@ import {
 } from "./compaction/token-estimator.js";
 import { calculateActiveContextTokens } from "./compaction/active-context.js";
 import { resolveCompactionPolicy } from "./compaction/policy.js";
+import { buildCompactionFocus, compactionRewindPrompt } from "./compaction-control.js";
 import {
   decidePlanStepCompaction,
   DEFAULT_CACHE_WRITE_READ_RATIO,
@@ -459,6 +460,12 @@ export interface AgentSessionOptions {
    * `wrapTool` and before permission approval, so a blocked call never asks.
    */
   getHooksRuntime?: () => HooksRuntime | undefined;
+  /**
+   * Facts the user pinned for this project: every compaction's summariser is
+   * told to keep them verbatim (merged ahead of any per-call focus). Read per
+   * compaction so an edit applies to the next one.
+   */
+  getPinnedFacts?: () => readonly string[];
   /**
    * Built-in tools this session never has, removed at registration (before
    * tiering) and left out of the system prompt's Tools section. Unlike
@@ -786,6 +793,15 @@ export class AgentSession {
   /** Aborts the in-flight post-turn compaction (dispose caps its wait). */
   private postTurnCompactionAbort?: AbortController;
   private lastCompactionCompacted = false;
+  /** Per-session override of the global compaction trigger (the app's per-project pref). */
+  private compactionOverride: { threshold?: number; atTokens?: number | null } = {};
+  /** What the last compaction replaced, so it can be undone (conversation only). */
+  private lastCompactionUndo: {
+    messages: Message[];
+    rewindId: string | null;
+    at: number;
+    sessionPath: string;
+  } | null = null;
   private compactionRetryAfter = 0;
   /**
    * SoL-Pi plan-step compaction bookkeeping (see compaction/plan-step-policy.ts).
@@ -1002,7 +1018,7 @@ export class AgentSession {
       provider: this.provider,
       model: this.model,
       maxTokens: this.maxTokens,
-      threshold: this.settingsManager.get("compactThreshold"),
+      threshold: this.compactThreshold(),
       accountId,
     });
   }
@@ -2539,8 +2555,8 @@ export class AgentSession {
         provider: this.provider,
         model: this.model,
         contextWindow,
-        threshold: this.settingsManager.get("compactThreshold"),
-        compactAtTokens: this.settingsManager.get("compactAtTokens"),
+        threshold: this.compactThreshold(),
+        compactAtTokens: this.compactAtTokens(),
         accountId: creds.accountId,
         approvedPlanPath: this.approvedPlanPath,
       });
@@ -2750,8 +2766,8 @@ export class AgentSession {
               provider: this.provider,
               model: this.model,
               contextWindow,
-              threshold: this.settingsManager.get("compactThreshold"),
-              compactAtTokens: this.settingsManager.get("compactAtTokens"),
+              threshold: this.compactThreshold(),
+              compactAtTokens: this.compactAtTokens(),
               accountId,
               approvedPlanPath: this.approvedPlanPath,
             });
@@ -3398,8 +3414,8 @@ export class AgentSession {
       provider: this.provider,
       model: this.model,
       contextWindow,
-      threshold: this.settingsManager.get("compactThreshold"),
-      compactAtTokens: this.settingsManager.get("compactAtTokens"),
+      threshold: this.compactThreshold(),
+      compactAtTokens: this.compactAtTokens(),
       accountId: creds.accountId,
       approvedPlanPath: this.approvedPlanPath,
     });
@@ -3480,6 +3496,15 @@ export class AgentSession {
     abortSignal?: AbortSignal,
   ): Promise<void> {
     this.lastCompactionCompacted = false;
+    // Undo material: a rewind point and the messages as they are now, taken
+    // before anything changes. Never blocks compaction.
+    const undo = {
+      messages: [...this.messages],
+      rewindId: await this.openCompactionRewindPoint(),
+      at: Date.now(),
+      sessionPath: this.sessionPath,
+    };
+    const effectiveFocus = buildCompactionFocus(this.opts.getPinnedFacts?.() ?? [], focus);
     const compactionSignal =
       abortSignal && this.opts.signal
         ? AbortSignal.any([this.opts.signal, abortSignal])
@@ -3497,8 +3522,8 @@ export class AgentSession {
       provider: this.provider,
       model: this.model,
       contextWindow,
-      threshold: this.settingsManager.get("compactThreshold"),
-      compactAtTokens: this.settingsManager.get("compactAtTokens"),
+      threshold: this.compactThreshold(),
+      compactAtTokens: this.compactAtTokens(),
       accountId: creds.accountId,
       approvedPlanPath: this.approvedPlanPath,
     });
@@ -3519,7 +3544,7 @@ export class AgentSession {
         targetTokens: policy.targetTokens,
         signal: compactionSignal,
         approvedPlanPath: this.approvedPlanPath,
-        focus,
+        focus: effectiveFocus,
       });
       contextSelection = output.result.contextSelection;
       return output;
@@ -3629,6 +3654,7 @@ export class AgentSession {
     if (this.lastCompactionCompacted) {
       this.cacheDiagnostics.noteEdit("compaction");
       this.recordPlanStepCompaction(contextTokensBefore);
+      this.lastCompactionUndo = undo;
     }
     this.eventBus.emit("compaction_end", {
       compacted: this.lastCompactionCompacted,
@@ -3673,6 +3699,7 @@ export class AgentSession {
     // new session's /history, and get re-persisted into the new file by the
     // next compaction — the cross-session duplicate-marker propagation bug.
     this.markers.clear();
+    this.lastCompactionUndo = null;
     // Detect languages before the first render so the opening prompt already
     // carries their packs and only a genuinely new language needs an update.
     this.refreshActiveLanguages();
@@ -3752,6 +3779,120 @@ export class AgentSession {
       branchedFrom: messageEntries.length,
       messagesKept: branchMessages.length,
     };
+  }
+
+  // ── Compaction control (docs/adr/0009) ────────────────────────────────────
+
+  /** The compaction trigger this session uses: the app's per-project override, else settings. */
+  private compactThreshold(): number {
+    return this.compactionOverride.threshold ?? this.settingsManager.get("compactThreshold");
+  }
+
+  private compactAtTokens(): number | undefined {
+    const override = this.compactionOverride.atTokens;
+    if (override === null) return undefined;
+    return override ?? this.settingsManager.get("compactAtTokens");
+  }
+
+  /**
+   * Override the global compaction trigger for this session (the app's
+   * per-project preference). `atTokens: null` drops the absolute trigger; an
+   * absent field falls back to settings.json.
+   */
+  setCompactionOverride(override: { threshold?: number; atTokens?: number | null }): void {
+    this.compactionOverride = { ...override };
+  }
+
+  /** Where this session stands against its compaction trigger, for the app's control. */
+  getCompactionInfo(): {
+    threshold: number;
+    atTokens: number | null;
+    contextWindow: number;
+    activeTokens: number;
+    lastCompactionAt?: number;
+    lastCompactionRewindId: string | null;
+  } {
+    const contextWindow = getContextWindow(this.model, { provider: this.provider });
+    const atTokens = this.compactAtTokens();
+    return {
+      threshold: this.compactThreshold(),
+      atTokens: atTokens ?? null,
+      contextWindow,
+      activeTokens: this.messages.length > 1 ? estimateConversationTokens(this.messages) : 0,
+      ...(this.lastCompactionUndo ? { lastCompactionAt: this.lastCompactionUndo.at } : {}),
+      lastCompactionRewindId: this.lastCompactionUndo?.rewindId ?? null,
+    };
+  }
+
+  /** A rewind point labelled "Before compaction (N messages)"; null when none can be kept. */
+  private async openCompactionRewindPoint(): Promise<string | null> {
+    const rewind = this.rewindCheckpoints();
+    if (!rewind) return null;
+    try {
+      if (rewind.nextTurn === 0) {
+        const existing = await rewind.store.listCheckpoints();
+        rewind.nextTurn = (existing.at(-1)?.turnIndex ?? 0) + 1;
+      }
+      const before = (await rewind.store.listCheckpoints()).length;
+      await rewind.store.openCheckpoint({
+        turnIndex: rewind.nextTurn++,
+        messageIndex: this.messages.length,
+        leafId: this.currentLeafId,
+        prompt: compactionRewindPrompt(Math.max(0, this.messages.length - 1)),
+      });
+      const points = await rewind.store.listCheckpoints();
+      return points.length > before ? (points.at(-1)?.id ?? null) : null;
+    } catch (err) {
+      log("WARN", "session", "Couldn't open a rewind point before compaction", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Put the conversation back as it was before the last compaction. The
+   * summary is replaced by the original messages; a non-transient session
+   * persists them as a new checkpoint (newest wins), so nothing on disk is
+   * deleted. Files are untouched. Throws when there is nothing to undo.
+   */
+  async undoLastCompaction(): Promise<{ restoredCount: number; newCount: number }> {
+    const undo = this.lastCompactionUndo;
+    if (!undo) throw new Error("There is no compaction to undo.");
+    await this.settlePostTurnCompaction();
+    const newCount = this.messages.length;
+    const systemMsg = this.messages[0];
+    const restored = undo.messages.slice(1);
+    this.messages = systemMsg ? [systemMsg, ...restored] : [...undo.messages];
+    this.lastCompactionUndo = null;
+    this.lastCompactionCompacted = false;
+    this.providerContext = null;
+    this.cacheDiagnostics.reset();
+    if (!this.opts.transient && this.conversationId) {
+      const session = await this.sessionManager.create(this.cwd, this.provider, this.model, {
+        conversationId: this.conversationId,
+        generation: this.checkpointGeneration + 1,
+        parentSessionId: this.sessionId || undefined,
+        sourceFingerprint: computeSourceFingerprint(this.messages),
+        preview: this.sessionPreview || undefined,
+      });
+      this.sessionId = session.id;
+      this.checkpointGeneration = session.header.generation ?? 0;
+      this.currentLeafId = null;
+      this.setSessionPath(session.path);
+      await this.subAgentManager?.rebindParentSession(this.sessionId);
+      for (const message of this.messages) {
+        if (message.role !== "system") await this.persistMessage(message);
+      }
+      await this.markers.rePersistAll();
+      await this.persistCheckoutRecord();
+    }
+    this.lastPersistedIndex = this.messages.length;
+    this.eventBus.emit("branch_created", {
+      leafId: this.currentLeafId ?? "",
+      messagesKept: this.messages.length - 1,
+    });
+    return { restoredCount: this.messages.length, newCount };
   }
 
   /** This session's checkpoint store, when rewind points are kept. */
@@ -5035,7 +5176,7 @@ export class AgentSession {
     // Keep credentials and settings on the model selected at click time, even
     // if the user switches models while credential resolution is pending.
     const { provider, model, thinkingLevel, baseUrl } = this;
-    const threshold = this.settingsManager.get("compactThreshold");
+    const threshold = this.compactThreshold();
     const creds = await this.authStorage.resolveCredentials(provider, {
       storageKeys: this.currentAuthStorageKeys(),
     });
@@ -5212,7 +5353,7 @@ export class AgentSession {
       provider: this.provider,
       model: this.model,
       contextWindow,
-      threshold: this.settingsManager.get("compactThreshold"),
+      threshold: this.compactThreshold(),
       accountId: this.lastAccountId,
       approvedPlanPath: this.approvedPlanPath,
     });
@@ -5567,8 +5708,8 @@ export class AgentSession {
       provider: this.provider,
       model: this.model,
       contextWindow,
-      threshold: this.settingsManager.get("compactThreshold"),
-      compactAtTokens: this.settingsManager.get("compactAtTokens"),
+      threshold: this.compactThreshold(),
+      compactAtTokens: this.compactAtTokens(),
       accountId: creds.accountId,
       approvedPlanPath: this.approvedPlanPath,
     });

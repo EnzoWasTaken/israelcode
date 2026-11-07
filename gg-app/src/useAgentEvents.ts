@@ -15,6 +15,7 @@ import {
   type HookEvent,
   type HookNotify,
   type HooksState,
+  type CompactionState,
   type CacheExpiryStatus,
   type ModelOption,
   type ProjectTask,
@@ -968,7 +969,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
               ? prev.filter((it) => !(it.kind === "compaction" && it.id === id))
               : prev.map((it) =>
                   it.kind === "compaction" && it.id === id
-                    ? { ...it, status: "done" as const, originalCount, newCount }
+                    ? { ...it, status: "done" as const, originalCount, newCount, undoHint: true }
                     : it,
                 ),
           );
@@ -1179,6 +1180,9 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
         // Hook presets: the switch/config changed; a hook blocked a call or
         // failed (a short notice row; successes stay in the settings list);
         // the run finished with notifyOnFinish on.
+        case "compaction_state":
+          setState((s) => (s ? { ...s, compaction: d as unknown as CompactionState } : s));
+          break;
         case "hooks_state":
           setState((s) => (s ? { ...s, hooks: d as unknown as HooksState } : s));
           break;

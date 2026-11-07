@@ -5,6 +5,7 @@ import type { Provider, ThinkingLevel } from "@kenkaiiii/gg-ai";
 import type { KenModelPref } from "../core/ken-model.js";
 import { SettingsManager, type Settings } from "../core/settings-manager.js";
 import { log } from "../core/logger.js";
+import { normalizeCompactionPref, type CompactionPref } from "../core/compaction-control.js";
 import { atomicWrite } from "../core/session-storage.js";
 import { withFileLock, withoutPaidTier, APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
@@ -77,6 +78,8 @@ export interface AppSettings {
   verify?: Record<string, VerifyPref>;
   /** Hook presets (format/lint after edit, protected paths, …) per normalized project cwd. Absent → off. */
   hooks?: Record<string, HooksPref>;
+  /** Compaction control (trigger override, pinned facts) per normalized project cwd. */
+  compaction?: Record<string, CompactionPref>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -128,6 +131,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       budgets: validBudgets(raw.budgets),
       verify: validVerify(raw.verify),
       hooks: validHooks(raw.hooks),
+      compaction: validCompaction(raw.compaction),
       orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
@@ -508,4 +512,39 @@ export async function saveHooksEnabled(cwd: string, enabled: boolean): Promise<v
     else delete next[key];
     s.hooks = Object.keys(next).length > 0 ? next : undefined;
   });
+}
+
+// ── Compaction control: trigger + pinned facts per project ──────────────────
+
+/** Keep only entries with something in them, each normalized. */
+function validCompaction(value: unknown): Record<string, CompactionPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, CompactionPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = normalizeCompactionPref(pref);
+    if (normalized) out[key] = normalized;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** The project's compaction preference; no pins and no override unless saved. */
+export async function loadCompactionPref(cwd: string): Promise<CompactionPref> {
+  const s = await loadAppSettings();
+  return s.compaction?.[projectModelKey(cwd)] ?? { pins: [] };
+}
+
+/** Persist the project's compaction preference via read-modify-write; an empty one removes the entry. */
+export async function saveCompactionPref(
+  cwd: string,
+  pref: CompactionPref,
+): Promise<CompactionPref> {
+  const key = projectModelKey(cwd);
+  const normalized = normalizeCompactionPref(pref);
+  await updateAppSettings((s) => {
+    const next = { ...(s.compaction ?? {}) };
+    if (normalized) next[key] = normalized;
+    else delete next[key];
+    s.compaction = Object.keys(next).length > 0 ? next : undefined;
+  });
+  return normalized ?? { pins: [] };
 }

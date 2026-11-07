@@ -63,6 +63,7 @@ import {
   workspaceProductName,
   type AgentState,
   type VerifyState,
+  type CompactionState,
   type WorkspaceMode,
   type ModelOption,
   type SlashCommand,
@@ -1672,6 +1673,10 @@ function App(): React.ReactElement {
   // Verify loop: the control saves through the sidecar; this just mirrors the result.
   function changeVerify(next: VerifyState): void {
     setState((s) => (s ? { ...s, verify: next } : s));
+  }
+  // Compaction control: the gauge popover saves through the sidecar; this mirrors the result.
+  function changeCompaction(next: CompactionState): void {
+    setState((s) => (s ? { ...s, compaction: next } : s));
   }
   // The model Orchestrate's workers run on; null: they follow the main model.
   function onSelectWorkerModel(modelId: string | null): void {
@@ -3319,6 +3324,10 @@ function App(): React.ReactElement {
               onPanelChange={setDeckPanel}
               running={running}
               contextPct={contextPct}
+              compaction={
+                workspaceMode === "code" && !state?.goal ? (state?.compaction ?? null) : null
+              }
+              onCompactionChange={changeCompaction}
               models={models}
               modelsFailed={modelsFailed}
               onSelectModel={onSelectModel}
