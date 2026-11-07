@@ -202,6 +202,7 @@ import {
   type PermissionMode,
   type ToolAuthorizer,
 } from "./permission-mode.js";
+import { wrapWithHooks, type HooksRuntime } from "./hook-wrap.js";
 import { buildUserShellContextText } from "./user-shell-context.js";
 import { buildPlanStateMessage, samePlanState, type PlanPromptState } from "./plan-delta.js";
 import { listProjectFiles, type ProjectFileList } from "./project-files.js";
@@ -452,6 +453,12 @@ export interface AgentSessionOptions {
    * stays prompt-cache stable. Used by GG Goals to gate its own editing.
    */
   wrapTool?: (tool: AgentTool) => AgentTool;
+  /**
+   * The project's hook presets (`core/hook-wrap.ts`), read on every tool call
+   * so a config change applies to the next one; undefined = off. Applied after
+   * `wrapTool` and before permission approval, so a blocked call never asks.
+   */
+  getHooksRuntime?: () => HooksRuntime | undefined;
   /**
    * Built-in tools this session never has, removed at registration (before
    * tiering) and left out of the system prompt's Tools section. Unlike
@@ -1197,6 +1204,11 @@ export class AgentSession {
     if (this.opts.wrapTool) {
       const wrap = this.opts.wrapTool;
       this.tools = this.tools.map((t) => wrap(t));
+    }
+    // Hook presets around write/edit/bash (same names and schemas, cache-stable).
+    if (this.opts.getHooksRuntime) {
+      const getHooks = this.opts.getHooksRuntime;
+      this.tools = this.tools.map((t) => wrapWithHooks(t, getHooks));
     }
     // Permission modes: write/edit/bash ask first (same schemas, cache-stable).
     const authorize: ToolAuthorizer | undefined =

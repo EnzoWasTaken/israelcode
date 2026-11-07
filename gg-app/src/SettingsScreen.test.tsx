@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 vi.mock("./SettingsModal", () => ({ SettingsModal: () => <p>general page</p> }));
 vi.mock("./McpModal", () => ({ McpModal: () => <p>mcp page</p> }));
 vi.mock("./SkillsModal", () => ({ SkillsModal: () => <p>skills page</p> }));
+vi.mock("./HooksPanel", () => ({ HooksPanel: () => <p>hooks page</p> }));
 vi.mock("./SteroidsModal", () => ({ SteroidsModal: () => <p>steroids page</p> }));
 vi.mock("./AboutPage", () => ({ AboutPage: () => <p>about page</p> }));
 vi.mock("./TelegramSettingsModal", () => ({ TelegramSettingsModal: () => <p>telegram setup</p> }));

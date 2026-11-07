@@ -251,6 +251,8 @@ pub fn run() {
             commands::verify::agent_get_verify,
             commands::verify::agent_set_verify,
             commands::verify::agent_run_verify,
+            commands::hooks::agent_get_hooks,
+            commands::hooks::agent_set_hooks,
             commands::agent_admin::agent_sessions,
             commands::agent_admin::agent_files,
             commands::agent::agent_plugins,

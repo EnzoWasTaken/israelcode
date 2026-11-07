@@ -146,6 +146,7 @@ import {
   loadOrchestrateDefault,
   loadBudgetPref,
   loadVerifyEnabled,
+  loadHooksEnabled,
   projectModelKey,
   loadWorkerModelPref,
   loadPermissionModeDefault,
@@ -165,6 +166,9 @@ import { createBudgetController, type BudgetController } from "./app-sidecar/bud
 import { handleVerifyRoutes } from "./app-sidecar/verify-routes.js";
 import { createVerifyController, type VerifyController } from "./app-sidecar/verify.js";
 import { loadVerifyConfig } from "./core/verify-loop.js";
+import { handleHooksRoutes } from "./app-sidecar/hooks-routes.js";
+import { createHooksController, type HooksController } from "./app-sidecar/hooks.js";
+import { loadHooksConfig } from "./core/hook-presets.js";
 import { readDayUsage } from "./core/budget-guard.js";
 import { resolveWorkerPick } from "./app-sidecar/orchestration.js";
 import { readGitState, resolveGitCwd } from "./app-sidecar/git-target.js";
@@ -1145,6 +1149,7 @@ async function createSession(
   let workerModel: ChildModelPick | null = null;
   let budget: BudgetController | null = null;
   let verify: VerifyController | null = null;
+  let hooks: HooksController | null = null;
   if (mode === "chat") {
     session = createChatAgent(chatAgent, {
       ...baseSessionOptions,
@@ -1196,6 +1201,8 @@ async function createSession(
       checkpoints: true,
       // Permission modes: held tool calls become approval cards in the app.
       requestApproval: (request, signal) => approvals.request(request, signal),
+      // Hook presets (.gg/hooks.json) around write/edit/bash; read per call.
+      getHooksRuntime: () => hooks?.runtime(),
       // A run must not end mid-plan with nothing submitted: nobody could review it.
       planSubmissionGate: true,
       // Plan mode belongs only to the coding agent.
@@ -1258,6 +1265,14 @@ async function createSession(
           }),
         ),
       persistMarker: (data) => session.persistAppMarker("verify", data),
+    });
+    // Hook presets: format/lint after edits, protected paths, dangerous
+    // commands, notify when done. Config is shared through .gg/hooks.json.
+    hooks = createHooksController({
+      cwd,
+      enabled: await loadHooksEnabled(cwd),
+      config: await loadHooksConfig(cwd),
+      broadcast,
     });
   }
   // This window just moved into a worktree (Git panel branch picker): tell the
@@ -2973,6 +2988,9 @@ async function createSession(
     get verify() {
       return verify;
     },
+    get hooks() {
+      return hooks;
+    },
     syncKenAutoModel,
     get autopilotReviewing() {
       return autopilotReviewing;
@@ -3118,6 +3136,7 @@ async function createSession(
     if (handleOrchestrationRoutes(routeCtx, req, res, url, method)) return;
     if (handleBudgetRoutes(routeCtx, req, res, url, method)) return;
     if (handleVerifyRoutes(routeCtx, req, res, url, method)) return;
+    if (handleHooksRoutes(routeCtx, req, res, url, method)) return;
     if (handleHistoryRoutes(routeCtx, req, res, url, method)) return;
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;

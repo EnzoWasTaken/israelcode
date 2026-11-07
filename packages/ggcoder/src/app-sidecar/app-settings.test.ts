@@ -19,6 +19,8 @@ const {
   saveBudgetPref,
   loadVerifyEnabled,
   saveVerifyEnabled,
+  loadHooksEnabled,
+  saveHooksEnabled,
   loadOrchestrateDefault,
   loadWorkerModelPref,
   saveAutopilot,
@@ -200,5 +202,33 @@ describe("verify settings", () => {
       }),
     );
     expect((await loadAppSettings()).verify).toEqual({ [path.resolve("/on")]: { enabled: true } });
+  });
+});
+
+describe("hooks settings", () => {
+  it("is off by default and saves the switch per project", async () => {
+    expect(await loadHooksEnabled("/proj")).toBe(false);
+    await saveHooksEnabled("/proj", true);
+    expect(await loadHooksEnabled("/proj")).toBe(true);
+    expect(await loadHooksEnabled("/other")).toBe(false);
+    expect((await readFile()).hooks).toEqual({ [path.resolve("/proj")]: { enabled: true } });
+    await saveHooksEnabled("/proj", false);
+    expect("hooks" in (await readFile())).toBe(false);
+  });
+
+  it("ignores malformed hooks entries on load", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(
+      appSettingsFile(),
+      JSON.stringify({
+        projectsRoot: "/root",
+        hooks: {
+          [path.resolve("/on")]: { enabled: true },
+          [path.resolve("/str")]: { enabled: "yes" },
+          [path.resolve("/junk")]: 1,
+        },
+      }),
+    );
+    expect((await loadAppSettings()).hooks).toEqual({ [path.resolve("/on")]: { enabled: true } });
   });
 });

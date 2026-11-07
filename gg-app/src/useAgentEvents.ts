@@ -12,6 +12,9 @@ import {
   type VerifyProgress,
   type VerifyResult,
   type VerifyState,
+  type HookEvent,
+  type HookNotify,
+  type HooksState,
   type CacheExpiryStatus,
   type ModelOption,
   type ProjectTask,
@@ -39,6 +42,7 @@ import { type SubAgentLine } from "./SubAgentFeed";
 import { playSound } from "./sounds";
 import { takeNewSecurityNotices, withSecurityRow } from "./security-notices";
 import { toast } from "./toast";
+import { notifyDesktop } from "./hook-notify";
 import { findCompletedSteps, countPlanSteps } from "./plan-steps";
 import type { PendingAttachment } from "./attachments";
 import type { Item } from "./App";
@@ -1172,6 +1176,29 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           });
           break;
         }
+        // Hook presets: the switch/config changed; a hook blocked a call or
+        // failed (a short notice row; successes stay in the settings list);
+        // the run finished with notifyOnFinish on.
+        case "hooks_state":
+          setState((s) => (s ? { ...s, hooks: d as unknown as HooksState } : s));
+          break;
+        case "hook_event": {
+          const h = d as unknown as HookEvent;
+          if (h.outcome !== "blocked" && h.outcome !== "failed") break;
+          const detail = h.detail ? `: ${h.detail.split("\n").slice(-1)[0] ?? ""}` : "";
+          pushItem({
+            kind: "info",
+            id: nextId(),
+            text:
+              h.outcome === "blocked"
+                ? `Hook "${h.label}" blocked ${h.tool}${detail}`
+                : `Hook "${h.label}" failed after ${h.tool}${detail}`,
+          });
+          break;
+        }
+        case "hook_notify":
+          notifyDesktop(d as unknown as HookNotify);
+          break;
         // Verify loop: the switch/config changed, a check started or finished,
         // the loop ended. One transcript row per loop, updated in place.
         case "verify_state":

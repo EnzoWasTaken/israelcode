@@ -30,6 +30,7 @@ import type {
 import type { ApprovalBridge } from "./approvals.js";
 import type { BudgetController } from "./budget.js";
 import type { VerifyController } from "./verify.js";
+import type { HooksController } from "./hooks.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -125,6 +126,8 @@ export interface SessionRouteContext {
   readonly budget: BudgetController | null;
   /** The verify loop (checks after a turn, fix rounds); only coding sessions have one. */
   readonly verify: VerifyController | null;
+  /** Hook presets around tool calls (format/lint, protected paths, …); only coding sessions have one. */
+  readonly hooks: HooksController | null;
   readonly syncKenAutoModel: (provider: Provider, model: string) => Promise<void>;
   autopilotReviewing: boolean;
   taskRunAll: boolean;

@@ -10,6 +10,7 @@ import type { MutableRefObject } from "react";
 // erased), so the mock just provides that, resolving empty so run_end's command
 // refresh is a no-op.
 vi.mock("./sounds", () => ({ playSound: vi.fn() }));
+vi.mock("./hook-notify", () => ({ notifyDesktop: vi.fn() }));
 vi.mock("./agent", () => ({
   listCommands: vi.fn().mockResolvedValue([]),
   listModels: vi.fn().mockResolvedValue([]),
@@ -17,6 +18,7 @@ vi.mock("./agent", () => ({
 
 import { listModels } from "./agent";
 import { playSound } from "./sounds";
+import { notifyDesktop } from "./hook-notify";
 import { useAgentEvents, type AgentEventsDeps } from "./useAgentEvents";
 import { createLiveTextStore } from "./live-text";
 import type { Item } from "./App";
@@ -1879,5 +1881,65 @@ describe("verify loop events", () => {
       hook.result.current.handleEvent(ev("verify_state", verify));
     });
     expect(getState()?.verify).toEqual(verify);
+  });
+});
+
+describe("hook presets events", () => {
+  it("stores hooks_state on the agent state", () => {
+    const { hook, getState } = setup();
+    act(() => {
+      hook.result.current.handleEvent(ev("hooks_state", { enabled: true }));
+    });
+    expect(getState()?.hooks).toEqual({ enabled: true });
+  });
+
+  it("adds a notice row only for blocked and failed hooks", () => {
+    const { hook, getItems } = setup();
+    act(() => {
+      hook.result.current.handleEvent(
+        ev("hook_event", {
+          hookId: "lintOnEdit",
+          label: "lint",
+          tool: "edit",
+          phase: "post",
+          outcome: "ran",
+        }),
+      );
+      hook.result.current.handleEvent(
+        ev("hook_event", {
+          hookId: "protectPaths",
+          label: "Protected paths",
+          tool: "write",
+          phase: "pre",
+          outcome: "blocked",
+          detail: ".env is a protected path",
+        }),
+      );
+      hook.result.current.handleEvent(
+        ev("hook_event", {
+          hookId: "lintOnEdit",
+          label: "lint",
+          tool: "edit",
+          phase: "post",
+          outcome: "failed",
+          detail: "a\n2 errors",
+        }),
+      );
+    });
+    const texts = getItems().map((it) => (it as { text?: string }).text ?? "");
+    expect(texts).toEqual([
+      'Hook "Protected paths" blocked write: .env is a protected path',
+      'Hook "lint" failed after edit: 2 errors',
+    ]);
+  });
+
+  it("hands hook_notify to the desktop notifier", () => {
+    const { hook } = setup();
+    act(() => {
+      hook.result.current.handleEvent(
+        ev("hook_notify", { title: "Israel Code", body: "proj — done: ok" }),
+      );
+    });
+    expect(notifyDesktop).toHaveBeenCalledWith({ title: "Israel Code", body: "proj — done: ok" });
   });
 });

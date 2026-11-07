@@ -75,6 +75,8 @@ export interface AppSettings {
   budgets?: Record<string, BudgetPref>;
   /** Verify loop (checks after a turn, fix rounds) per normalized project cwd. Absent → off. */
   verify?: Record<string, VerifyPref>;
+  /** Hook presets (format/lint after edit, protected paths, …) per normalized project cwd. Absent → off. */
+  hooks?: Record<string, HooksPref>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -125,6 +127,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       workerModels: validWorkerModels(raw.workerModels),
       budgets: validBudgets(raw.budgets),
       verify: validVerify(raw.verify),
+      hooks: validHooks(raw.hooks),
       orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
@@ -469,5 +472,40 @@ export async function saveVerifyEnabled(cwd: string, enabled: boolean): Promise<
     if (enabled) next[key] = { enabled: true };
     else delete next[key];
     s.verify = Object.keys(next).length > 0 ? next : undefined;
+  });
+}
+
+// ── Hook presets: on/off per project ─────────────────────────────────────────
+
+/** Whether the project's hooks (`.gg/hooks.json`) run around tool calls. */
+export interface HooksPref {
+  enabled: boolean;
+}
+
+/** Keep only entries that are switched on; off is the default and needs no entry. */
+function validHooks(value: unknown): Record<string, HooksPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, HooksPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    if (!pref || typeof pref !== "object") continue;
+    if ((pref as HooksPref).enabled === true) out[key] = { enabled: true };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Are hook presets on for this project? Off unless saved on. */
+export async function loadHooksEnabled(cwd: string): Promise<boolean> {
+  const s = await loadAppSettings();
+  return s.hooks?.[projectModelKey(cwd)]?.enabled === true;
+}
+
+/** Persist the project's hooks switch via read-modify-write; off removes the entry. */
+export async function saveHooksEnabled(cwd: string, enabled: boolean): Promise<void> {
+  const key = projectModelKey(cwd);
+  await updateAppSettings((s) => {
+    const next = { ...(s.hooks ?? {}) };
+    if (enabled) next[key] = { enabled: true };
+    else delete next[key];
+    s.hooks = Object.keys(next).length > 0 ? next : undefined;
   });
 }

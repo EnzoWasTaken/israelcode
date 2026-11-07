@@ -193,7 +193,7 @@ function readPackageJsonScripts(cwd: string): Record<string, unknown> | null {
  * `yarn.lock`, bun if `bun.lockb`, otherwise npm. Conservative default — npm
  * is always available.
  */
-function detectNodeRunner(cwd: string): string {
+export function detectNodeRunner(cwd: string): string {
   if (fileExists(path.join(cwd, "pnpm-lock.yaml"))) return "pnpm";
   if (fileExists(path.join(cwd, "yarn.lock"))) return "yarn";
   if (fileExists(path.join(cwd, "bun.lockb"))) return "bun";

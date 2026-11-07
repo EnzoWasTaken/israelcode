@@ -347,6 +347,16 @@ export function handlePromptRoutes(
           },
           () => ctx.autopilot,
         );
+        // Stop hooks and the finish notification: the user's own run ended.
+        if (ctx.hooks?.enabled && !ctx.autopilotCancelled) {
+          await ctx.hooks
+            .afterUserRun(lastAssistantText(ctx.session.getMessages()))
+            .catch((err: unknown) =>
+              log("WARN", "hooks", "stop hooks failed", {
+                message: err instanceof Error ? err.message : String(err),
+              }),
+            );
+        }
         // The verify loop first: when the turn wrote files, run the project's
         // checks and feed failures back as hidden fix rounds (up to the cap).
         // Ken's review then judges the fixed result.

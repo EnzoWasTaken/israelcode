@@ -230,6 +230,8 @@ export interface AgentState {
   budget?: BudgetState | null;
   /** The verify loop: switch, commands and whether checks run now (coding sessions); null elsewhere. */
   verify?: VerifyState | null;
+  /** Hook presets: the per-project switch (coding sessions); null elsewhere. */
+  hooks?: HooksState | null;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -1392,6 +1394,79 @@ export async function setVerify(change: {
 export async function runVerify(): Promise<{ started: boolean }> {
   await waitForReady();
   return invoke<{ started: boolean }>("agent_run_verify");
+}
+
+// ── Hook presets ────────────────────────────────────────────────────────────
+
+export type HookEventName = "preToolUse" | "postToolUse" | "stop";
+
+/** A power user's own command hook (exit code 2 blocks the call). */
+export interface CustomHook {
+  id: string;
+  event: HookEventName;
+  tool?: string;
+  command: string;
+  timeoutMs?: number;
+}
+
+/** The project's `.gg/hooks.json`. */
+export interface HooksConfig {
+  version: 1;
+  presets: {
+    formatOnEdit: { enabled: boolean; command?: string };
+    lintOnEdit: { enabled: boolean; command?: string };
+    protectPaths: { enabled: boolean; globs: string[] };
+    blockDangerous: { enabled: boolean };
+    notifyOnFinish: { enabled: boolean };
+  };
+  custom: CustomHook[];
+}
+
+/** `hook_event`: one hook ran, blocked a call, failed or was skipped. */
+export interface HookEvent {
+  hookId: string;
+  label: string;
+  tool: string;
+  phase: "pre" | "post";
+  outcome: "blocked" | "ran" | "failed" | "skipped";
+  detail?: string;
+  durationMs?: number;
+}
+
+/** `hooks_state` events and `AgentState.hooks` (the ready frame carries only `enabled`). */
+export interface HooksState {
+  enabled: boolean;
+  config?: HooksConfig;
+}
+
+/** `/hooks`: the state plus what the presets would run here and recent events. */
+export interface HooksPayload extends HooksState {
+  config: HooksConfig;
+  detected: { format?: string; lint?: string };
+  recent: HookEvent[];
+}
+
+/** `hook_notify`: shown as a desktop notification when the window is in the background. */
+export interface HookNotify {
+  title: string;
+  body: string;
+}
+
+export async function getHooks(): Promise<HooksPayload> {
+  await waitForReady();
+  return invoke<HooksPayload>("agent_get_hooks");
+}
+
+/** Save the switch (per project, gg-app.json) and/or the config (`.gg/hooks.json`). */
+export async function setHooks(change: {
+  enabled?: boolean;
+  config?: HooksConfig;
+}): Promise<HooksPayload> {
+  await waitForReady();
+  return invoke<HooksPayload>("agent_set_hooks", {
+    ...(change.enabled !== undefined ? { enabled: change.enabled } : {}),
+    ...(change.config !== undefined ? { config: change.config } : {}),
+  });
 }
 
 /** Pin the Worker model Orchestrate's children run on, or clear it (null) so
