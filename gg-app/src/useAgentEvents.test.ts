@@ -1884,6 +1884,44 @@ describe("verify loop events", () => {
   });
 });
 
+describe("worktree workers events", () => {
+  it("stores worktree_workers_state and keeps the latest verify row per check", () => {
+    const { hook, getState } = setup();
+    const state = {
+      pref: { enabled: true, autoMerge: "never" },
+      workers: [
+        {
+          agentId: "a1",
+          name: "edit",
+          branch: "gg/worker/edit-1",
+          path: "/t/w",
+          base: "main",
+          status: { dirty: 0, ahead: 1, changedFiles: 2 },
+          childState: "completed",
+        },
+      ],
+    };
+    act(() => {
+      hook.result.current.handleEvent(ev("worktree_workers_state", state));
+      hook.result.current.handleEvent(
+        ev("worktree_verify_progress", { branch: "b", label: "test", status: "running" }),
+      );
+      hook.result.current.handleEvent(
+        ev("worktree_verify_progress", {
+          branch: "b",
+          label: "test",
+          status: "passed",
+          exitCode: 0,
+        }),
+      );
+    });
+    expect(getState()?.worktreeWorkers).toEqual(state);
+    expect(getState()?.worktreeVerifyProgress?.b).toEqual([
+      { branch: "b", label: "test", status: "passed", exitCode: 0 },
+    ]);
+  });
+});
+
 describe("compaction control events", () => {
   it("stores compaction_state on the agent state", () => {
     const { hook, getState } = setup();

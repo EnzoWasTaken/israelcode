@@ -148,6 +148,7 @@ import {
   loadVerifyEnabled,
   loadHooksEnabled,
   loadCompactionPref,
+  loadWorktreeWorkersPref,
   projectModelKey,
   loadWorkerModelPref,
   loadPermissionModeDefault,
@@ -169,6 +170,11 @@ import { createVerifyController, type VerifyController } from "./app-sidecar/ver
 import { loadVerifyConfig } from "./core/verify-loop.js";
 import { handleHooksRoutes } from "./app-sidecar/hooks-routes.js";
 import { handleCompactionRoutes } from "./app-sidecar/compaction-routes.js";
+import { handleWorktreeReviewRoutes } from "./app-sidecar/worktree-review-routes.js";
+import {
+  createWorktreeReviewController,
+  type WorktreeReviewController,
+} from "./app-sidecar/worktree-review.js";
 import { createCompactionController, type CompactionController } from "./app-sidecar/compaction.js";
 import { createHooksController, type HooksController } from "./app-sidecar/hooks.js";
 import { loadHooksConfig } from "./core/hook-presets.js";
@@ -200,6 +206,7 @@ import { handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
 import { handleIntegrationRoutes } from "./app-sidecar/integration-routes.js";
 import { handleMcpRoutes } from "./app-sidecar/mcp-routes.js";
+import { handleMcpMarketRoutes } from "./app-sidecar/mcp-market-routes.js";
 import { handleSkillRoutes } from "./app-sidecar/skill-routes.js";
 import { finishShellRun, handleShellRoutes } from "./app-sidecar/shell-routes.js";
 import { ShellRunner } from "./app-sidecar/shell-runs.js";
@@ -1154,6 +1161,7 @@ async function createSession(
   let verify: VerifyController | null = null;
   let hooks: HooksController | null = null;
   let compaction: CompactionController | null = null;
+  let worktreeWorkers: WorktreeReviewController | null = null;
   if (mode === "chat") {
     session = createChatAgent(chatAgent, {
       ...baseSessionOptions,
@@ -1197,10 +1205,21 @@ async function createSession(
     // Native orchestration: the Worker model this project's children run on.
     // Read live by the session so a later pin applies to the next child.
     workerModel = await resolveWorkerPick(await loadWorkerModelPref(cwd), auth);
+    // Worktree-isolated workers: children spawned with isolation "worktree"
+    // get their own worktree under the managed folder; merge review routes.
+    worktreeWorkers = createWorktreeReviewController({
+      cwd,
+      repoRoot: (await isGitRepo(cwd).catch(() => false)) ? cwd : null,
+      managedRoot: path.join(paths.agentDir, "worktrees"),
+      pref: await loadWorktreeWorkersPref(cwd),
+      listSubAgents: () => session.listSubAgents(),
+      broadcast,
+    });
     session = new AgentSession({
       ...baseSessionOptions,
       additionalTools: [askUserTool, createTodoWriteTool()],
       getChildModel: () => workerModel ?? undefined,
+      getWorktreePolicy: () => worktreeWorkers?.policy(),
       // Rewind points (coding sessions only; Goals has its own branch above).
       checkpoints: true,
       // Permission modes: held tool calls become approval cards in the app.
@@ -1816,6 +1835,7 @@ async function createSession(
   // painted instead of deleting one the user already started reading.
   session.eventBus.on("hook_armed", (d) => broadcast("hook_armed", d));
   session.eventBus.on("subagent_state", (d) => broadcast("subagent_state", d));
+  session.eventBus.on("subagent_state", (d) => worktreeWorkers?.noteSubAgentState(d));
   session.eventBus.on("compaction_start", (d) => broadcast("compaction_start", d));
   session.eventBus.on("compaction_end", (d) => {
     broadcast("compaction_end", d);
@@ -3008,6 +3028,9 @@ async function createSession(
     get compaction() {
       return compaction;
     },
+    get worktreeWorkers() {
+      return worktreeWorkers;
+    },
     syncKenAutoModel,
     get autopilotReviewing() {
       return autopilotReviewing;
@@ -3155,6 +3178,7 @@ async function createSession(
     if (handleVerifyRoutes(routeCtx, req, res, url, method)) return;
     if (handleHooksRoutes(routeCtx, req, res, url, method)) return;
     if (handleCompactionRoutes(routeCtx, req, res, url, method)) return;
+    if (handleWorktreeReviewRoutes(routeCtx, req, res, url, method)) return;
     if (handleHistoryRoutes(routeCtx, req, res, url, method)) return;
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;
@@ -3163,6 +3187,7 @@ async function createSession(
     if (handleAuthRoutes(routeCtx, req, res, url, method)) return;
     if (handleIntegrationRoutes(routeCtx, req, res, url, method)) return;
     if (handleMcpRoutes(routeCtx, req, res, url, method)) return;
+    if (handleMcpMarketRoutes(routeCtx, req, res, url, method)) return;
     if (handleSkillRoutes(routeCtx, req, res, url, method)) return;
     if (handleShellRoutes(routeCtx, req, res, url, method)) return;
 

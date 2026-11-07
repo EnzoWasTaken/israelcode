@@ -115,6 +115,7 @@ import {
   ACTIVE_LIMIT,
   buildSubAgentCompletionFollowUp,
   type ChildModelPick,
+  type WorktreePolicy,
   type SubAgentManager,
   type SubAgentSnapshot,
 } from "./subagent-manager.js";
@@ -448,6 +449,11 @@ export interface AgentSessionOptions {
    * agent names no model of its own. Read at spawn time.
    */
   getChildModel?: () => ChildModelPick | undefined;
+  /**
+   * Worktree isolation for workers spawned with `isolation: "worktree"`
+   * (worktree-isolated workers). Read at spawn time.
+   */
+  getWorktreePolicy?: () => WorktreePolicy | undefined;
   /**
    * Wrap each built-in tool once, at registration. Must keep the tool's name,
    * description and parameters (only `execute` may change), so the tool block
@@ -1185,6 +1191,7 @@ export class AgentSession {
           ? (tool, args, signal) => this.opts.authorizeTool!(tool, args, signal)
           : undefined,
       getChildModel: this.opts.getChildModel,
+      getWorktreePolicy: this.opts.getWorktreePolicy,
       // A persistent child is already the single allowed fan-out level. Blocking
       // `subagent` here created a timeout sandwich: the nested call could consume
       // the child's entire 10-minute turn budget, discarding all nested results.
@@ -4504,6 +4511,7 @@ export class AgentSession {
       this.orchestrate,
       [...this.tools.map((t) => t.name), ...this.deferredBuiltinToolNames],
       worker ? (getModel(worker.model)?.name ?? worker.model) : undefined,
+      this.opts.getWorktreePolicy?.()?.enabled === true,
     );
   }
 

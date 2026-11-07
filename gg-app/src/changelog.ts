@@ -31,6 +31,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Verify loop: switch on `Verify` and Israel Code runs your project's tests, typecheck and lint after each change, feeds only the failures back, and fixes up to 3 rounds. Each round shows pass/fail under the reply.",
       "Hook presets: Settings → `Hooks` turns on format-on-edit, lint-on-edit, protected paths, blocked dangerous commands (force-push, reset --hard, rm -rf outside the project, publishing) and a desktop notification when a run ends, with no scripts to write. Custom command hooks too.",
       "Compaction control: click the context gauge to set when compaction happens (60/70/85% or a token count), pin facts the summary must keep word for word, compact now, or undo the last compaction. Every compaction now opens a rewind point first.",
+      "Worktree workers: when Orchestrate fans work out, each worker that edits files gets its own git worktree and branch, so parallel workers never collide. `Review worktrees` in the title bar shows each worker's diff, checks for conflicts, runs your project's checks inside the worktree, and merges or discards with one click. Optional auto-merge when clean and checks pass.",
+      "MCP marketplace: Settings → MCP → `Browse marketplace` searches the official MCP Registry, shows how each server runs and what keys it needs, and scans the listing, package metadata and README before adding it, with the same block-unless-you-override rule as skills. Nothing is installed or run during the scan.",
     ],
   },
   {

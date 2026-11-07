@@ -24,6 +24,8 @@ export interface SubAgentLine {
   durationMs?: number;
   /** The model the child runs on, when the sidecar reported it. */
   model?: string;
+  /** The branch of the child's own worktree (worktree-isolated workers). */
+  worktreeBranch?: string;
 }
 
 interface Props {
@@ -228,7 +230,23 @@ export function SubAgentFeed({
   const summary = summarizeCritters(agents, aborted);
   const note = workerModelNote(agents, mainModel);
   const text = note ? `${summary.text} (${note})` : summary.text;
-  return <CritterLine critter={rowCritter(agents)} tone={summary.tone} text={text} />;
+  const line = <CritterLine critter={rowCritter(agents)} tone={summary.tone} text={text} />;
+  const branches = [
+    ...new Set(agents.flatMap((a) => (a.worktreeBranch ? [a.worktreeBranch] : []))),
+  ];
+  if (branches.length === 0) return line;
+  return (
+    <div className="sa-feed-worktrees">
+      {line}
+      <div className="sa-worktree-badges">
+        {branches.map((branch) => (
+          <span key={branch} className="sa-worktree-badge" title="Runs in its own git worktree">
+            worktree <code>{branch}</code>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /**

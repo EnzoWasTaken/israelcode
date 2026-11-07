@@ -9,6 +9,14 @@ import { mcpServersForAgent, type AgentDefinition } from "./agents.js";
 import { SubAgentStore, type PersistedSubAgentRecord } from "./subagent-store.js";
 import { SessionManager } from "./session-manager.js";
 import { log } from "./logger.js";
+import {
+  createWorkerWorktree,
+  discardWorker,
+  worktreeStatus,
+  type WorkerWorktree,
+} from "./worktree-workers.js";
+import { parseWorktreePorcelain } from "../app-sidecar/worktrees.js";
+import { realpathNative, runBackgroundGit } from "../utils/git.js";
 import { withContextFiles } from "./context-files.js";
 import type { AgentNotificationQueue } from "./agent-notifications.js";
 import type { AcceptanceCheck } from "./acceptance-checks.js";
@@ -66,8 +74,19 @@ export interface SubAgentSnapshot {
   child_session_path?: string;
   /** Folder the child works in, when it isn't the parent's cwd. */
   cwd?: string;
+  /** The child's own git worktree (isolation: "worktree"), until it is merged or discarded. */
+  worktree?: WorkerWorktree;
   collected?: boolean;
   recovered?: boolean;
+}
+
+/** Where isolated children get their worktrees; undefined or disabled: no isolation. */
+export interface WorktreePolicy {
+  enabled: boolean;
+  /** The repository the parent works in. */
+  repoRoot: string;
+  /** The managed worktrees folder (`~/.israelcode/worktrees`). */
+  managedRoot: string;
 }
 
 /** A provider and model for spawned children (GG Goals' "Critters" pick). */
@@ -141,6 +160,8 @@ export interface SubAgentManagerOptions {
   adoptionPollMs?: number;
   store?: SubAgentStore;
   sessionRootDir?: string;
+  /** Worktree isolation for spawns that ask for it. Read at spawn time. */
+  getWorktreePolicy?: () => WorktreePolicy | undefined;
 }
 
 interface WorkerRecord extends SubAgentSnapshot {
@@ -448,11 +469,13 @@ export class SubAgentManager {
       cwd?: string;
       /** Files the parent already read, handed over in the brief (see withContextFiles). */
       contextFiles?: readonly string[];
+      /** Run in its own git worktree on its own branch (when the policy allows). */
+      isolation?: "worktree";
     },
   ): Promise<SubAgentSnapshot> {
     this.assertAvailable();
     agentName ??= this.options.defaultAgent;
-    const childCwd = this.resolveChildCwd(overrides?.cwd);
+    let childCwd = await this.resolveChildCwdAsync(overrides?.cwd);
     if (!taskName.trim()) throw new Error("task_name is required");
     if ([...this.workers.values()].some((worker) => worker.task_name === taskName)) {
       throw new Error(`An agent named "${taskName}" already exists`);
@@ -492,6 +515,19 @@ export class SubAgentManager {
     }
     this.assertModelCapacity(selection.model);
 
+    let worktree: WorkerWorktree | undefined;
+    const policy =
+      overrides?.isolation === "worktree" ? this.options.getWorktreePolicy?.() : undefined;
+    if (policy?.enabled) {
+      worktree = await createWorkerWorktree({
+        repoRoot: policy.repoRoot,
+        name: taskName,
+        agentName: selection.agentDef?.name,
+        managedRoot: policy.managedRoot,
+      });
+      childCwd = worktree.path;
+    }
+
     const now = Date.now();
     const agentId = this.createId();
     const child = this.spawnWorkerProcess(childCwd);
@@ -509,6 +545,7 @@ export class SubAgentManager {
       provider,
       model: selection.model,
       ...(childCwd !== this.options.cwd ? { cwd: childCwd } : {}),
+      ...(worktree ? { worktree } : {}),
       collected: false,
       process: child,
       requests: new Map(),
@@ -576,6 +613,7 @@ export class SubAgentManager {
       return this.snapshot(record);
     } catch (error) {
       this.fail(record, error);
+      this.releaseCleanWorktree(record);
       await this.waitForPersistence();
       throw error;
     }
@@ -826,6 +864,87 @@ export class SubAgentManager {
   }
 
   /**
+   * resolveChildCwd, plus one more allowed folder: any worktree of the
+   * parent's repository (an isolated worker's), read once per call.
+   */
+  private async resolveChildCwdAsync(requested: string | undefined): Promise<string> {
+    try {
+      return this.resolveChildCwd(requested);
+    } catch (error) {
+      if (!requested || !path.isAbsolute(requested)) throw error;
+      if (!(await this.isRepoWorktree(path.resolve(requested)))) throw error;
+      return path.resolve(requested);
+    }
+  }
+
+  private async isRepoWorktree(target: string): Promise<boolean> {
+    const real = (p: string) => realpathNative(p).catch(() => path.resolve(p));
+    try {
+      const { stdout } = await runBackgroundGit(["worktree", "list", "--porcelain"], {
+        cwd: this.options.cwd,
+        timeoutMs: 10_000,
+      });
+      const want = (await real(target)).toLowerCase();
+      for (const entry of parseWorktreePorcelain(stdout).slice(1)) {
+        if ((await real(entry.path)).toLowerCase() === want && statSync(want).isDirectory())
+          return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  /** Cleanups of finished isolated workers still running (tests await them). */
+  private worktreeReleases = new Set<Promise<void>>();
+
+  async waitForWorktreeCleanup(): Promise<void> {
+    while (this.worktreeReleases.size > 0) await Promise.all([...this.worktreeReleases]);
+  }
+
+  /**
+   * A finished isolated worker that changed nothing: stop its process (a
+   * folder a process runs in can't be removed on Windows), remove the
+   * worktree and its branch, and publish the snapshot without it.
+   */
+  private releaseCleanWorktree(worker: WorkerRecord): void {
+    const worktree = worker.worktree;
+    if (!worktree) return;
+    const run = (async () => {
+      const status = await worktreeStatus(worktree.path, worktree.base);
+      if (status.dirty > 0 || status.ahead > 0 || worker.worktree !== worktree) return;
+      if (this.workers.get(worker.agent_id) === worker) await this.close(worker, false, true);
+      if (worker.process.exitCode === null && worker.process.signalCode === null) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 5_000);
+          worker.process.once("exit", () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+      }
+      const policy = this.options.getWorktreePolicy?.();
+      await discardWorker({
+        repoRoot: policy?.repoRoot ?? this.options.cwd,
+        path: worktree.path,
+        branch: worktree.branch,
+      });
+      worker.worktree = undefined;
+      if (worker.cwd === worktree.path) worker.cwd = undefined;
+      worker.updated_at = Date.now();
+      this.publish(worker);
+    })()
+      .catch((error: unknown) => {
+        log("WARN", "subagent", "Failed to drop a clean worker worktree", {
+          branch: worktree.branch,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      })
+      .finally(() => this.worktreeReleases.delete(run));
+    this.worktreeReleases.add(run);
+  }
+
+  /**
    * The parent's extra roots a child also gets (see shareWorkspaceRoots),
    * less the folder it works in and any root that folder already covers.
    * Undefined when the parent doesn't share them.
@@ -869,7 +988,7 @@ export class SubAgentManager {
     const childSessionPath = this.assertChildSessionPath(snapshot.child_session_path);
     // Wake it where it was working; re-checked, since the workspace may have
     // changed since it was started.
-    const childCwd = this.resolveChildCwd(snapshot.cwd);
+    const childCwd = await this.resolveChildCwdAsync(snapshot.cwd);
     const child = this.spawnWorkerProcess(childCwd);
     const worker: WorkerRecord = {
       ...snapshot,
@@ -1037,6 +1156,7 @@ export class SubAgentManager {
       for (const resolve of worker.turnResolvers) resolve();
       worker.turnResolvers.clear();
       this.scheduleIdleReap(worker);
+      this.releaseCleanWorktree(worker);
     }
   }
 
@@ -1149,6 +1269,7 @@ export class SubAgentManager {
       child_session_id: worker.child_session_id,
       child_session_path: worker.child_session_path,
       ...(worker.cwd !== undefined && { cwd: worker.cwd }),
+      ...(worker.worktree !== undefined && { worktree: { ...worker.worktree } }),
       collected: worker.collected,
       recovered: worker.recovered,
     };

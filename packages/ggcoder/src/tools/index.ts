@@ -4,6 +4,7 @@ import type { ContextLimits } from "../core/context-limits.js";
 import {
   SubAgentManager,
   type ChildModelPick,
+  type WorktreePolicy,
   type SubAgentManagerOptions,
   type SubAgentSnapshot,
 } from "../core/subagent-manager.js";
@@ -66,6 +67,8 @@ export interface CreateToolsOptions {
   defaultSubAgent?: string;
   /** Default provider/model for spawned children (see SubAgentManagerOptions). */
   getChildModel?: () => ChildModelPick | undefined;
+  /** Worktree isolation for spawned workers (see SubAgentManagerOptions). */
+  getWorktreePolicy?: () => WorktreePolicy | undefined;
   skills?: Skill[];
   /** Skills the safety scan refused; the skill tool names them instead of "not found". */
   blockedSkills?: readonly BlockedSkill[];
@@ -355,6 +358,7 @@ export async function createTools(
       shareWorkspaceRoots: opts.shareWorkspaceRoots,
       defaultAgent: opts.defaultSubAgent,
       getChildModel: opts.getChildModel,
+      getWorktreePolicy: opts.getWorktreePolicy,
       agents: opts.agents,
       getProvider: () => opts.getProvider?.() ?? baseProvider,
       getModel: () => opts.getModel?.() ?? baseModel,

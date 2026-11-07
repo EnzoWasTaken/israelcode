@@ -16,6 +16,8 @@ import {
   type HookNotify,
   type HooksState,
   type CompactionState,
+  type WorktreeVerifyProgress,
+  type WorktreeWorkersState,
   type CacheExpiryStatus,
   type ModelOption,
   type ProjectTask,
@@ -458,6 +460,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
         tokenUsage: snapshot.token_usage,
         durationMs: snapshot.elapsed_ms,
         model: snapshot.model ?? agent.model,
+        worktreeBranch: snapshot.worktree?.branch,
         activities: appendActivities(agent.activities),
       });
       const mappedGroupId = subagentGroupByAgentRef.current.get(snapshot.agent_id);
@@ -483,6 +486,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
               tokenUsage: snapshot.token_usage,
               durationMs: snapshot.elapsed_ms,
               model: snapshot.model,
+              worktreeBranch: snapshot.worktree?.branch,
             },
           ],
         });
@@ -509,6 +513,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
                       tokenUsage: snapshot.token_usage,
                       durationMs: snapshot.elapsed_ms,
                       model: snapshot.model,
+                      worktreeBranch: snapshot.worktree?.branch,
                     },
                   ],
             };
@@ -1183,6 +1188,27 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
         case "compaction_state":
           setState((s) => (s ? { ...s, compaction: d as unknown as CompactionState } : s));
           break;
+        // Worktree workers: the policy and worker list changed; a check in a
+        // worker's worktree started or finished (latest status per label).
+        case "worktree_workers_state":
+          setState((s) =>
+            s ? { ...s, worktreeWorkers: d as unknown as WorktreeWorkersState } : s,
+          );
+          break;
+        case "worktree_verify_progress": {
+          const p = d as unknown as WorktreeVerifyProgress;
+          setState((s) => {
+            if (!s) return s;
+            const rows = (s.worktreeVerifyProgress?.[p.branch] ?? []).filter(
+              (r) => r.label !== p.label,
+            );
+            return {
+              ...s,
+              worktreeVerifyProgress: { ...s.worktreeVerifyProgress, [p.branch]: [...rows, p] },
+            };
+          });
+          break;
+        }
         case "hooks_state":
           setState((s) => (s ? { ...s, hooks: d as unknown as HooksState } : s));
           break;

@@ -29,6 +29,8 @@ const {
   saveOrchestrateDefault,
   saveProjectModelPrefs,
   saveWorkerModelPref,
+  loadWorktreeWorkersPref,
+  saveWorktreeWorkersPref,
   updateAppSettings,
 } = await import("./app-settings.js");
 
@@ -204,6 +206,23 @@ describe("verify settings", () => {
       }),
     );
     expect((await loadAppSettings()).verify).toEqual({ [path.resolve("/on")]: { enabled: true } });
+  });
+});
+
+describe("worktree workers settings", () => {
+  it("defaults to on with no auto-merge when unset", async () => {
+    expect(await loadWorktreeWorkersPref("/proj")).toEqual({ enabled: true, autoMerge: "never" });
+  });
+
+  it("persists autoMerge per project and drops the entry when saved back to defaults", async () => {
+    await saveWorktreeWorkersPref("/proj", { autoMerge: "clean-and-verified" });
+    expect(await loadWorktreeWorkersPref("/proj")).toEqual({
+      enabled: true,
+      autoMerge: "clean-and-verified",
+    });
+    expect(await loadWorktreeWorkersPref("/other")).toEqual({ enabled: true, autoMerge: "never" });
+    await saveWorktreeWorkersPref("/proj", { autoMerge: "never" });
+    expect("worktreeWorkers" in (await readFile())).toBe(false);
   });
 });
 

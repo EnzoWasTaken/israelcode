@@ -9,6 +9,9 @@ vi.mock("./WindowLayoutButton", () => ({ WindowLayoutButton: () => <button>Arran
 // BudgetMeter reaches ./agent, whose module scope needs a Tauri window.
 vi.mock("./BudgetMeter", () => ({ BudgetMeter: () => <span className="budget-pill" /> }));
 // VerifyControl reaches ./agent too; keep a switch so the deck's wiring is testable.
+vi.mock("./WorktreeReview", () => ({
+  WorktreeReviewControl: () => <button>Review worktrees</button>,
+}));
 vi.mock("./VerifyControl", () => ({
   VerifyControl: ({
     verify,

@@ -13066,3 +13066,158 @@ select {
   justify-content: flex-end;
   gap: var(--space-4);
 }
+
+/* MCP marketplace (McpMarketModal, inside the MCP servers page) */
+.mcp-market {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.mcp-market-results {
+  list-style: none;
+}
+.mcp-market-row {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.mcp-market-desc {
+  flex-basis: 100%;
+  font-size: var(--fs-sm);
+}
+.mcp-market-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+.mcp-market-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.mcp-market-needs,
+.mcp-market-need {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mcp-market-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+.mcp-market-severity {
+  margin: 0;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mcp-market-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mcp-market-findings li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid;
+  font-size: var(--fs-sm);
+}
+.mcp-market-findings pre {
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.mcp-market-confirm {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+}
+
+/* Worktree workers merge review (WorktreeReview, header popover) */
+.wt-popover {
+  width: 520px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wt-review,
+.wt-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wt-policy,
+.wt-actions,
+.wt-confirm,
+.wt-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.wt-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.wt-list,
+.wt-files,
+.wt-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wt-meta,
+.wt-note,
+.wt-empty,
+.wt-reason,
+.wt-conflicts,
+.wt-checks,
+.wt-files {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.wt-patch {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-4);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: pre;
+}
+
+.sa-worktree-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-left: var(--space-8);
+}
+
+.sa-worktree-badge {
+  font-size: var(--fs-xs);
+}

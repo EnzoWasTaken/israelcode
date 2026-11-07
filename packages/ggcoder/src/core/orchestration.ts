@@ -43,6 +43,7 @@ export function buildOrchestrateMessage(
   on: boolean,
   toolNames: readonly string[],
   workerModelName?: string,
+  worktreeWorkers?: boolean,
 ): Message {
   const has = (name: string): boolean => toolNames.includes(name);
   const worker = workerModelName
@@ -59,6 +60,11 @@ export function buildOrchestrateMessage(
           ? `2. Delegate: start one child per piece with \`spawn_agent\` (${ACTIVE_LIMIT} per call, up to ${ULTRACODE_ACTIVE_LIMIT} running at once). Each child runs on ${worker}; give it a complete brief: the goal, the exact files, the constraints, and how to verify. The children do the pieces, not you.`
           : `2. Delegate: this session has no \`spawn_agent\`, so work through the pieces one at a time, keeping each scope self-contained.`,
         "3. Review every worker's result before you reply: read the files it changed (the diff), run the project's checks yourself, and compare the result with the brief. If something is missing or wrong, send that worker a fix round with the exact findings and review again.",
+        ...(worktreeWorkers && has("spawn_agent")
+          ? [
+              "Worktree workers are on: set isolation 'worktree' on every task that edits files, and review each worker's worktree diff (merge review) before merging it.",
+            ]
+          : []),
         "4. Reply with one reviewed summary: what each worker did, what your review found (checks run, fixes requested), and what is left undone.",
         "Small or single-step requests stay direct; do not orchestrate those.",
       ]

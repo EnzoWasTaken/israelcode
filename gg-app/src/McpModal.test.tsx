@@ -12,6 +12,9 @@ vi.mock("./agent", () => ({
   loginMcpServer: vi.fn(),
   removeMcpServer: vi.fn(),
   subscribe: vi.fn(() => () => {}),
+  searchMcpMarket: vi.fn(),
+  inspectMcpMarket: vi.fn(),
+  addMcpFromMarket: vi.fn(),
 }));
 vi.mock("./toast", () => ({ toast: vi.fn() }));
 
@@ -48,5 +51,14 @@ describe("McpModal", () => {
 
     expect(await screen.findByText("github")).toBeTruthy();
     expect(screen.queryByText("Couldn't reach the agent to list servers.")).toBeNull();
+  });
+
+  it("shows the marketplace when Browse marketplace is clicked", async () => {
+    listProjectsMock.mockResolvedValue([]);
+    listMcpServersMock.mockResolvedValue([SERVER]);
+    render(<McpModal onClose={vi.fn()} />);
+    expect(screen.queryByLabelText("Search the MCP marketplace")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Browse marketplace" }));
+    expect(await screen.findByLabelText("Search the MCP marketplace")).toBeTruthy();
   });
 });

@@ -39,6 +39,14 @@ describe("orchestration", () => {
     expect(unpinned).toContain("the same model as you");
   });
 
+  it("asks for worktree isolation and a merge review when worktree workers are on", () => {
+    const text = buildOrchestrateMessage(true, ["spawn_agent"], undefined, true).content as string;
+    expect(text).toContain("set isolation 'worktree' on every task that edits files");
+    expect(text).toContain("merge review");
+    const plain = buildOrchestrateMessage(true, ["spawn_agent"]).content as string;
+    expect(plain).not.toContain("isolation");
+  });
+
   it("is hidden runtime provenance, like the Ultracode notice", () => {
     const notice = buildOrchestrateMessage(true, []);
     expect(notice.role).toBe("user");

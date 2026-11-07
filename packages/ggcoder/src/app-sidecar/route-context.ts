@@ -32,6 +32,7 @@ import type { BudgetController } from "./budget.js";
 import type { VerifyController } from "./verify.js";
 import type { CompactionController } from "./compaction.js";
 import type { HooksController } from "./hooks.js";
+import type { WorktreeReviewController } from "./worktree-review.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -131,6 +132,8 @@ export interface SessionRouteContext {
   readonly hooks: HooksController | null;
   /** Compaction control (trigger, pinned facts, compact now, undo); only coding sessions have one. */
   readonly compaction: CompactionController | null;
+  /** Worktree-isolated workers' merge review; only coding sessions have one. */
+  readonly worktreeWorkers: WorktreeReviewController | null;
   readonly syncKenAutoModel: (provider: Provider, model: string) => Promise<void>;
   autopilotReviewing: boolean;
   taskRunAll: boolean;

@@ -20,6 +20,7 @@ import {
   type SidecarEvent,
 } from "./agent";
 import { toast } from "./toast";
+import { McpMarketModal } from "./McpMarketModal";
 
 interface Props {
   onClose: () => void;
@@ -94,6 +95,8 @@ export function McpModal({ onClose }: Props): React.ReactElement {
   const [listCwd, setListCwd] = useState<string | undefined>(undefined);
   // Name of the server currently mid-login (disables its button + shows status).
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  // The marketplace panel (search the MCP Registry) is shown above the list.
+  const [showMarket, setShowMarket] = useState(false);
 
   const refresh = useCallback(async (cwd?: string): Promise<void> => {
     setLoading(true);
@@ -234,8 +237,21 @@ export function McpModal({ onClose }: Props): React.ReactElement {
     </button>
   );
 
+  const marketButton = (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm"
+      aria-expanded={showMarket}
+      onClick={() => setShowMarket((v) => !v)}
+    >
+      {showMarket ? "Hide marketplace" : "Browse marketplace"}
+    </button>
+  );
+
   const serverList = (
     <>
+      {!embedded && <div className="modal-actions">{marketButton}</div>}
+      {showMarket && <McpMarketModal onAdded={() => void refresh(listCwd).catch(() => {})} />}
       {loading ? (
         <ListSkeleton rows={3} />
       ) : loadError ? (
@@ -329,7 +345,12 @@ export function McpModal({ onClose }: Props): React.ReactElement {
           )}
         </div>
         <div className="settings-col">
-          {embedded && <SettingsHeaderAction>{addButton}</SettingsHeaderAction>}
+          {embedded && (
+            <SettingsHeaderAction>
+              {marketButton}
+              {addButton}
+            </SettingsHeaderAction>
+          )}
           <SettingsSection
             title="Add a server"
             dialogTitle="Add an MCP"

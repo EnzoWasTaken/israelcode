@@ -63,6 +63,7 @@ import {
   workspaceProductName,
   type AgentState,
   type VerifyState,
+  type WorktreeWorkersState,
   type CompactionState,
   type WorkspaceMode,
   type ModelOption,
@@ -1673,6 +1674,10 @@ function App(): React.ReactElement {
   // Verify loop: the control saves through the sidecar; this just mirrors the result.
   function changeVerify(next: VerifyState): void {
     setState((s) => (s ? { ...s, verify: next } : s));
+  }
+  // Worktree workers: the review popover saves the policy; this mirrors the result.
+  function changeWorktreeWorkers(next: WorktreeWorkersState): void {
+    setState((s) => (s ? { ...s, worktreeWorkers: next } : s));
   }
   // Compaction control: the gauge popover saves through the sidecar; this mirrors the result.
   function changeCompaction(next: CompactionState): void {
@@ -3492,6 +3497,9 @@ function App(): React.ReactElement {
                   onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
                   verify={state?.verify ?? null}
                   onVerifyChange={changeVerify}
+                  worktreeWorkers={state?.worktreeWorkers ?? null}
+                  worktreeVerifyProgress={state?.worktreeVerifyProgress}
+                  onWorktreeWorkersChange={changeWorktreeWorkers}
                   orchestratorName={modelDisplayName(models, state?.model)}
                   workerName={modelDisplayName(
                     models,

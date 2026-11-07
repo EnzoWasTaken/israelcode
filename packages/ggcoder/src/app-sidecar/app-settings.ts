@@ -80,6 +80,9 @@ export interface AppSettings {
   hooks?: Record<string, HooksPref>;
   /** Compaction control (trigger override, pinned facts) per normalized project cwd. */
   compaction?: Record<string, CompactionPref>;
+  /** Worktree-isolated workers (Orchestrate children edit in their own git worktree) per
+   *  normalized project cwd. Absent → on in a git repo, never auto-merged. */
+  worktreeWorkers?: Record<string, WorktreeWorkersPref>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -132,6 +135,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       verify: validVerify(raw.verify),
       hooks: validHooks(raw.hooks),
       compaction: validCompaction(raw.compaction),
+      worktreeWorkers: validWorktreeWorkers(raw.worktreeWorkers),
       orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
@@ -547,4 +551,69 @@ export async function saveCompactionPref(
     s.compaction = Object.keys(next).length > 0 ? next : undefined;
   });
   return normalized ?? { pins: [] };
+}
+
+// ── Worktree workers: per-project policy ─────────────────────────────────────
+
+/** Whether editing child agents get their own git worktree, and what happens after review. */
+export interface WorktreeWorkersPref {
+  enabled: boolean;
+  autoMerge: "never" | "clean-and-verified";
+}
+
+export const DEFAULT_WORKTREE_WORKERS: WorktreeWorkersPref = { enabled: true, autoMerge: "never" };
+
+export function normalizeWorktreeWorkersPref(value: unknown): WorktreeWorkersPref {
+  const raw = (value && typeof value === "object" ? value : {}) as Partial<WorktreeWorkersPref>;
+  return {
+    enabled: raw.enabled !== false,
+    autoMerge: raw.autoMerge === "clean-and-verified" ? "clean-and-verified" : "never",
+  };
+}
+
+function validWorktreeWorkers(value: unknown): Record<string, WorktreeWorkersPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, WorktreeWorkersPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    if (!pref || typeof pref !== "object") continue;
+    const normalized = normalizeWorktreeWorkersPref(pref);
+    // Defaults are implicit: only a changed policy is worth a saved entry.
+    if (
+      normalized.enabled !== DEFAULT_WORKTREE_WORKERS.enabled ||
+      normalized.autoMerge !== DEFAULT_WORKTREE_WORKERS.autoMerge
+    ) {
+      out[key] = normalized;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** The project's worktree-worker policy; defaults when nothing is saved. */
+export async function loadWorktreeWorkersPref(cwd: string): Promise<WorktreeWorkersPref> {
+  const s = await loadAppSettings();
+  const saved = s.worktreeWorkers?.[projectModelKey(cwd)];
+  return saved ? normalizeWorktreeWorkersPref(saved) : { ...DEFAULT_WORKTREE_WORKERS };
+}
+
+/** Persist a (partial) policy via read-modify-write; a default policy removes the entry. */
+export async function saveWorktreeWorkersPref(
+  cwd: string,
+  partial: Partial<WorktreeWorkersPref>,
+): Promise<WorktreeWorkersPref> {
+  const key = projectModelKey(cwd);
+  let result = { ...DEFAULT_WORKTREE_WORKERS };
+  await updateAppSettings((s) => {
+    const current = s.worktreeWorkers?.[key]
+      ? normalizeWorktreeWorkersPref(s.worktreeWorkers[key])
+      : { ...DEFAULT_WORKTREE_WORKERS };
+    result = normalizeWorktreeWorkersPref({ ...current, ...partial });
+    const next = { ...(s.worktreeWorkers ?? {}) };
+    const isDefault =
+      result.enabled === DEFAULT_WORKTREE_WORKERS.enabled &&
+      result.autoMerge === DEFAULT_WORKTREE_WORKERS.autoMerge;
+    if (isDefault) delete next[key];
+    else next[key] = result;
+    s.worktreeWorkers = Object.keys(next).length > 0 ? next : undefined;
+  });
+  return result;
 }

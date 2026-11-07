@@ -30,6 +30,7 @@ function spawnView(s: SubAgentSnapshot) {
     ...(s.agent_name && { agent_name: s.agent_name }),
     ...(s.model && { model: s.model }),
     ...(s.cwd && { cwd: s.cwd }),
+    ...(s.worktree && { branch: s.worktree.branch }),
     ...(s.error && { error: s.error }),
   };
 }
@@ -112,6 +113,12 @@ export function createSubAgentControlTools(
       .describe(
         "Files you already read that it needs: their contents go in its brief, so it doesn't read them again",
       ),
+    isolation: z
+      .enum(["worktree"])
+      .optional()
+      .describe(
+        "Run this task in its own git worktree so it cannot collide with other workers; use it for every task that edits files when several run at once.",
+      ),
   });
   // A list, so one call starts every child: on models that send one tool call
   // per turn (GPT-6.x), a one-child-per-call shape cost a model turn per child
@@ -140,11 +147,12 @@ export function createSubAgentControlTools(
       // exceed the active limit or the per-model cap.
       const settled = await Promise.allSettled(
         args.tasks.map((t) =>
-          t.checks || t.cwd || t.context_files
+          t.checks || t.cwd || t.context_files || t.isolation
             ? manager.spawn(t.task_name, t.task, t.agent, {
                 ...(t.checks && { checks: t.checks }),
                 ...(t.cwd && { cwd: t.cwd }),
                 ...(t.context_files && { contextFiles: t.context_files }),
+                ...(t.isolation && { isolation: t.isolation }),
               })
             : manager.spawn(t.task_name, t.task, t.agent),
         ),

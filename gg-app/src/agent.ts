@@ -49,6 +49,8 @@ export interface SubAgentStatePayload {
   error?: string;
   /** The model this child runs on (the Worker model when pinned). */
   model?: string;
+  /** The child's own git worktree (worktree-isolated workers), until merged or discarded. */
+  worktree?: { path: string; branch: string; base: string };
 }
 
 export interface SidecarEvent {
@@ -234,6 +236,10 @@ export interface AgentState {
   hooks?: HooksState | null;
   /** Compaction control: the project pref and where the session stands (coding sessions); null elsewhere. */
   compaction?: CompactionState | null;
+  /** Worktree-isolated workers: the policy (ready frame), plus the workers once a `worktree_workers_state` arrives; null outside coding sessions. */
+  worktreeWorkers?: { pref: WorktreeWorkersPref; workers?: WorktreeWorkerRow[] } | null;
+  /** `worktree_verify_progress` rows by branch: the latest status of each check. */
+  worktreeVerifyProgress?: Record<string, WorktreeVerifyProgress[]>;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -3349,4 +3355,222 @@ export async function removeInstalledSkill(
     scope,
     projectCwd: projectCwd ?? null,
   });
+}
+
+// ── MCP marketplace (official MCP Registry + static scan) ───────────────────
+
+export interface McpListingHeader {
+  name: string;
+  value?: string;
+  isRequired?: boolean;
+  isSecret?: boolean;
+  description?: string;
+}
+
+export interface McpListingRemote {
+  type: string;
+  url: string;
+  headers?: McpListingHeader[];
+}
+
+export interface McpListingPackage {
+  registryType: string;
+  identifier: string;
+  version?: string;
+  runtimeHint?: string;
+  environmentVariables?: McpListingHeader[];
+}
+
+export interface McpListing {
+  /** Reverse-DNS registry name, e.g. `io.github.owner/repo`. */
+  name: string;
+  title?: string;
+  description: string;
+  version: string;
+  repository?: { url?: string; source?: string };
+  remotes?: McpListingRemote[];
+  packages?: McpListingPackage[];
+  status?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  isLatest?: boolean;
+}
+
+export interface McpMarketChoice {
+  kind: "remote" | "package";
+  index: number;
+}
+
+export interface McpMarketOption extends McpMarketChoice {
+  label: string;
+  /** The server config that would be saved, before the user fills values in. */
+  config: {
+    name: string;
+    url?: string;
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    headers?: Record<string, string>;
+  };
+  needs: { envNames: string[]; headerNames: string[]; secrets: string[] };
+}
+
+export interface McpMarketInspection {
+  listing: McpListing;
+  options: McpMarketOption[];
+  scan: SkillScanReport;
+}
+
+export interface McpMarketAddResult {
+  added: boolean;
+  name?: string;
+  scan?: SkillScanReport;
+  connected?: boolean;
+  toolCount?: number;
+  requiresAuth?: boolean;
+  /** Present when refused (scan block) or when the probe failed. */
+  error?: string;
+}
+
+export async function searchMcpMarket(
+  query: string,
+  cursor?: string,
+): Promise<{ servers: McpListing[]; nextCursor?: string }> {
+  await waitForReady();
+  return invoke<{ servers: McpListing[]; nextCursor?: string }>("agent_mcp_market_search", {
+    query,
+    cursor: cursor ?? null,
+  });
+}
+
+/** Read one listing with its run options and the static scan. Nothing runs. */
+export async function inspectMcpMarket(
+  name: string,
+  version?: string,
+): Promise<McpMarketInspection> {
+  await waitForReady();
+  return invoke<McpMarketInspection>("agent_mcp_market_inspect", {
+    name,
+    version: version ?? null,
+  });
+}
+
+/** Add a registry server. A blocked scan resolves with `added: false` and the
+ *  scan; pass `override: true` after the user confirms "Add anyway". */
+export async function addMcpFromMarket(args: {
+  name: string;
+  version?: string;
+  choice: McpMarketChoice;
+  scope: "global" | "project";
+  cwd?: string;
+  values?: { env?: Record<string, string>; headers?: Record<string, string> };
+  override?: boolean;
+}): Promise<McpMarketAddResult> {
+  await waitForReady();
+  return invoke<McpMarketAddResult>("agent_mcp_market_add", {
+    name: args.name,
+    version: args.version ?? null,
+    choice: args.choice,
+    scope: args.scope,
+    cwd: args.cwd ?? null,
+    values: args.values ?? null,
+    override: args.override ?? false,
+  });
+}
+
+// ── Worktree workers (merge review) ─────────────────────────────────────────
+
+/** Per-project policy, saved in gg-app.json. */
+export interface WorktreeWorkersPref {
+  enabled: boolean;
+  autoMerge: "never" | "clean-and-verified";
+}
+
+/** One worker that has its own worktree. */
+export interface WorktreeWorkerRow {
+  agentId: string;
+  name: string;
+  branch: string;
+  path: string;
+  base: string;
+  status: { dirty: number; ahead: number; changedFiles: number };
+  childState: SubAgentStatePayload["state"] | "reaped";
+  /** The last automatic merge attempt; `reason` says why it was left for review. */
+  autoMerge?: { attempted: true; merged: boolean; reason?: string };
+}
+
+/** `/worktree-workers` and `worktree_workers_state` events. */
+export interface WorktreeWorkersState {
+  pref: WorktreeWorkersPref;
+  workers: WorktreeWorkerRow[];
+}
+
+export interface WorktreeDiff {
+  files: { path: string; status: string; additions: number; deletions: number }[];
+  patch: string;
+  truncated: boolean;
+}
+
+export interface WorktreeVerifyResult {
+  label: string;
+  command: string;
+  passed: boolean;
+  exitCode: number | null;
+  tail: string;
+}
+
+/** `worktree_verify_progress`: one check in a worker's worktree started or finished. */
+export interface WorktreeVerifyProgress {
+  branch: string;
+  label: string;
+  status: "running" | "passed" | "failed";
+  exitCode?: number;
+  tail?: string;
+}
+
+export async function getWorktreeWorkers(): Promise<WorktreeWorkersState> {
+  await waitForReady();
+  return invoke<WorktreeWorkersState>("agent_get_worktree_workers");
+}
+
+export async function setWorktreeWorkers(
+  change: Partial<WorktreeWorkersPref>,
+): Promise<WorktreeWorkersState> {
+  await waitForReady();
+  return invoke<WorktreeWorkersState>("agent_set_worktree_workers", {
+    ...(change.enabled !== undefined ? { enabled: change.enabled } : {}),
+    ...(change.autoMerge !== undefined ? { autoMerge: change.autoMerge } : {}),
+  });
+}
+
+export async function worktreeDiff(branch: string): Promise<WorktreeDiff> {
+  await waitForReady();
+  return invoke<WorktreeDiff>("agent_worktree_diff", { branch });
+}
+
+export async function worktreePreview(branch: string): Promise<{ conflicts: string[] }> {
+  await waitForReady();
+  return invoke<{ conflicts: string[] }>("agent_worktree_preview", { branch });
+}
+
+/** Run the project's checks in the worker's worktree; progress streams as `worktree_verify_progress`. */
+export async function worktreeVerify(
+  branch: string,
+): Promise<{ passed: boolean; results: WorktreeVerifyResult[] }> {
+  await waitForReady();
+  return invoke("agent_worktree_verify", { branch });
+}
+
+/** Merge the worker's branch into the base (squash by default); a refusal rejects with the files named. */
+export async function worktreeMerge(
+  branch: string,
+  mode: "squash" | "merge" = "squash",
+): Promise<{ merged: true; commit: string }> {
+  await waitForReady();
+  return invoke("agent_worktree_merge", { branch, mode });
+}
+
+export async function worktreeDiscard(branch: string): Promise<{ discarded: true }> {
+  await waitForReady();
+  return invoke("agent_worktree_discard", { branch });
 }

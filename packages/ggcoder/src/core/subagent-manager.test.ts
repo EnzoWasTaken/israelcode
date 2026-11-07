@@ -1037,3 +1037,53 @@ describe("durable turn-record adoption on hydrate", () => {
     expect(snapshot.output).toBe("done before crash");
   });
 });
+
+describe("SubAgentManager worktree isolation", () => {
+  it("runs an isolated child in its own worktree and drops it when it changed nothing", async () => {
+    const { execFileSync } = await import("node:child_process");
+    const root = await tempDir();
+    const repo = path.join(root, "repo");
+    await fs.mkdir(repo, { recursive: true });
+    const git = (...args: string[]) =>
+      execFileSync("git", args, { cwd: repo, stdio: "pipe" }).toString();
+    git("init", "-q", "-b", "main");
+    git("config", "user.email", "t@example.com");
+    git("config", "user.name", "T");
+    await fs.writeFile(path.join(repo, "a.txt"), "a\n");
+    git("add", ".");
+    git("commit", "-q", "-m", "init");
+    const managedRoot = path.join(root, "trees");
+    const states: Array<{ worktree?: unknown; cwd?: string }> = [];
+    const instance = new SubAgentManager({
+      cwd: repo,
+      agents,
+      getProvider: () => "openai",
+      getModel: () => "gpt-6.1-sol",
+      subAgentDepth: 0,
+      workerEntry,
+      getWorktreePolicy: () => ({ enabled: true, repoRoot: repo, managedRoot }),
+      onState: (snapshot) => states.push(snapshot),
+    });
+    managers.push(instance);
+    const started = await instance.spawn("edit things", "fast", undefined, {
+      isolation: "worktree",
+    });
+    expect(started.worktree?.branch).toMatch(/^gg\/worker\/edit-things-/);
+    expect(started.worktree?.base).toBe("main");
+    expect(started.cwd).toBe(started.worktree?.path);
+    expect(
+      path
+        .relative(
+          (await import("node:fs")).realpathSync.native(managedRoot),
+          started.worktree!.path,
+        )
+        .startsWith(".."),
+    ).toBe(false);
+    await instance.wait([started.agent_id], "all", 5_000);
+    await vi.waitFor(() => expect(states.at(-1)?.worktree).toBeUndefined(), { timeout: 15_000 });
+    await instance.waitForWorktreeCleanup();
+    expect(states.at(-1)?.cwd).toBeUndefined();
+    expect(git("branch", "--list", "gg/worker/*").trim()).toBe("");
+    expect(git("worktree", "list", "--porcelain").match(/^worktree /gm)).toHaveLength(1);
+  }, 30_000);
+});

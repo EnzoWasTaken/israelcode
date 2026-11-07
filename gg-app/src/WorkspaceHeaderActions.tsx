@@ -1,4 +1,14 @@
-import type { BudgetState, ProjectTask, VerifyState, WorkspaceMode } from "./agent";
+import type {
+  BudgetState,
+  ProjectTask,
+  VerifyState,
+  WorkspaceMode,
+  WorktreeVerifyProgress,
+  WorktreeWorkerRow,
+  WorktreeWorkersPref,
+  WorktreeWorkersState,
+} from "./agent";
+import { WorktreeReviewControl } from "./WorktreeReview";
 import { BudgetMeter } from "./BudgetMeter";
 import { VerifyControl } from "./VerifyControl";
 import { fl } from "./flavor";
@@ -186,6 +196,9 @@ export function DeckMenu({
   workerName,
   verify,
   onVerifyChange,
+  worktreeWorkers,
+  worktreeVerifyProgress,
+  onWorktreeWorkersChange,
   onNewSession,
   onOpenNotes,
   onOpenMemories,
@@ -221,6 +234,10 @@ export function DeckMenu({
   /** The verify loop (code windows): its switch, checks and cap; absent elsewhere. */
   verify?: VerifyState | null;
   onVerifyChange?: (next: VerifyState) => void;
+  /** Worktree-isolated workers (code windows): policy and worker worktrees; absent elsewhere. */
+  worktreeWorkers?: { pref: WorktreeWorkersPref; workers?: WorktreeWorkerRow[] } | null;
+  worktreeVerifyProgress?: Record<string, WorktreeVerifyProgress[]>;
+  onWorktreeWorkersChange?: (next: WorktreeWorkersState) => void;
   onNewSession: () => void;
   onOpenNotes: () => void;
   onOpenMemories: () => void;
@@ -307,6 +324,13 @@ export function DeckMenu({
       )}
       {code && verify && onVerifyChange && (
         <VerifyControl verify={verify} running={running} onChange={onVerifyChange} />
+      )}
+      {code && worktreeWorkers && onWorktreeWorkersChange && (
+        <WorktreeReviewControl
+          state={worktreeWorkers}
+          progress={worktreeVerifyProgress}
+          onChange={onWorktreeWorkersChange}
+        />
       )}
       {code && (
         <button
