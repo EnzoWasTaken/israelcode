@@ -62,6 +62,7 @@ import {
   setWindowTitle,
   workspaceProductName,
   type AgentState,
+  type VerifyState,
   type WorkspaceMode,
   type ModelOption,
   type SlashCommand,
@@ -195,7 +196,7 @@ import {
   type PendingAttachment,
 } from "./attachments";
 import { TranscriptRow } from "./TranscriptRow";
-import { nextId, lastIssuedId, type Item } from "./transcript-item";
+import { nextId, lastIssuedId, verifyItemFromResult, type Item } from "./transcript-item";
 import { useTranscriptScroll } from "./useTranscriptScroll";
 import { useTrayIntents } from "./useTrayIntents";
 import { useAttachments } from "./useAttachments";
@@ -1281,6 +1282,7 @@ function App(): React.ReactElement {
                 return { kind: "info", id: nextId(), text: VIDEO_CAPABILITY_WARNING };
               if (h.shell) return shellItemFromHistory(h.shell, nextId(), pendingShellRuns);
               if (h.checkoutNotice) return { kind: "info", id: nextId(), text: h.checkoutNotice };
+              if (h.verify) return verifyItemFromResult(nextId(), h.verify);
               // Ken "Send to GG Coder" prompts: restore the shimmer label, not the
               // full prompt body (matches live).
               if (h.kenSent && h.role === "user")
@@ -1666,6 +1668,10 @@ function App(): React.ReactElement {
         setState(patch(!next));
         toast("Couldn't change Orchestrate. Try again.", "error");
       });
+  }
+  // Verify loop: the control saves through the sidecar; this just mirrors the result.
+  function changeVerify(next: VerifyState): void {
+    setState((s) => (s ? { ...s, verify: next } : s));
   }
   // The model Orchestrate's workers run on; null: they follow the main model.
   function onSelectWorkerModel(modelId: string | null): void {
@@ -3475,6 +3481,8 @@ function App(): React.ReactElement {
                   onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
                   orchestrate={state?.orchestration?.orchestrate ?? false}
                   onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
+                  verify={state?.verify ?? null}
+                  onVerifyChange={changeVerify}
                   orchestratorName={modelDisplayName(models, state?.model)}
                   workerName={modelDisplayName(
                     models,

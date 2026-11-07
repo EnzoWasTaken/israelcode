@@ -22,6 +22,7 @@ import { PlanDecisionNotice } from "./PlanDecisionNotice";
 import { SecurityNotice } from "./SecurityNotice";
 import { AskBand } from "./AskBand";
 import { ShellBlock } from "./ShellBlock";
+import { VerifyStrip } from "./VerifyStrip";
 import type { ShellActions } from "./useShellRuns";
 import { Markdown } from "./Markdown";
 import { ImageGenCard } from "./image-gen/ImageGenCard";
@@ -479,6 +480,8 @@ function TranscriptRowBody({
       return <TodoList todos={item.todos} settled={item.settled} />;
     case "shell":
       return <ShellBlock item={item} actions={shellActions} onGrow={onContentGrow} />;
+    case "verify":
+      return <VerifyStrip item={item} />;
     case "security":
       return (
         <SecurityNotice

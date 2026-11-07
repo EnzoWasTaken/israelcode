@@ -1,5 +1,6 @@
-import type { BudgetState, ProjectTask, WorkspaceMode } from "./agent";
+import type { BudgetState, ProjectTask, VerifyState, WorkspaceMode } from "./agent";
 import { BudgetMeter } from "./BudgetMeter";
+import { VerifyControl } from "./VerifyControl";
 import { fl } from "./flavor";
 import { Icon } from "./icons";
 import { WindowLayoutButton } from "./WindowLayoutButton";
@@ -183,6 +184,8 @@ export function DeckMenu({
   onOrchestrateChange,
   orchestratorName,
   workerName,
+  verify,
+  onVerifyChange,
   onNewSession,
   onOpenNotes,
   onOpenMemories,
@@ -215,6 +218,9 @@ export function DeckMenu({
   /** Display names for the toggle's tooltip: the main model and the Worker model. */
   orchestratorName?: string;
   workerName?: string;
+  /** The verify loop (code windows): its switch, checks and cap; absent elsewhere. */
+  verify?: VerifyState | null;
+  onVerifyChange?: (next: VerifyState) => void;
   onNewSession: () => void;
   onOpenNotes: () => void;
   onOpenMemories: () => void;
@@ -298,6 +304,9 @@ export function DeckMenu({
           Orchestrate
           <span className="led" data-state={orchestrate ? "on" : undefined} aria-hidden="true" />
         </button>
+      )}
+      {code && verify && onVerifyChange && (
+        <VerifyControl verify={verify} running={running} onChange={onVerifyChange} />
       )}
       {code && (
         <button

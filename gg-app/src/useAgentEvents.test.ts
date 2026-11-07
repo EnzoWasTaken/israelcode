@@ -1802,3 +1802,82 @@ describe("budget guardrails", () => {
     expect(texts[1]).toMatch(/going in circles \(8 failed tool calls in a row\)/);
   });
 });
+
+describe("verify loop events", () => {
+  it("builds one verify row per loop and updates it in place", () => {
+    const { hook, getItems } = setup();
+    const base = { round: 1, maxRounds: 3, label: "test", command: "npm test" };
+    act(() => {
+      hook.result.current.handleEvent(ev("verify_progress", { ...base, status: "running" }));
+      hook.result.current.handleEvent(
+        ev("verify_progress", { ...base, status: "fail", exitCode: 1, durationMs: 5, tail: "F" }),
+      );
+      hook.result.current.handleEvent(
+        ev("verify_progress", { ...base, round: 2, status: "pass", exitCode: 0, durationMs: 4 }),
+      );
+    });
+    const items = getItems();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "verify",
+      maxRounds: 3,
+      rounds: [
+        { round: 1, checks: [{ label: "test", status: "fail", exitCode: 1, tail: "F" }] },
+        { round: 2, checks: [{ label: "test", status: "pass", exitCode: 0 }] },
+      ],
+    });
+  });
+
+  it("settles the row from verify_result and skips a loop with no commands", () => {
+    const { hook, getItems } = setup();
+    act(() => {
+      hook.result.current.handleEvent(
+        ev("verify_progress", {
+          round: 1,
+          maxRounds: 2,
+          label: "lint",
+          command: "eslint .",
+          status: "running",
+        }),
+      );
+      hook.result.current.handleEvent(
+        ev("verify_result", {
+          passed: false,
+          stoppedReason: "max-rounds",
+          rounds: [
+            {
+              round: 1,
+              results: [
+                { label: "lint", command: "eslint .", exitCode: 2, durationMs: 9, tail: "x" },
+              ],
+            },
+          ],
+        }),
+      );
+      hook.result.current.handleEvent(
+        ev("verify_result", { passed: true, stoppedReason: "no-commands", rounds: [] }),
+      );
+    });
+    const items = getItems();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "verify",
+      maxRounds: 2,
+      result: { passed: false, stoppedReason: "max-rounds" },
+      rounds: [{ round: 1, checks: [{ label: "lint", status: "fail", exitCode: 2 }] }],
+    });
+  });
+
+  it("stores verify_state on the agent state", () => {
+    const { hook, getState } = setup();
+    const verify = {
+      enabled: true,
+      config: { commands: [], maxRounds: 3, source: "detected" },
+      running: false,
+    };
+    act(() => {
+      hook.result.current.handleEvent(ev("verify_state", verify));
+    });
+    expect(getState()?.verify).toEqual(verify);
+  });
+});

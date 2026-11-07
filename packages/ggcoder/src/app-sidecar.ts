@@ -145,6 +145,7 @@ import {
   loadUltracodeDefault,
   loadOrchestrateDefault,
   loadBudgetPref,
+  loadVerifyEnabled,
   projectModelKey,
   loadWorkerModelPref,
   loadPermissionModeDefault,
@@ -161,6 +162,9 @@ import { handleGoalRoutes } from "./app-sidecar/goal-routes.js";
 import { handleOrchestrationRoutes } from "./app-sidecar/orchestration-routes.js";
 import { handleBudgetRoutes } from "./app-sidecar/budget-routes.js";
 import { createBudgetController, type BudgetController } from "./app-sidecar/budget.js";
+import { handleVerifyRoutes } from "./app-sidecar/verify-routes.js";
+import { createVerifyController, type VerifyController } from "./app-sidecar/verify.js";
+import { loadVerifyConfig } from "./core/verify-loop.js";
 import { readDayUsage } from "./core/budget-guard.js";
 import { resolveWorkerPick } from "./app-sidecar/orchestration.js";
 import { readGitState, resolveGitCwd } from "./app-sidecar/git-target.js";
@@ -1140,6 +1144,7 @@ async function createSession(
   let session!: AgentSession;
   let workerModel: ChildModelPick | null = null;
   let budget: BudgetController | null = null;
+  let verify: VerifyController | null = null;
   if (mode === "chat") {
     session = createChatAgent(chatAgent, {
       ...baseSessionOptions,
@@ -1236,6 +1241,24 @@ async function createSession(
       loopBreakStats: () => session.getLoopBreakStats(),
     });
     budget.attach(session.eventBus);
+    // Verify loop: after a turn that changed code, run the project's checks and
+    // feed failures back as hidden fix rounds. Fix rounds share the outer
+    // run's generation (like autopilot injections) so Stop ends them too.
+    verify = createVerifyController({
+      cwd,
+      enabled: await loadVerifyEnabled(cwd),
+      config: await loadVerifyConfig(cwd),
+      broadcast,
+      fixRound: (message) =>
+        runAgent("Verify: fixing failed checks", () =>
+          session.prompt(message, {
+            source: "runtime",
+            kind: "automation",
+            visibility: "hidden",
+          }),
+        ),
+      persistMarker: (data) => session.persistAppMarker("verify", data),
+    });
   }
   // This window just moved into a worktree (Git panel branch picker): tell the
   // agent where it now works before its next turn.
@@ -2136,6 +2159,8 @@ async function createSession(
     taskRunAll = false;
     autopilotCancelled = true;
     kenAutoAbort.abort();
+    // A verify check in flight is killed with its process tree; the loop ends.
+    verify?.cancel();
   }
 
   function installFreshRunControllers(): void {
@@ -2945,6 +2970,9 @@ async function createSession(
     get budget() {
       return budget;
     },
+    get verify() {
+      return verify;
+    },
     syncKenAutoModel,
     get autopilotReviewing() {
       return autopilotReviewing;
@@ -3089,6 +3117,7 @@ async function createSession(
     if (handleGoalRoutes(routeCtx, req, res, url, method)) return;
     if (handleOrchestrationRoutes(routeCtx, req, res, url, method)) return;
     if (handleBudgetRoutes(routeCtx, req, res, url, method)) return;
+    if (handleVerifyRoutes(routeCtx, req, res, url, method)) return;
     if (handleHistoryRoutes(routeCtx, req, res, url, method)) return;
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;

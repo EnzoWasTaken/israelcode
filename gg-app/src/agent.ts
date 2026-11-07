@@ -228,6 +228,8 @@ export interface AgentState {
   orchestration?: OrchestrationState;
   /** Token caps and the meter (coding sessions); null elsewhere. */
   budget?: BudgetState | null;
+  /** The verify loop: switch, commands and whether checks run now (coding sessions); null elsewhere. */
+  verify?: VerifyState | null;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -1317,6 +1319,81 @@ export async function budgetContinue(): Promise<BudgetState> {
   return invoke<BudgetState>("agent_budget_continue");
 }
 
+// ── Verify loop ─────────────────────────────────────────────────────────────
+
+/** One check the verify loop runs, as stored in the project's `.gg/verify.json`. */
+export interface VerifyCommandSpec {
+  label: string;
+  command: string;
+}
+
+export interface VerifyConfig {
+  commands: VerifyCommandSpec[];
+  /** Check rounds per loop; each failing round short of the last gets a fix round. */
+  maxRounds: number;
+  /** The project's file, or what its manifests promise. */
+  source: "file" | "detected";
+}
+
+/** `/verify`, the ready frame, `verify_state` events and `AgentState.verify`. */
+export interface VerifyState {
+  enabled: boolean;
+  config: VerifyConfig;
+  running: boolean;
+}
+
+/** `verify_progress`: one check started or finished. */
+export interface VerifyProgress {
+  round: number;
+  maxRounds: number;
+  label: string;
+  command: string;
+  status: "running" | "pass" | "fail";
+  exitCode?: number | null;
+  durationMs?: number;
+  tail?: string;
+}
+
+export interface VerifyCommandResult {
+  label: string;
+  command: string;
+  exitCode: number | null;
+  durationMs: number;
+  tail: string;
+}
+
+/** `verify_result` and the persisted `verify` history row. */
+export interface VerifyResult {
+  passed: boolean;
+  rounds: Array<{ round: number; results: VerifyCommandResult[] }>;
+  stoppedReason: "passed" | "max-rounds" | "cancelled" | "no-commands";
+}
+
+export async function getVerify(): Promise<VerifyState> {
+  await waitForReady();
+  return invoke<VerifyState>("agent_get_verify");
+}
+
+/** Save the switch (per project) and/or the commands and round cap (`.gg/verify.json`). */
+export async function setVerify(change: {
+  enabled?: boolean;
+  commands?: VerifyCommandSpec[];
+  maxRounds?: number;
+}): Promise<VerifyState> {
+  await waitForReady();
+  return invoke<VerifyState>("agent_set_verify", {
+    ...(change.enabled !== undefined ? { enabled: change.enabled } : {}),
+    ...(change.commands !== undefined ? { commands: change.commands } : {}),
+    ...(change.maxRounds !== undefined ? { maxRounds: change.maxRounds } : {}),
+  });
+}
+
+/** Run the project's checks now, as a run of its own (Stop applies). */
+export async function runVerify(): Promise<{ started: boolean }> {
+  await waitForReady();
+  return invoke<{ started: boolean }>("agent_run_verify");
+}
+
 /** Pin the Worker model Orchestrate's children run on, or clear it (null) so
  *  they follow the main model. The sidecar validates and persists per project. */
 export async function setWorkerModel(model: string | null): Promise<OrchestrationState> {
@@ -1428,6 +1505,8 @@ export interface HistoryEntry {
     truncated: boolean;
     error?: string;
   };
+  /** A verify-loop result row (checks run after a turn, with fix rounds). */
+  verify?: VerifyResult;
   /** Where the conversation reopened for its branch. */
   checkoutNotice?: string;
   /** Tool-produced images rendered inline (same as live `images` items),

@@ -58,6 +58,21 @@ export interface HistoryEntryForWire {
     truncated: boolean;
     error?: string;
   };
+  /** A verify-loop result row (persisted `verify` app marker). */
+  verify?: {
+    passed: boolean;
+    rounds: Array<{
+      round: number;
+      results: Array<{
+        label: string;
+        command: string;
+        exitCode: number | null;
+        durationMs: number;
+        tail: string;
+      }>;
+    }>;
+    stoppedReason: "passed" | "max-rounds" | "cancelled" | "no-commands";
+  };
   /** Where the conversation reopened for its branch (persisted `checkout` marker). */
   checkoutNotice?: string;
   toolImages?: Array<{ src: string; path?: string }>;

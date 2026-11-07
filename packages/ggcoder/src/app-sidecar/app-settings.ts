@@ -73,6 +73,8 @@ export interface AppSettings {
   allowedCommands?: Record<string, string[]>;
   /** Token budgets keyed by normalized project cwd. Absent → no caps, runaway stop on. */
   budgets?: Record<string, BudgetPref>;
+  /** Verify loop (checks after a turn, fix rounds) per normalized project cwd. Absent → off. */
+  verify?: Record<string, VerifyPref>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -122,6 +124,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       ultracode: raw.ultracode === true ? true : undefined,
       workerModels: validWorkerModels(raw.workerModels),
       budgets: validBudgets(raw.budgets),
+      verify: validVerify(raw.verify),
       orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
@@ -431,5 +434,40 @@ export async function saveBudgetPref(cwd: string, pref: BudgetPref): Promise<voi
     if (clean) next[key] = clean;
     else delete next[key];
     s.budgets = Object.keys(next).length > 0 ? next : undefined;
+  });
+}
+
+// ── Verify loop: on/off per project ─────────────────────────────────────────
+
+/** Whether Israel Code runs the project's checks after a turn that changed code. */
+export interface VerifyPref {
+  enabled: boolean;
+}
+
+/** Keep only entries that are switched on; off is the default and needs no entry. */
+function validVerify(value: unknown): Record<string, VerifyPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, VerifyPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    if (!pref || typeof pref !== "object") continue;
+    if ((pref as VerifyPref).enabled === true) out[key] = { enabled: true };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Is the verify loop on for this project? Off unless saved on. */
+export async function loadVerifyEnabled(cwd: string): Promise<boolean> {
+  const s = await loadAppSettings();
+  return s.verify?.[projectModelKey(cwd)]?.enabled === true;
+}
+
+/** Persist the project's verify switch via read-modify-write; off removes the entry. */
+export async function saveVerifyEnabled(cwd: string, enabled: boolean): Promise<void> {
+  const key = projectModelKey(cwd);
+  await updateAppSettings((s) => {
+    const next = { ...(s.verify ?? {}) };
+    if (enabled) next[key] = { enabled: true };
+    else delete next[key];
+    s.verify = Object.keys(next).length > 0 ? next : undefined;
   });
 }

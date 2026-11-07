@@ -8,6 +8,24 @@ import type { WorkspaceMode } from "./agent";
 vi.mock("./WindowLayoutButton", () => ({ WindowLayoutButton: () => <button>Arrange</button> }));
 // BudgetMeter reaches ./agent, whose module scope needs a Tauri window.
 vi.mock("./BudgetMeter", () => ({ BudgetMeter: () => <span className="budget-pill" /> }));
+// VerifyControl reaches ./agent too; keep a switch so the deck's wiring is testable.
+vi.mock("./VerifyControl", () => ({
+  VerifyControl: ({
+    verify,
+    onChange,
+  }: {
+    verify: { enabled: boolean };
+    onChange: (next: { enabled: boolean }) => void;
+  }) => (
+    <button
+      role="switch"
+      aria-checked={verify.enabled}
+      onClick={() => onChange({ ...verify, enabled: !verify.enabled })}
+    >
+      Verify
+    </button>
+  ),
+}));
 
 function renderTitleBar(
   opts: {
@@ -57,6 +75,7 @@ function renderMenu(
     orchestratorName?: string;
     workerName?: string;
   },
+  verify?: { enabled: boolean; onChange: (next: unknown) => void },
 ): void {
   render(
     <DeckMenu
@@ -72,6 +91,16 @@ function renderMenu(
       onOrchestrateChange={orchestration?.onChange}
       orchestratorName={orchestration?.orchestratorName}
       workerName={orchestration?.workerName}
+      verify={
+        verify
+          ? {
+              enabled: verify.enabled,
+              running: false,
+              config: { commands: [], maxRounds: 3, source: "detected" },
+            }
+          : null
+      }
+      onVerifyChange={verify?.onChange}
       onNewSession={vi.fn()}
       onOpenNotes={vi.fn()}
       onOpenMemories={vi.fn()}
@@ -239,6 +268,18 @@ describe("DeckMenu", () => {
     cleanup();
     renderMenu("chat", false, undefined, { on: false, onChange: vi.fn() });
     expect(screen.queryByRole("switch", { name: "Orchestrate" })).toBeNull();
+  });
+
+  it("shows the Verify key in a coding deck only", () => {
+    const onChange = vi.fn();
+    renderMenu("code", false, undefined, undefined, { enabled: false, onChange });
+    const key = screen.getByRole("switch", { name: "Verify" });
+    expect(key.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(key);
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+    cleanup();
+    renderMenu("chat", false, undefined, undefined, { enabled: true, onChange });
+    expect(screen.queryByRole("switch", { name: "Verify" })).toBeNull();
   });
 
   it("offers Brain and New chat in a chat window, and no project tools", () => {

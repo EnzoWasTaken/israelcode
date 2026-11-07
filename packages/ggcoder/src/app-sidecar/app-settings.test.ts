@@ -17,6 +17,8 @@ const {
   loadAppSettings,
   loadBudgetPref,
   saveBudgetPref,
+  loadVerifyEnabled,
+  saveVerifyEnabled,
   loadOrchestrateDefault,
   loadWorkerModelPref,
   saveAutopilot,
@@ -170,5 +172,33 @@ describe("budget settings", () => {
     expect((await loadAppSettings()).budgets).toEqual({
       [path.resolve("/ok")]: { sessionTokens: 5000 },
     });
+  });
+});
+
+describe("verify settings", () => {
+  it("is off by default and saves the switch per project", async () => {
+    expect(await loadVerifyEnabled("/proj")).toBe(false);
+    await saveVerifyEnabled("/proj", true);
+    expect(await loadVerifyEnabled("/proj")).toBe(true);
+    expect(await loadVerifyEnabled("/other")).toBe(false);
+    expect((await readFile()).verify).toEqual({ [path.resolve("/proj")]: { enabled: true } });
+    await saveVerifyEnabled("/proj", false);
+    expect("verify" in (await readFile())).toBe(false);
+  });
+
+  it("ignores malformed verify entries on load", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(
+      appSettingsFile(),
+      JSON.stringify({
+        projectsRoot: "/root",
+        verify: {
+          [path.resolve("/on")]: { enabled: true },
+          [path.resolve("/str")]: { enabled: "yes" },
+          [path.resolve("/junk")]: 1,
+        },
+      }),
+    );
+    expect((await loadAppSettings()).verify).toEqual({ [path.resolve("/on")]: { enabled: true } });
   });
 });

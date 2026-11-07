@@ -237,7 +237,9 @@ export interface AppMarkerPayload extends RecordedPosition {
      *  { runId, command, cwd, exitCode, durationMs, cancelled, output, truncated }. */
     | "shell"
     /** The conversation opened somewhere new for its branch; `data` carries { text }. */
-    | "checkout";
+    | "checkout"
+    /** A verify-loop result; `data` carries { passed, rounds, stoppedReason }. */
+    | "verify";
   afterMessageCount: number;
   /** Kind-specific display fields (reason/title/headline/kenSent/counts/…). */
   data: Record<string, unknown>;
@@ -1643,7 +1645,8 @@ export class SessionManager {
             kind === "import" ||
             kind === "interrupted_run" ||
             kind === "security" ||
-            kind === "shell")
+            kind === "shell" ||
+            kind === "verify")
         ) {
           return [
             {

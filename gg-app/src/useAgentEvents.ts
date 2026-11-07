@@ -9,6 +9,9 @@ import {
   type AgentState,
   type BackgroundTask,
   type BudgetStatus,
+  type VerifyProgress,
+  type VerifyResult,
+  type VerifyState,
   type CacheExpiryStatus,
   type ModelOption,
   type ProjectTask,
@@ -41,7 +44,7 @@ import type { PendingAttachment } from "./attachments";
 import type { Item } from "./App";
 import { readChatError } from "./chat-error";
 import type { LiveTextStore } from "./live-text";
-import { lastIssuedId } from "./transcript-item";
+import { lastIssuedId, verifyItemFromResult, type VerifyItem } from "./transcript-item";
 
 /**
  * Build-session SSE event handling + assistant-streaming helpers, extracted from
@@ -223,6 +226,8 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
   // Transcript id of the in-flight compaction notice, so compaction_end can
   // flip the same row from shimmer → summary instead of pushing a new line.
   const compactionIdRef = useRef<number | null>(null);
+  // The verify row of the loop in progress; null between loops.
+  const verifyIdRef = useRef<number | null>(null);
   const runStartRef = useRef<number>(0);
   // Whether a run is open, and whether it hit an error frame. A run that
   // errored ends with the error sound instead of the done sound; an error
@@ -1165,6 +1170,69 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
             id: nextId(),
             text: `Stopped: the run reached ${over}. Raise the cap or choose Continue anyway in the budget meter.`,
           });
+          break;
+        }
+        // Verify loop: the switch/config changed, a check started or finished,
+        // the loop ended. One transcript row per loop, updated in place.
+        case "verify_state":
+          setState((s) => (s ? { ...s, verify: d as unknown as VerifyState } : s));
+          break;
+        case "verify_progress": {
+          const p = d as unknown as VerifyProgress;
+          const check: VerifyItem["rounds"][number]["checks"][number] = {
+            label: p.label,
+            command: p.command,
+            status: p.status,
+            ...(p.exitCode !== undefined ? { exitCode: p.exitCode } : {}),
+            ...(p.durationMs !== undefined ? { durationMs: p.durationMs } : {}),
+            ...(p.tail !== undefined ? { tail: p.tail } : {}),
+          };
+          if (verifyIdRef.current === null) {
+            const id = nextId();
+            verifyIdRef.current = id;
+            endStreamingText();
+            pushItem({
+              kind: "verify",
+              id,
+              maxRounds: p.maxRounds,
+              rounds: [{ round: p.round, checks: [check] }],
+            });
+            break;
+          }
+          const id = verifyIdRef.current;
+          setItems((prev) =>
+            prev.map((it) => {
+              if (it.kind !== "verify" || it.id !== id) return it;
+              const rounds = it.rounds.map((r) => ({ ...r, checks: [...r.checks] }));
+              let round = rounds.find((r) => r.round === p.round);
+              if (!round) {
+                round = { round: p.round, checks: [] };
+                rounds.push(round);
+              }
+              const at = round.checks.findIndex((c) => c.command === p.command);
+              if (at === -1) round.checks.push(check);
+              else round.checks[at] = check;
+              return { ...it, maxRounds: p.maxRounds, rounds };
+            }),
+          );
+          break;
+        }
+        case "verify_result": {
+          const result = d as unknown as VerifyResult;
+          const id = verifyIdRef.current;
+          verifyIdRef.current = null;
+          if (result.stoppedReason === "no-commands") break;
+          if (id === null) {
+            pushItem(verifyItemFromResult(nextId(), result));
+            break;
+          }
+          setItems((prev) =>
+            prev.map((it) =>
+              it.kind === "verify" && it.id === id
+                ? { ...verifyItemFromResult(id, result, it.maxRounds) }
+                : it,
+            ),
+          );
           break;
         }
         case "runaway_stopped": {

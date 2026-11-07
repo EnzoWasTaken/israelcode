@@ -303,3 +303,80 @@ export class ShellRunner {
     for (const runId of [...this.runs.keys()]) this.cancel(runId);
   }
 }
+
+/** One command run to completion for the app itself (the verify loop). */
+export interface ShellRunOnceResult {
+  exitCode: number | null;
+  durationMs: number;
+  /** The last lines of output (redacted, plain text). */
+  tail: string;
+  /** Stopped through `signal` or by the timeout. */
+  cancelled: boolean;
+  timedOut: boolean;
+  /** The shell itself could not start. */
+  error?: string;
+}
+
+export const SHELL_RUN_ONCE_TIMEOUT_MS = 10 * 60_000;
+
+/**
+ * Run one command with the user's shell in `cwd` and wait for it: the verify
+ * loop's checks. Same launch, environment, redaction and tail as `!cmd`, but
+ * nothing streams to the window. `signal` (the Stop button) or the timeout
+ * kills the whole process tree.
+ */
+export function runShellCommandOnce(opts: {
+  cwd: string;
+  command: string;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  spawn?: ShellRunnerOptions["spawn"];
+  env?: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
+}): Promise<ShellRunOnceResult> {
+  const timeoutMs = opts.timeoutMs ?? SHELL_RUN_ONCE_TIMEOUT_MS;
+  return new Promise((resolve) => {
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onAbort = (): void => void runner.cancel("once");
+    const runner = new ShellRunner({
+      emit: () => {},
+      ...(opts.spawn ? { spawn: opts.spawn } : {}),
+      ...(opts.env ? { env: opts.env } : {}),
+      ...(opts.platform ? { platform: opts.platform } : {}),
+      onEnd: (run) => {
+        if (timer) clearTimeout(timer);
+        opts.signal?.removeEventListener("abort", onAbort);
+        resolve({
+          exitCode: run.exitCode,
+          durationMs: run.durationMs,
+          tail: run.tail,
+          cancelled: run.cancelled,
+          timedOut,
+          ...(run.error ? { error: run.error } : {}),
+        });
+      },
+    });
+    if (opts.signal?.aborted) {
+      resolve({ exitCode: null, durationMs: 0, tail: "", cancelled: true, timedOut: false });
+      return;
+    }
+    const started = runner.start("once", opts.command, opts.cwd);
+    if (!started.ok) {
+      resolve({
+        exitCode: null,
+        durationMs: 0,
+        tail: "",
+        cancelled: false,
+        timedOut: false,
+        error: started.error,
+      });
+      return;
+    }
+    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    timer = setTimeout(() => {
+      timedOut = true;
+      runner.cancel("once");
+    }, timeoutMs);
+  });
+}

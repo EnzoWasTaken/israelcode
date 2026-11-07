@@ -6,4 +6,5 @@ pub(crate) mod budget;
 pub(crate) mod files;
 pub(crate) mod orchestration;
 pub(crate) mod skills;
+pub(crate) mod verify;
 pub(crate) mod world;

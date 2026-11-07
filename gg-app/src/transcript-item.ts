@@ -118,6 +118,9 @@ export type Item =
       originalCount?: number;
       newCount?: number;
     }
+  // The verify loop for one turn: every round's checks, updated in place as
+  // `verify_progress` arrives; `result` once the loop ends.
+  | VerifyItem
   // Autopilot Ken verdict — emitted by the auto-review loop and rendered like a
   // normal @Ken reply bubble (Ken dot + text), not a separate marker style.
   // `phase` selects the message: he prompted GG Coder (with the `body` he sent),
@@ -144,6 +147,68 @@ let idSeq = 0;
 export const nextId = (): number => ++idSeq;
 /** The most recently issued transcript item id. */
 export const lastIssuedId = (): number => idSeq;
+
+export interface VerifyItemCheck {
+  label: string;
+  command: string;
+  status: "running" | "pass" | "fail";
+  exitCode?: number | null;
+  durationMs?: number;
+  tail?: string;
+}
+
+export interface VerifyItem {
+  kind: "verify";
+  id: number;
+  maxRounds: number;
+  rounds: Array<{ round: number; checks: VerifyItemCheck[] }>;
+  result?: {
+    passed: boolean;
+    stoppedReason: "passed" | "max-rounds" | "cancelled" | "no-commands";
+  };
+}
+
+/** A finished loop's history row (or `verify_result`) as a transcript item. */
+export function verifyItemFromResult(
+  id: number,
+  result: {
+    passed: boolean;
+    stoppedReason: VerifyItem["result"] extends infer R
+      ? R extends { stoppedReason: infer S }
+        ? S
+        : never
+      : never;
+    rounds: Array<{
+      round: number;
+      results: Array<{
+        label: string;
+        command: string;
+        exitCode: number | null;
+        durationMs: number;
+        tail: string;
+      }>;
+    }>;
+  },
+  maxRounds?: number,
+): VerifyItem {
+  return {
+    kind: "verify",
+    id,
+    maxRounds: maxRounds ?? Math.max(result.rounds.length, 1),
+    rounds: result.rounds.map((r) => ({
+      round: r.round,
+      checks: r.results.map((c) => ({
+        label: c.label,
+        command: c.command,
+        status: c.exitCode === 0 ? "pass" : "fail",
+        exitCode: c.exitCode,
+        durationMs: c.durationMs,
+        tail: c.tail,
+      })),
+    })),
+    result: { passed: result.passed, stoppedReason: result.stoppedReason },
+  };
+}
 
 export type ShellItem = {
   kind: "shell";

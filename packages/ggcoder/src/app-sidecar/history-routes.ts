@@ -4,6 +4,7 @@ import path from "node:path";
 import type { ToolResultContent } from "@kenkaiiii/gg-ai";
 import { restoreAppErrorPayload } from "../app-error.js";
 import type { KenTurnPayload, AppMarkerPayload } from "../core/session-manager.js";
+import { restoreVerifyMarker } from "./verify.js";
 import {
   normalizeAutopilotMarkersForHistory,
   normalizeAppMarkersForHistory,
@@ -308,6 +309,9 @@ export function handleHistoryRoutes(
                 ...(typeof d.error === "string" ? { error: d.error } : {}),
               },
             });
+          } else if (marker.kind === "verify") {
+            const verify = restoreVerifyMarker(d);
+            if (verify) history.push({ role: "assistant", text: "", verify });
           } else if (marker.kind === "interrupted_run") {
             // Rendered as an error row: the run's tools already changed the
             // repo, so the user needs to see it and decide what to do. We

@@ -29,6 +29,7 @@ import type {
 } from "@kenkaiiii/gg-core";
 import type { ApprovalBridge } from "./approvals.js";
 import type { BudgetController } from "./budget.js";
+import type { VerifyController } from "./verify.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -122,6 +123,8 @@ export interface SessionRouteContext {
   workerModel: ChildModelPick | null;
   /** Token caps and the runaway breaker; only coding sessions have one. */
   readonly budget: BudgetController | null;
+  /** The verify loop (checks after a turn, fix rounds); only coding sessions have one. */
+  readonly verify: VerifyController | null;
   readonly syncKenAutoModel: (provider: Provider, model: string) => Promise<void>;
   autopilotReviewing: boolean;
   taskRunAll: boolean;

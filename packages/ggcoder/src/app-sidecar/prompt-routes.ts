@@ -8,6 +8,7 @@ import {
   extractTurnToolCalls,
   isMechanicalOnlyTurn,
 } from "../core/autopilot-gate.js";
+import { turnWroteFiles } from "../core/verify-loop.js";
 import { hasUltracodeKeyword } from "../core/ultracode.js";
 import { hasOrchestrateKeyword } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
@@ -346,6 +347,21 @@ export function handlePromptRoutes(
           },
           () => ctx.autopilot,
         );
+        // The verify loop first: when the turn wrote files, run the project's
+        // checks and feed failures back as hidden fix rounds (up to the cap).
+        // Ken's review then judges the fixed result.
+        if (
+          ctx.verify?.enabled &&
+          !ctx.autopilotCancelled &&
+          !ctx.session.getPlanMode() &&
+          ctx.pendingPlanPath === null &&
+          turnWroteFiles(extractTurnToolCalls(ctx.session.getMessages(), messagesBefore))
+        ) {
+          const verify = ctx.verify;
+          await ctx.runAgent("Verify", async () => {
+            await verify.start();
+          });
+        }
         // After the user's run settles, kick off Ken's auto-review loop — but
         // only when the turn is actually reviewable (shouldStartAutopilotCycle):
         // workflow commands (/compare, /expand, …) end with reports or

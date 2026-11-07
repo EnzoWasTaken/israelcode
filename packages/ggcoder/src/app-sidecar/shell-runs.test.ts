@@ -9,6 +9,7 @@ import {
   formatShellContext,
   reopenStderr,
   parseShellRunBody,
+  runShellCommandOnce,
   tailOutput,
   userShellEnv,
   userShellLaunch,
@@ -198,4 +199,38 @@ describe("ShellRunner", () => {
     expect(end.cancelled).toBe(true);
     expect(end.durationMs).toBeLessThan(15_000);
   }, 20_000);
+});
+
+describe("runShellCommandOnce", () => {
+  it("waits for the command and returns its exit code and tail", async () => {
+    const result = await runShellCommandOnce({
+      cwd: process.cwd(),
+      command: `node -e "console.log('one'); console.error('two'); process.exit(4)"`,
+    });
+    expect(result.exitCode).toBe(4);
+    expect(result.cancelled).toBe(false);
+    expect(result.timedOut).toBe(false);
+    expect(result.tail).toContain("one");
+    expect(result.tail).toContain("two");
+  }, 20_000);
+
+  it("stops the command on abort or timeout", async () => {
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), 300);
+    const aborted = await runShellCommandOnce({
+      cwd: process.cwd(),
+      command: `node -e "setTimeout(() => {}, 30000)"`,
+      signal: ac.signal,
+    });
+    expect(aborted.cancelled).toBe(true);
+    expect(aborted.timedOut).toBe(false);
+    const late = await runShellCommandOnce({
+      cwd: process.cwd(),
+      command: `node -e "setTimeout(() => {}, 30000)"`,
+      timeoutMs: 300,
+    });
+    expect(late.cancelled).toBe(true);
+    expect(late.timedOut).toBe(true);
+    expect(late.durationMs).toBeLessThan(15_000);
+  }, 30_000);
 });
