@@ -33,6 +33,8 @@ export type Item =
       queued?: boolean;
       // Sent with Ultracode on: the turn shows its phase strip.
       ultracode?: boolean;
+      // Sent with Orchestrate on: same phase strip as Ultracode.
+      orchestrate?: boolean;
       // Set for one animation beat as `queued` clears, so the bubble can morph
       // into a normal one (dim → solid, "queued" pill collapsing away) instead of
       // snapping. Cleared by a timer in useAgentEvents once the motion is done.

@@ -935,3 +935,45 @@ export function skillBlockMessage(name: string, finding: SkillScanFinding): stri
   const where = finding.line > 0 ? `${finding.file}:${finding.line}` : finding.file;
   return `Skill "${name}" not loaded: ${finding.reason} (${where}).`;
 }
+
+// ── Shared with the install-time scanner (skill-install-scan.ts) ────────────
+// Additive exports only: the load-time behaviour above is unchanged. The
+// install-time scanner reports every finding with a severity and reuses this
+// vocabulary so the two never disagree about what "curl | sh" looks like.
+
+export type { LogicalLine as SkillLogicalLine };
+
+/** Split a file into logical lines with code/heading/analysis context. */
+export function splitSkillLines(text: string, kind: SkillFileKind): LogicalLine[] {
+  return splitLines(text, kind);
+}
+
+/** A URL nothing should be piped from into a shell (sink, shortener, plain http). */
+export function isSuspiciousSkillInstallUrl(raw: string): boolean {
+  return isSuspiciousInstallUrl(raw);
+}
+
+/** Every `http(s)://` URL in a line of text. */
+export function skillUrlsIn(text: string): string[] {
+  return urlsIn(text);
+}
+
+/** Host of a URL for messages, or the first 60 chars when it doesn't parse. */
+export function skillHostOf(raw: string): string {
+  return hostOf(raw);
+}
+
+/** The load-time rule regexes, for reuse by the install-time scanner. */
+export const SKILL_SCAN_PATTERNS = {
+  decodeToShell: DECODE_TO_SHELL,
+  reverseShell: REVERSE_SHELL,
+  downloadPipe: DOWNLOAD_PIPE,
+  shellSubstDownload: SHELL_SUBST_DOWNLOAD,
+  quarantineStrip: QUARANTINE_STRIP,
+  prereqBinary: PREREQ_BINARY,
+  archivePassword: ARCHIVE_PASSWORD,
+  credentialSource: CREDENTIAL_SOURCE,
+  secretInUrl: SECRET_IN_URL,
+  downloader: new RegExp(DOWNLOADER, "i"),
+  imperativeHeading: IMPERATIVE_HEADING,
+} as const;

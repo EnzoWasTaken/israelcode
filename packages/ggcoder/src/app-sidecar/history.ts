@@ -66,6 +66,8 @@ export interface HistoryEntryForWire {
     status: "done" | "error";
     toolUseCount: number;
   }>;
+  /** A user prompt sent while Orchestrate was on (phase strip, like Ultracode). */
+  orchestrate?: boolean;
   /** A user prompt sent while Ultracode was on. */
   ultracode?: boolean;
   /** The turn's checklist: the latest successful `todo_write` list. */

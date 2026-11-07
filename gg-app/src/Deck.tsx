@@ -87,6 +87,8 @@ export interface DeckProps {
   onSelectModel: (modelId: string) => void;
   /** Ken (code) or the critters (Goal); null in chat and motion. */
   second: SecondAgent | null;
+  /** The Workers Orchestrate delegates to (code windows); omitted elsewhere. */
+  third?: SecondAgent | null;
   tasks: BackgroundTask[];
   schedules: readonly ActiveSchedule[];
   onStopSchedule: (id: string) => void;
@@ -370,6 +372,7 @@ function PanelBody(
           running={props.running}
           onSelectModel={props.onSelectModel}
           second={props.second}
+          third={props.third ?? null}
           onClose={close}
         />
       );

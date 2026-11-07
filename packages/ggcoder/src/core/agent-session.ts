@@ -189,6 +189,7 @@ import {
 } from "./semantic-loop-check.js";
 import { buildEnvDeltaMessage, buildLanguageUpdateMessage } from "./env-delta.js";
 import { buildUltracodeMessage, lastUltracodeState, ULTRACODE_ACTIVE_LIMIT } from "./ultracode.js";
+import { buildOrchestrateMessage, lastOrchestrateState } from "./orchestration.js";
 import {
   APPROVAL_WAIT_MS,
   approvalNeeded,
@@ -880,6 +881,8 @@ export class AgentSession {
   /** Plan notice waiting for the next request, with the state it describes. */
   private pendingPlanNotice: { message: Message; state: PlanPromptState } | null = null;
   private ultracode = false;
+  /** Orchestrate (plan → delegate to Worker-model children → review) on/off. */
+  private orchestrate = false;
   private permissionMode: PermissionMode = "bypass";
   /** Latest plan notice appended — re-announced if compaction drops it. */
   private lastPlanNotice: Message | null = null;
@@ -1149,7 +1152,9 @@ export class AgentSession {
       getBaseUrl: () => this.baseUrl,
       getCacheKey: () => this.getPromptCacheKey(),
       getMaxPerModel: () => this.settingsManager.get("subagentMaxPerModel"),
-      getActiveLimit: () => (this.ultracode ? ULTRACODE_ACTIVE_LIMIT : ACTIVE_LIMIT),
+      // Orchestrate fans out like Ultracode, so it shares the raised cap.
+      getActiveLimit: () =>
+        this.ultracode || this.orchestrate ? ULTRACODE_ACTIVE_LIMIT : ACTIVE_LIMIT,
       // Children ask the parent before gated calls: they follow its live mode.
       authorizeChildTool: this.opts.requestApproval
         ? (tool, args, signal, agentName) => this.authorizeToolCall(tool, args, signal, agentName)
@@ -4282,6 +4287,20 @@ export class AgentSession {
     return this.ultracode;
   }
 
+  /** Orchestrate on/off. The model hears about it through one appended notice. */
+  setOrchestrate(active: boolean): void {
+    this.orchestrate = active;
+  }
+
+  isOrchestrate(): boolean {
+    return this.orchestrate;
+  }
+
+  /** The Worker model children run on (`getChildModel`), or null: they follow this session. */
+  getWorkerModel(): ChildModelPick | null {
+    return this.opts.getChildModel?.() ?? null;
+  }
+
   /** Permission mode (needs `requestApproval`). The model hears of it by notice. */
   setPermissionMode(mode: PermissionMode): void {
     this.permissionMode = this.opts.requestApproval ? mode : "bypass";
@@ -4322,6 +4341,17 @@ export class AgentSession {
       ...this.tools.map((t) => t.name),
       ...this.deferredBuiltinToolNames,
     ]);
+  }
+
+  /** The Orchestrate notice to append, if the model's picture is out of date (see Ultracode). */
+  private takeOrchestrateNotice(): Message | null {
+    if (this.orchestrate === lastOrchestrateState(this.messages)) return null;
+    const worker = this.getWorkerModel();
+    return buildOrchestrateMessage(
+      this.orchestrate,
+      [...this.tools.map((t) => t.name), ...this.deferredBuiltinToolNames],
+      worker ? (getModel(worker.model)?.name ?? worker.model) : undefined,
+    );
   }
 
   async setPlanMode(active: boolean): Promise<void> {
@@ -4588,6 +4618,13 @@ export class AgentSession {
       await this.persistMessage(ultracodeNotice);
       this.lastPersistedIndex = this.messages.length;
       log("INFO", "session", "Appended Ultracode notice", { on: String(this.ultracode) });
+    }
+    const orchestrateNotice = this.takeOrchestrateNotice();
+    if (orchestrateNotice) {
+      this.messages.push(orchestrateNotice);
+      await this.persistMessage(orchestrateNotice);
+      this.lastPersistedIndex = this.messages.length;
+      log("INFO", "session", "Appended Orchestrate notice", { on: String(this.orchestrate) });
     }
     const planNotice = this.takePlanNotice();
     if (planNotice) {

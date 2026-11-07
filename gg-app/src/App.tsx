@@ -27,6 +27,8 @@ import {
   sendKenPrompt,
   setAutopilot,
   setUltracode,
+  setOrchestrate,
+  setWorkerModel,
   setPermissionMode,
   respondApproval,
   cancel,
@@ -91,6 +93,7 @@ import { useAgentEvents, type RunEnd } from "./useAgentEvents";
 import { LiveToolPanel, type LiveToolEntry } from "./LiveToolPanel";
 import { TodoPill } from "./TodoList";
 import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
+import { hasOrchestrateKeyword } from "./orchestration";
 import { ultracodePhases, ultracodeTurns, type UltracodePhase } from "./ultracode-phases";
 import { UltracodePhases } from "./UltracodePhases";
 import { RewindModal } from "./RewindModal";
@@ -123,6 +126,7 @@ const GoalWorld = lazy(() =>
   import("./GoalWorld").then((module) => ({ default: module.GoalWorld })),
 );
 import { ModelSelect, loadModelsInto } from "./ModelSelect";
+import { modelDisplayName } from "./model-name";
 import {
   describeSchedule,
   isScheduleDraft,
@@ -1323,6 +1327,7 @@ function App(): React.ReactElement {
                   ? { enhancements: h.enhancements }
                   : {}),
                 ...(h.ultracode ? { ultracode: true } : {}),
+                ...(h.orchestrate ? { orchestrate: true } : {}),
               };
             }),
           ),
@@ -1592,6 +1597,12 @@ function App(): React.ReactElement {
     !input.trimStart().startsWith("/") &&
     hasUltracodeKeyword(input);
   const ultracodeArmed = ultracodeKeyword && !ultracodeDismissed;
+  // "orchestrate" typed in the draft: Orchestrate for this prompt only.
+  const orchestrateKeyword =
+    ultracodeAvailable &&
+    !shellMode &&
+    !input.trimStart().startsWith("/") &&
+    hasOrchestrateKeyword(input);
   // A dismissal lasts while the word stays in the draft; typing it anew re-arms.
   useEffect(() => {
     if (!ultracodeKeyword) setUltracodeDismissed(false);
@@ -1638,6 +1649,30 @@ function App(): React.ReactElement {
       setState((s) => (s ? { ...s, ultracode: !next } : s));
       toast("Couldn't change Ultracode. Try again.", "error");
     });
+  }
+  // Orchestrate: optimistic flip, reverted if the sidecar refuses (like Ultracode).
+  function changeOrchestrate(next: boolean): void {
+    const patch = (on: boolean) => (s: AgentState | null) =>
+      s
+        ? {
+            ...s,
+            orchestration: { workerModel: s.orchestration?.workerModel ?? null, orchestrate: on },
+          }
+        : s;
+    setState(patch(next));
+    setOrchestrate(next)
+      .then((res) => setState((s) => (s ? { ...s, orchestration: res } : s)))
+      .catch(() => {
+        setState(patch(!next));
+        toast("Couldn't change Orchestrate. Try again.", "error");
+      });
+  }
+  // The model Orchestrate's workers run on; null: they follow the main model.
+  function onSelectWorkerModel(modelId: string | null): void {
+    if (modelId === (state?.orchestration?.workerModel ?? null)) return;
+    void setWorkerModel(modelId)
+      .then((res) => setState((s) => (s ? { ...s, orchestration: res } : s)))
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
   }
   // Entering `!` loads the picker's commands (history counts change per run).
   useEffect(() => {
@@ -2629,6 +2664,10 @@ function App(): React.ReactElement {
       files: mentionedPaths.length > 0 ? mentionedPaths : undefined,
       enhancements: sentEnhancements,
       ultracode: ultracodeAvailable && (ultracodeArmed || state?.ultracode) ? true : undefined,
+      orchestrate:
+        ultracodeAvailable && (orchestrateKeyword || state?.orchestration?.orchestrate)
+          ? true
+          : undefined,
     });
     // Warn the user when a video attachment is sent to a model without native
     // video analysis — the agent can still use ffmpeg to extract frames/audio,
@@ -2650,6 +2689,7 @@ function App(): React.ReactElement {
     const meta: PromptMeta = {
       ...(sentEnhancements ? { enhancements: sentEnhancements } : {}),
       ...(ultracodeArmed ? { ultracode: true } : {}),
+      ...(orchestrateKeyword ? { orchestrate: true } : {}),
     };
     void sendPrompt(prompt, wire, Object.keys(meta).length > 0 ? meta : undefined).catch(
       (e: unknown) => restoreFailedSend(failed, e),
@@ -3166,6 +3206,7 @@ function App(): React.ReactElement {
                             animateIn={it.id >= liveFromId}
                             consumeEntrance={entrances.consume}
                             kenTalking={it.id === talkingKenId}
+                            mainModel={state?.model}
                             errorActive={it.id === currentErrorId}
                             errorModelPicker={
                               it.kind === "error" && it.id === currentErrorId ? (
@@ -3294,6 +3335,18 @@ function App(): React.ReactElement {
                       }
                     : null
               }
+              third={
+                workspaceMode === "code" && state && !state.goal
+                  ? {
+                      name: "Workers",
+                      followLabel: "Israel Code",
+                      model: state.orchestration?.workerModel ?? state.model,
+                      following: !state.orchestration?.workerModel,
+                      disabled: false,
+                      onSelect: onSelectWorkerModel,
+                    }
+                  : null
+              }
               tasks={tasks}
               schedules={schedules}
               onStopSchedule={stopSchedule}
@@ -3418,6 +3471,13 @@ function App(): React.ReactElement {
                   autopilotReviewing={autopilotReviewing}
                   ultracode={state?.ultracode ?? false}
                   onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
+                  orchestrate={state?.orchestration?.orchestrate ?? false}
+                  onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
+                  orchestratorName={modelDisplayName(models, state?.model)}
+                  workerName={modelDisplayName(
+                    models,
+                    state?.orchestration?.workerModel ?? state?.model,
+                  )}
                   onAutopilotChange={(next) => {
                     setState((s) => (s ? { ...s, autopilot: next } : s));
                     void setAutopilot(next);

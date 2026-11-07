@@ -532,7 +532,7 @@ pub(crate) async fn agent_projects(
 }
 
 /// Turn a sidecar reply into the body or its `error` message.
-async fn json_or_error(
+pub(super) async fn json_or_error(
     res: reqwest::Response,
     fallback: &str,
 ) -> Result<serde_json::Value, String> {

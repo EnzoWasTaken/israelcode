@@ -161,6 +161,7 @@ export const TranscriptRow = memo(function TranscriptRow({
   animateIn = false,
   consumeEntrance,
   kenTalking = false,
+  mainModel,
   errorActive = false,
   errorModelPicker,
   onContentGrow,
@@ -176,6 +177,8 @@ export const TranscriptRow = memo(function TranscriptRow({
   consumeEntrance: (id: number) => boolean;
   /** This is the Ken reply currently streaming in, so his face talks. */
   kenTalking?: boolean;
+  /** The main model, so a sub-agent row can name a Worker model that differs. */
+  mainModel?: string;
   errorActive?: boolean;
   errorModelPicker?: React.ReactNode;
   onContentGrow?: () => void;
@@ -207,6 +210,7 @@ export const TranscriptRow = memo(function TranscriptRow({
     <TranscriptRowBody
       item={item}
       kenTalking={kenTalking}
+      mainModel={mainModel}
       errorActive={errorActive}
       errorModelPicker={errorModelPicker}
       onContentGrow={onContentGrow}
@@ -228,6 +232,7 @@ export const TranscriptRow = memo(function TranscriptRow({
 function TranscriptRowBody({
   item,
   kenTalking = false,
+  mainModel,
   errorActive = false,
   errorModelPicker,
   onContentGrow,
@@ -239,6 +244,8 @@ function TranscriptRowBody({
   item: Item;
   /** This is the Ken reply currently streaming in, so his face talks. */
   kenTalking?: boolean;
+  /** The main model, so a sub-agent row can name a Worker model that differs. */
+  mainModel?: string;
   errorActive?: boolean;
   errorModelPicker?: React.ReactNode;
   onContentGrow?: () => void;
@@ -465,7 +472,7 @@ function TranscriptRowBody({
         </div>
       );
     case "subagent_group":
-      return <SubAgentFeed agents={item.agents} aborted={item.aborted} />;
+      return <SubAgentFeed agents={item.agents} aborted={item.aborted} mainModel={mainModel} />;
     case "turn_diff":
       return <TurnDiffBar checkpointId={item.checkpointId} files={item.files} />;
     case "todos":

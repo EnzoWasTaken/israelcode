@@ -60,6 +60,11 @@ export interface AppSettings {
   hiddenProjects?: string[];
   /** Projects (normalized cwds) where the user's own `!` commands run without asking. */
   shellTrusted?: string[];
+  /** The Worker model Orchestrate hands pieces to, keyed by normalized project cwd.
+   *  Absent → workers follow the orchestrator (the window's main model). */
+  workerModels?: Record<string, WorkerModelPref>;
+  /** Orchestrate on by default in new coding sessions (the last toggle wins). */
+  orchestrate?: boolean;
   /** Ultracode on by default in new coding sessions (the last toggle wins). */
   ultracode?: boolean;
   /** Permission mode for new coding sessions (the last choice wins; unset = bypass). */
@@ -113,6 +118,8 @@ export async function loadAppSettings(): Promise<AppSettings> {
       hiddenProjects: stringArray(raw.hiddenProjects),
       shellTrusted: stringArray(raw.shellTrusted),
       ultracode: raw.ultracode === true ? true : undefined,
+      workerModels: validWorkerModels(raw.workerModels),
+      orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
           ? raw.permissionMode
@@ -305,3 +312,59 @@ export async function persistThinkingLevel(
 // ── History reconstruction types ──────────────────────────
 // Mirrors HistoryEntry in gg-app/src/agent.ts — the wire shape the webview
 // receives from GET /history. Fields beyond role/text carry the transcript
+
+// ── Native orchestration: the Worker model and the Orchestrate default ──────
+
+/** A pinned Worker model: provider + model id (what Orchestrate's children run on). */
+export interface WorkerModelPref {
+  provider: Provider;
+  model: string;
+}
+
+/** Keep only well-formed entries so a hand-edited file can't break session start. */
+function validWorkerModels(value: unknown): Record<string, WorkerModelPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, WorkerModelPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    if (!pref || typeof pref !== "object") continue;
+    const { provider, model } = pref as { provider?: unknown; model?: unknown };
+    if (typeof provider !== "string" || !provider.trim()) continue;
+    if (typeof model !== "string" || !model.trim()) continue;
+    out[key] = { provider: provider as Provider, model };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Read this project's persisted Worker model, if any (never a paid tier). */
+export async function loadWorkerModelPref(cwd: string): Promise<WorkerModelPref | undefined> {
+  const s = await loadAppSettings();
+  const pref = s.workerModels?.[projectModelKey(cwd)];
+  return pref ? { ...pref, model: withoutPaidTier(pref.model) } : undefined;
+}
+
+/** Persist (or with null, clear) this project's Worker model via read-modify-write. */
+export async function saveWorkerModelPref(
+  cwd: string,
+  pref: WorkerModelPref | null,
+): Promise<void> {
+  const key = projectModelKey(cwd);
+  await updateAppSettings((s) => {
+    const next = { ...(s.workerModels ?? {}) };
+    if (pref) next[key] = { provider: pref.provider, model: withoutPaidTier(pref.model) };
+    else delete next[key];
+    s.workerModels = Object.keys(next).length > 0 ? next : undefined;
+  });
+}
+
+/** Whether new coding sessions start with Orchestrate on (default off). */
+export async function loadOrchestrateDefault(): Promise<boolean> {
+  return (await loadAppSettings()).orchestrate === true;
+}
+
+/** Remember the last Orchestrate toggle as the default for new sessions. */
+export async function saveOrchestrateDefault(enabled: boolean): Promise<void> {
+  await updateAppSettings((s) => {
+    if (enabled) s.orchestrate = true;
+    else delete s.orchestrate;
+  });
+}

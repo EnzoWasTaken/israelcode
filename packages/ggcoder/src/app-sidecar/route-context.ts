@@ -5,6 +5,7 @@ import type { AskUserBridge } from "../core/ask-user.js";
 import type { AuthMethod, AuthMethodMeta, AuthProviderMeta } from "../core/auth-providers.js";
 import type { WorkflowCommandSpec } from "../core/autopilot-gate.js";
 import type { EffectiveKenModel, KenModelPref } from "../core/ken-model.js";
+import type { ChildModelPick } from "../core/subagent-manager.js";
 import type { ElicitationBridge } from "../core/mcp/elicitation-bridge.js";
 import type { BackgroundProcess } from "../core/process-manager.js";
 import type { RunClaim } from "../core/run-claim.js";
@@ -116,6 +117,8 @@ export interface SessionRouteContext {
   /** Starts a goal in its briefing when the user's message says to. */
   readonly startGoalFromMessage: (text: string) => Promise<void>;
   kenModelOverride: KenModelPref | null;
+  /** The Worker model Orchestrate's children run on; null: they follow the orchestrator. */
+  workerModel: ChildModelPick | null;
   readonly syncKenAutoModel: (provider: Provider, model: string) => Promise<void>;
   autopilotReviewing: boolean;
   taskRunAll: boolean;

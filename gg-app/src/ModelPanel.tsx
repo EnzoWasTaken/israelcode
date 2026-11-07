@@ -8,7 +8,7 @@ import { modelSourceLabel } from "./provider-labels";
 import { thinkingLabel, ThinkingDots } from "./thinking-display";
 
 /** Who the picker is choosing for: GG itself, or its second agent. */
-export type ModelTarget = "gg" | "second";
+export type ModelTarget = "gg" | "second" | "third";
 
 export interface SecondAgent {
   /** "Ken" in a code window, "Critters" in a Goal. */
@@ -78,7 +78,8 @@ export function ModelPanel({
   modelsFailed,
   running,
   onSelectModel,
-  second,
+  second: secondAgent,
+  third = null,
   onClose,
 }: {
   state: AgentState | null;
@@ -87,6 +88,8 @@ export function ModelPanel({
   running: boolean;
   onSelectModel: (modelId: string, options?: { confirmPaid?: boolean }) => void;
   second: SecondAgent | null;
+  /** A further agent to pick for (the Workers in a code window); omitted elsewhere. */
+  third?: SecondAgent | null;
   onClose: () => void;
 }): React.ReactElement {
   const [target, setTarget] = useState<ModelTarget>("gg");
@@ -101,7 +104,13 @@ export function ModelPanel({
   const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
 
-  const forSecond = target === "second" && second !== null;
+  // The agent being picked for other than GG itself: Ken/Critters or the Workers.
+  // `second` below is whichever one the target points at, so the list, the
+  // follow row and the paid-tier rule read the same for both.
+  const other: SecondAgent | null =
+    target === "second" ? secondAgent : target === "third" ? third : null;
+  const second = other;
+  const forSecond = second !== null;
   const currentId = forSecond ? second.model : (state?.model ?? "");
   const locked = forSecond ? second.disabled : running;
 
@@ -220,7 +229,7 @@ export function ModelPanel({
     <div className="deck-panel model-panel">
       <PanelHead title="Model" onClose={onClose} />
       <div className="deck-prow model-head">
-        {second && (
+        {(secondAgent || third) && (
           <div className="key-group" role="radiogroup" aria-label="Choose a model for">
             <button
               type="button"
@@ -235,28 +244,38 @@ export function ModelPanel({
               Israel Code
               <span className="well trunc">{modelDisplayName(models, state?.model)}</span>
             </button>
-            <button
-              type="button"
-              className="key key-sm target-key"
-              role="radio"
-              aria-checked={target === "second"}
-              title={
-                second.following
-                  ? `${second.name} follows ${second.followLabel}'s model`
-                  : `${second.name} is pinned to ${modelDisplayName(models, second.model)}`
-              }
-              onClick={() => {
-                setTarget("second");
-                setActive(null);
-              }}
-            >
-              {second.name}
-              <span className="well trunc">
-                {second.following
-                  ? `= ${second.followLabel}`
-                  : modelDisplayName(models, second.model)}
-              </span>
-            </button>
+            {(
+              [
+                ["second", secondAgent],
+                ["third", third],
+              ] as const
+            ).map(([key, agent]) =>
+              agent ? (
+                <button
+                  key={key}
+                  type="button"
+                  className="key key-sm target-key"
+                  role="radio"
+                  aria-checked={target === key}
+                  title={
+                    agent.following
+                      ? `${agent.name} follows ${agent.followLabel}'s model`
+                      : `${agent.name} is pinned to ${modelDisplayName(models, agent.model)}`
+                  }
+                  onClick={() => {
+                    setTarget(key);
+                    setActive(null);
+                  }}
+                >
+                  {agent.name}
+                  <span className="well trunc">
+                    {agent.following
+                      ? `= ${agent.followLabel}`
+                      : modelDisplayName(models, agent.model)}
+                  </span>
+                </button>
+              ) : null,
+            )}
           </div>
         )}
         <span className="deck-spacer" />

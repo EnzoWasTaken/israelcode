@@ -47,6 +47,8 @@ export interface SubAgentStatePayload {
   };
   output?: string;
   error?: string;
+  /** The model this child runs on (the Worker model when pinned). */
+  model?: string;
 }
 
 export interface SidecarEvent {
@@ -222,6 +224,8 @@ export interface AgentState {
   autopilot?: boolean;
   /** Ultracode (orchestrate with parallel children) for this coding session. */
   ultracode?: boolean;
+  /** Native orchestration: the pinned Worker model (null: follows the main model) and the toggle. */
+  orchestration?: OrchestrationState;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -1026,6 +1030,8 @@ export interface PromptMeta {
   /** Plan feedback from the review box: the sidecar revises the plan back in
    *  read-only plan mode instead of with full write access. */
   planRevision?: boolean;
+  /** "orchestrate" typed in this prompt: Orchestrate for this run only. */
+  orchestrate?: boolean;
   /** "ultracode" typed in this prompt: Ultracode for this run only. */
   ultracode?: boolean;
 }
@@ -1245,6 +1251,34 @@ export async function transcribe(pcm: string, model?: DictationModel): Promise<s
   return res.text ?? "";
 }
 
+/** Native orchestration state, as `/state`, the ready frame and
+ *  `orchestration_state` events carry it. */
+export interface OrchestrationState {
+  /** The pinned Worker model id; null: workers follow the main (orchestrator) model. */
+  workerModel: string | null;
+  /** Orchestrate on: plan → delegate to Worker-model children → review before replying. */
+  orchestrate: boolean;
+}
+
+/** Pin the Worker model Orchestrate's children run on, or clear it (null) so
+ *  they follow the main model. The sidecar validates and persists per project. */
+export async function setWorkerModel(model: string | null): Promise<OrchestrationState> {
+  await waitForReady();
+  return invoke<OrchestrationState>("agent_set_worker_model", { model });
+}
+
+/** Switch Orchestrate on or off for this window's coding session (also the
+ *  new-session default). Returns the state the sidecar now holds. */
+export async function setOrchestrate(on: boolean): Promise<OrchestrationState> {
+  try {
+    await waitForReady();
+    return await invoke<OrchestrationState>("agent_set_orchestrate", { on });
+  } catch (e) {
+    await logError(`agent_set_orchestrate failed: ${String(e)}`);
+    throw e;
+  }
+}
+
 /** Toggle Ultracode for this window's coding session (also the new-session
  *  default). Returns the value the sidecar now holds. */
 export async function setUltracode(enabled: boolean): Promise<boolean> {
@@ -1342,6 +1376,8 @@ export interface HistoryEntry {
   /** Tool-produced images rendered inline (same as live `images` items),
    *  reconstructed from ImageContent blocks in persisted tool results. */
   toolImages?: Array<{ src: string; path?: string }>;
+  /** A user message sent with Orchestrate on. */
+  orchestrate?: boolean;
   /** A user message sent with Ultracode on. */
   ultracode?: boolean;
   /** The turn's checklist: its latest `todo_write` list. */
@@ -2885,4 +2921,157 @@ export async function waitForReady(): Promise<void> {
  */
 export async function retryWindowSession(): Promise<void> {
   await invoke("retry_window_session");
+}
+
+// ── Skill finder (Settings → Skills) ───────────────────────────────────────
+// Search skills.sh / GitHub, inspect (download + static scan, never executed),
+// install into a project's `.gg/skills` or the global skills folder.
+
+export type SkillScope = "global" | "project";
+export type SkillScanSeverity = "critical" | "high" | "medium" | "low";
+export type SkillScanVerdict = "pass" | "warn" | "block";
+
+export interface SkillSearchHit {
+  /** `owner/repo/slug` on skills.sh; `owner/repo` for a GitHub repo hit. */
+  id: string;
+  /** GitHub `owner/repo`. */
+  source: string;
+  /** Skill folder slug; "" when the hit is a whole repo (pick a skill after inspecting). */
+  slug: string;
+  name: string;
+  installs?: number;
+  stars?: number;
+  description?: string;
+  origin: "skills.sh" | "github";
+  audits?: { provider: string; risk: string; score?: number; alerts?: number }[];
+}
+
+export interface SkillSearchResponse {
+  results: SkillSearchHit[];
+  origin: "skills.sh" | "github";
+  notice?: string;
+}
+
+export interface SkillScanFinding {
+  rule: string;
+  title: string;
+  severity: SkillScanSeverity;
+  file: string;
+  line: number;
+  reason: string;
+  evidence?: string;
+}
+
+export interface SkillScanReport {
+  verdict: SkillScanVerdict;
+  findings: SkillScanFinding[];
+  summary: string;
+  rulesRun: number;
+}
+
+export interface SkillSummaryInfo {
+  name: string;
+  description: string;
+  license?: string;
+  compatibility?: string;
+  allowedTools: string[];
+  metadata: Record<string, string>;
+  hasFrontmatter: boolean;
+  hasScripts: boolean;
+  hasHooks: boolean;
+  usesShellInjection: boolean;
+  fileCount: number;
+  totalBytes: number;
+  skillMdLines: number;
+  files: string[];
+}
+
+export interface SkillInspection {
+  source: string;
+  slug: string;
+  hash: string;
+  sha?: string;
+  summary: SkillSummaryInfo;
+  scan: SkillScanReport;
+  audits?: SkillSearchHit["audits"];
+  /** When the source is a whole repo: the skills found in it, to choose from. */
+  candidates?: { slug: string; path: string }[];
+}
+
+export interface InstalledSkillRow {
+  name: string;
+  scope: SkillScope;
+  /** Folder the skill lives in. */
+  path: string;
+  source?: string;
+  slug?: string;
+  hash?: string;
+  installedAt?: string;
+  scannedAt?: string;
+  verdict?: SkillScanVerdict;
+  /** The user installed it despite blocking findings. */
+  overridden?: boolean;
+}
+
+export interface SkillInstallResult {
+  installed: boolean;
+  entry?: InstalledSkillRow;
+  /** Present when the install was refused because the scan blocked it. */
+  scan?: SkillScanReport;
+  error?: string;
+}
+
+export async function searchSkills(query: string): Promise<SkillSearchResponse> {
+  await waitForReady();
+  return invoke<SkillSearchResponse>("skills_search", { query });
+}
+
+/** Download a skill to a temp folder, summarise and scan it (nothing is executed). */
+export async function inspectSkill(source: string, slug: string): Promise<SkillInspection> {
+  await waitForReady();
+  return invoke<SkillInspection>("skills_inspect", { source, slug });
+}
+
+/**
+ * Install a skill. Refused (installed: false, scan filled) when the scan says
+ * "block" unless `override` is true — the user's explicit choice, logged.
+ */
+export async function installSkill(args: {
+  source: string;
+  slug: string;
+  scope: SkillScope;
+  projectCwd?: string;
+  override?: boolean;
+  replace?: boolean;
+}): Promise<SkillInstallResult> {
+  await waitForReady();
+  return invoke<SkillInstallResult>("skills_install", {
+    source: args.source,
+    slug: args.slug,
+    scope: args.scope,
+    projectCwd: args.projectCwd ?? null,
+    override: args.override ?? false,
+    replace: args.replace ?? false,
+  });
+}
+
+export async function listInstalledSkills(projectCwd?: string): Promise<InstalledSkillRow[]> {
+  await waitForReady();
+  const res = await invoke<{ skills: InstalledSkillRow[] }>("skills_installed", {
+    projectCwd: projectCwd ?? null,
+  });
+  return res.skills ?? [];
+}
+
+export async function removeInstalledSkill(
+  name: string,
+  scope: SkillScope,
+  projectCwd?: string,
+): Promise<{ removed: boolean }> {
+  await waitForReady();
+  return invoke<{ removed: boolean }>("skills_remove", {
+    name,
+    scope,
+    projectCwd: projectCwd ?? null,
+  });
 }

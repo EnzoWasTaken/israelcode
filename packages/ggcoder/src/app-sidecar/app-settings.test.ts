@@ -12,8 +12,17 @@ vi.mock("node:os", async (importOriginal) => {
   return { ...actual, default: { ...actual, homedir: () => home } };
 });
 
-const { appSettingsFile, saveAutopilot, saveProjectModelPrefs, updateAppSettings } =
-  await import("./app-settings.js");
+const {
+  appSettingsFile,
+  loadAppSettings,
+  loadOrchestrateDefault,
+  loadWorkerModelPref,
+  saveAutopilot,
+  saveOrchestrateDefault,
+  saveProjectModelPrefs,
+  saveWorkerModelPref,
+  updateAppSettings,
+} = await import("./app-settings.js");
 
 beforeEach(async () => {
   home = await fs.mkdtemp(path.join(os.tmpdir(), "gg-app-settings-"));
@@ -64,5 +73,52 @@ describe("gg-app.json writes from the sidecar", () => {
     });
     expect(saved.hiddenProjects).toEqual(["/c"]);
     await expect(fs.access(`${appSettingsFile()}.lock`)).rejects.toThrow();
+  });
+});
+
+describe("native orchestration settings", () => {
+  it("saves and clears the Worker model per project, dropping paid tiers", async () => {
+    await saveWorkerModelPref("/a", { provider: "openai", model: "gpt-5-mini" });
+    await saveWorkerModelPref("/b", { provider: "anthropic", model: "claude-opus-5-5-fast" });
+
+    expect(await loadWorkerModelPref("/a")).toEqual({ provider: "openai", model: "gpt-5-mini" });
+    expect((await loadWorkerModelPref("/b"))?.model).not.toMatch(/-fast$/);
+    expect(await loadWorkerModelPref("/c")).toBeUndefined();
+
+    await saveWorkerModelPref("/a", null);
+    expect(await loadWorkerModelPref("/a")).toBeUndefined();
+    const saved = await readFile();
+    expect(Object.keys(saved.workerModels as object)).toEqual([path.resolve("/b")]);
+  });
+
+  it("drops malformed Worker entries on load and keeps the rest", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(
+      appSettingsFile(),
+      JSON.stringify({
+        projectsRoot: "/root",
+        workerModels: {
+          [path.resolve("/ok")]: { provider: "openai", model: "gpt-5-mini" },
+          [path.resolve("/no-model")]: { provider: "openai" },
+          [path.resolve("/junk")]: "gpt-5-mini",
+        },
+        orchestrate: "yes",
+      }),
+    );
+    const s = await loadAppSettings();
+    expect(s.workerModels).toEqual({
+      [path.resolve("/ok")]: { provider: "openai", model: "gpt-5-mini" },
+    });
+    expect(s.orchestrate).toBeUndefined();
+  });
+
+  it("remembers the Orchestrate default only while on", async () => {
+    expect(await loadOrchestrateDefault()).toBe(false);
+    await saveOrchestrateDefault(true);
+    expect(await loadOrchestrateDefault()).toBe(true);
+    expect((await readFile()).orchestrate).toBe(true);
+    await saveOrchestrateDefault(false);
+    expect(await loadOrchestrateDefault()).toBe(false);
+    expect("orchestrate" in (await readFile())).toBe(false);
   });
 });

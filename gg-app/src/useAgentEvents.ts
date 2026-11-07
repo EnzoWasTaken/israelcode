@@ -446,6 +446,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
         toolUseCount: snapshot.tool_use_count,
         tokenUsage: snapshot.token_usage,
         durationMs: snapshot.elapsed_ms,
+        model: snapshot.model ?? agent.model,
         activities: appendActivities(agent.activities),
       });
       const mappedGroupId = subagentGroupByAgentRef.current.get(snapshot.agent_id);
@@ -470,6 +471,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
               toolUseCount: snapshot.tool_use_count,
               tokenUsage: snapshot.token_usage,
               durationMs: snapshot.elapsed_ms,
+              model: snapshot.model,
             },
           ],
         });
@@ -495,6 +497,7 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
                       toolUseCount: snapshot.tool_use_count,
                       tokenUsage: snapshot.token_usage,
                       durationMs: snapshot.elapsed_ms,
+                      model: snapshot.model,
                     },
                   ],
             };
@@ -1114,6 +1117,21 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
         // kenModelOverride) match AgentState, so a spread is enough.
         case "ken_model_change":
           setState((s) => (s ? { ...s, ...(d as Partial<AgentState>) } : s));
+          break;
+        // Native orchestration: the Worker model pin or the Orchestrate toggle
+        // changed (this window or another on the same project).
+        case "orchestration_state":
+          setState((s) =>
+            s
+              ? {
+                  ...s,
+                  orchestration: {
+                    workerModel: typeof d.workerModel === "string" ? d.workerModel : null,
+                    orchestrate: d.orchestrate === true,
+                  },
+                }
+              : s,
+          );
           break;
         case "thinking_change":
           setState((s) =>

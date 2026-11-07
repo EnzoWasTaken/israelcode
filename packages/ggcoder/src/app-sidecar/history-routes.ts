@@ -18,6 +18,7 @@ import {
 import { spawnedTasks } from "../tools/subagent-shared.js";
 import { parseTodos } from "../tools/todo-write.js";
 import { ultracodeNoticeState } from "../core/ultracode.js";
+import { orchestrateNoticeState } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { animatedPreview, downscaleForPreview, IMAGE_MEDIA_TYPES } from "../utils/image.js";
 import { readFileBounded } from "../tools/operations.js";
@@ -330,6 +331,7 @@ export function handleHistoryRoutes(
       // holding the latest list, the same as the live row.
       let turnTodos: HistoryEntryForWire | null = null;
       let ultracodeOn = false;
+      let orchestrateOn = false;
       // Turns/markers recorded before any build message (anchor 0) render at
       // the top.
       flushKen(0);
@@ -343,6 +345,8 @@ export function handleHistoryRoutes(
           // Hidden Ultracode notices say whether the next prompts ran with it.
           const ultracodeNotice = ultracodeNoticeState(msg);
           if (ultracodeNotice !== null) ultracodeOn = ultracodeNotice;
+          const orchestrateNotice = orchestrateNoticeState(msg);
+          if (orchestrateNotice !== null) orchestrateOn = orchestrateNotice;
           const visibility = getHistoryMessageVisibility(msg);
           if (visibility === "hidden") return;
 
@@ -466,6 +470,9 @@ export function handleHistoryRoutes(
                 ...(Array.isArray(hint?.enhancements) ? { enhancements: hint.enhancements } : {}),
                 ...(ultracodeOn && !msg.provenance && !hook && !compacted
                   ? { ultracode: true }
+                  : {}),
+                ...(orchestrateOn && !msg.provenance && !hook && !compacted
+                  ? { orchestrate: true }
                   : {}),
               });
               // Live showed the video-capability warning right after the bubble.

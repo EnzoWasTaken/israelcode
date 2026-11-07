@@ -4,6 +4,7 @@ import {
   InfoIcon,
   KeyIcon,
   PuzzlePieceIcon,
+  SparkleIcon,
   PaperPlaneTiltIcon,
   SyringeIcon,
 } from "@phosphor-icons/react";
@@ -14,6 +15,7 @@ import { SettingsModal } from "./SettingsModal";
 import { LoginScreen } from "./LoginScreen";
 import { TelegramSettingsModal } from "./TelegramSettingsModal";
 import { McpModal } from "./McpModal";
+import { SkillsModal } from "./SkillsModal";
 import { SteroidsModal } from "./SteroidsModal";
 import { SettingsTabBar, type SettingsTab } from "./SettingsTabBar";
 import { AboutPage } from "./AboutPage";
@@ -37,7 +39,8 @@ import {
 import { theme } from "./theme";
 import { toast } from "./toast";
 
-export type SettingsTabId = "general" | "providers" | "remote" | "mcp" | "steroids" | "about";
+export type SettingsTabId =
+  "general" | "providers" | "remote" | "mcp" | "skills" | "steroids" | "about";
 
 interface Props {
   onClose: () => void;
@@ -79,6 +82,7 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
     { id: "providers", label: "AI Providers", icon: KeyIcon },
     { id: "remote", label: "Remote", icon: PaperPlaneTiltIcon },
     { id: "mcp", label: "MCP", icon: PuzzlePieceIcon },
+    { id: "skills", label: "Skills", icon: SparkleIcon },
     {
       id: "steroids",
       label: "Steroids",
@@ -138,6 +142,11 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
               {tab === "mcp" && (
                 <EmbeddedModal>
                   <McpModal onClose={stay} />
+                </EmbeddedModal>
+              )}
+              {tab === "skills" && (
+                <EmbeddedModal>
+                  <SkillsModal onClose={stay} />
                 </EmbeddedModal>
               )}
               {tab === "steroids" && (

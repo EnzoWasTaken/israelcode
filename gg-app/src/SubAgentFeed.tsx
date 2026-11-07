@@ -1,6 +1,8 @@
 import { formatTokenCount } from "./ActivityBar";
 import { CritterLine, type CritterTone } from "./CritterLine";
 import { hashKey, pickCritter, type CritterDef } from "./critter-sprites";
+import { modelDisplayName } from "./model-name";
+import type { ModelOption } from "./agent";
 
 /** One delegated sub-agent, mirrored from the sidecar's subagent tool stream. */
 export interface SubAgentLine {
@@ -20,11 +22,15 @@ export interface SubAgentLine {
     cacheWrite?: number;
   };
   durationMs?: number;
+  /** The model the child runs on, when the sidecar reported it. */
+  model?: string;
 }
 
 interface Props {
   agents: readonly SubAgentLine[];
   aborted?: boolean;
+  /** The main model: workers on another model (Orchestrate) are named on the row. */
+  mainModel?: string;
 }
 
 export function displayName(agent: SubAgentLine, index: number): string {
@@ -213,8 +219,31 @@ function rowCritter(agents: readonly SubAgentLine[]): CritterDef {
  * when they fail. The live view (who is running, their tokens and current
  * tool) is the critters on the activity bar.
  */
-export function SubAgentFeed({ agents, aborted = false }: Props): React.ReactElement | null {
+export function SubAgentFeed({
+  agents,
+  aborted = false,
+  mainModel,
+}: Props): React.ReactElement | null {
   if (agents.length === 0) return null;
   const summary = summarizeCritters(agents, aborted);
-  return <CritterLine critter={rowCritter(agents)} tone={summary.tone} text={summary.text} />;
+  const note = workerModelNote(agents, mainModel);
+  const text = note ? `${summary.text} (${note})` : summary.text;
+  return <CritterLine critter={rowCritter(agents)} tone={summary.tone} text={text} />;
+}
+
+/**
+ * The Worker models in this group that differ from the main model, as a short
+ * suffix for the row ("on GPT-6 Luna"); null when every agent runs on the main
+ * model or the sidecar named none. Native orchestration makes this visible.
+ */
+export function workerModelNote(
+  agents: readonly SubAgentLine[],
+  mainModel: string | undefined,
+  models: readonly ModelOption[] = [],
+): string | null {
+  const others = [
+    ...new Set(agents.flatMap((a) => (a.model && a.model !== mainModel ? [a.model] : []))),
+  ];
+  if (others.length === 0) return null;
+  return `on ${others.map((id) => modelDisplayName(models, id)).join(", ")}`;
 }

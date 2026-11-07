@@ -170,6 +170,10 @@ export function DeckMenu({
   onAutopilotChange,
   ultracode = false,
   onUltracodeChange,
+  orchestrate = false,
+  onOrchestrateChange,
+  orchestratorName,
+  workerName,
   onNewSession,
   onOpenNotes,
   onOpenMemories,
@@ -196,6 +200,12 @@ export function DeckMenu({
   onAutopilotChange: (next: boolean) => void;
   ultracode?: boolean;
   onUltracodeChange?: (next: boolean) => void;
+  /** Native orchestration toggle (code windows); absent elsewhere. */
+  orchestrate?: boolean;
+  onOrchestrateChange?: (next: boolean) => void;
+  /** Display names for the toggle's tooltip: the main model and the Worker model. */
+  orchestratorName?: string;
+  workerName?: string;
   onNewSession: () => void;
   onOpenNotes: () => void;
   onOpenMemories: () => void;
@@ -265,6 +275,19 @@ export function DeckMenu({
         >
           Ultracode
           <span className="led" data-state={ultracode ? "on" : undefined} aria-hidden="true" />
+        </button>
+      )}
+      {code && onOrchestrateChange && (
+        <button
+          type="button"
+          className="key"
+          role="switch"
+          aria-checked={orchestrate}
+          title={`Plan with ${orchestratorName ?? "the main model"}, build with ${workerName ?? "the Worker model"}, review before replying`}
+          onClick={() => onOrchestrateChange(!orchestrate)}
+        >
+          Orchestrate
+          <span className="led" data-state={orchestrate ? "on" : undefined} aria-hidden="true" />
         </button>
       )}
       {code && (

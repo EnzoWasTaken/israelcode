@@ -5,6 +5,7 @@ import { goalRunningElsewhere } from "../core/goal-run-marker.js";
 import { goalCritterPick } from "../goals-agent/goals-agent.js";
 import { getSupportedThinkingLevels } from "../core/thinking-level.js";
 import { json } from "./http.js";
+import { orchestrationStatePayload } from "./orchestration.js";
 import type { SseClient } from "./session-types.js";
 import type { SessionRouteContext } from "./route-context.js";
 
@@ -69,6 +70,7 @@ export function handleSessionRoutes(
       supportsVideo: getModel(st.model)?.supportsVideo ?? false,
       autopilot: ctx.autopilot,
       ultracode: ctx.session.isUltracode(),
+      orchestration: orchestrationStatePayload(ctx),
       permissionMode: ctx.session.getPermissionMode(),
       pendingApprovals: ctx.approvals.list(),
       cacheExpiry: ctx.session.getCacheExpiryStatus(),
@@ -181,6 +183,7 @@ export function handleSessionRoutes(
           supportsVideo: getModel(st.model)?.supportsVideo ?? false,
           autopilot: ctx.autopilot,
           ultracode: ctx.session.isUltracode(),
+          orchestration: orchestrationStatePayload(ctx),
           permissionMode: ctx.session.getPermissionMode(),
           pendingApprovals: ctx.approvals.list(),
           ...ctx.kenStatePayload(),

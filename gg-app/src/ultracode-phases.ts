@@ -77,13 +77,14 @@ export function ultracodePhases(
   ];
 }
 
-/** Each Ultracode user message id → the rows of its turn. */
+/** Each Ultracode or Orchestrate user message id → the rows of its turn. */
 export function ultracodeTurns(items: readonly TranscriptItem[]): Map<number, TranscriptItem[]> {
   const turns = new Map<number, TranscriptItem[]>();
   let current: TranscriptItem[] | null = null;
   for (const it of items) {
     if (it.kind === "user" && !it.queued) {
-      current = it.ultracode ? [] : null;
+      // Orchestrate turns share the strip: plan → build → review → combine.
+      current = it.ultracode || it.orchestrate ? [] : null;
       if (current) turns.set(it.id, current);
     } else if (current) {
       current.push(it);

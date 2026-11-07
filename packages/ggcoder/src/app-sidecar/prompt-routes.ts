@@ -9,6 +9,7 @@ import {
   isMechanicalOnlyTurn,
 } from "../core/autopilot-gate.js";
 import { hasUltracodeKeyword } from "../core/ultracode.js";
+import { hasOrchestrateKeyword } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { log } from "../core/logger.js";
 import { readBody, json } from "./http.js";
@@ -23,6 +24,7 @@ import {
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
 import {
   loadUltracodeDefault,
+  loadOrchestrateDefault,
   saveAutopilot,
   savePermissionModeDefault,
   saveUltracodeDefault,
@@ -147,6 +149,7 @@ export function handlePromptRoutes(
     let claimedStart = false;
     // This run switched Ultracode on for one prompt; switch it back afterwards.
     let promptUltracode = false;
+    let promptOrchestrate = false;
     void readBody(req, res, MAX_PROMPT_BODY_BYTES)
       .then(async (raw) => {
         if (raw === null) return;
@@ -159,6 +162,7 @@ export function handlePromptRoutes(
               scheduled?: boolean;
               planRevision?: boolean;
               ultracode?: boolean;
+              orchestrate?: boolean;
             }
           | undefined;
         try {
@@ -171,6 +175,7 @@ export function handlePromptRoutes(
               scheduled?: boolean;
               planRevision?: boolean;
               ultracode?: boolean;
+              orchestrate?: boolean;
             };
           };
           text = body.text ?? "";
@@ -316,6 +321,16 @@ export function handlePromptRoutes(
               promptUltracode = !ctx.session.isUltracode();
               ctx.session.setUltracode(true);
             }
+            // "orchestrate" typed in the prompt (and flagged by the app): Orchestrate for this run only.
+            if (
+              meta?.orchestrate === true &&
+              hasOrchestrateKeyword(text) &&
+              ctx.mode === "code" &&
+              !ctx.goal
+            ) {
+              promptOrchestrate = !ctx.session.isOrchestrate();
+              ctx.session.setOrchestrate(true);
+            }
             if (attachments.length > 0) {
               // Persist each attachment under .gg/uploads so files are inspectable
               // by the agent's tools, then prompt with the media as native blocks.
@@ -373,6 +388,7 @@ export function handlePromptRoutes(
       .finally(async () => {
         // Back to the user's own setting (their latest toggle, not this prompt's).
         if (promptUltracode) ctx.session.setUltracode(await loadUltracodeDefault());
+        if (promptOrchestrate) ctx.session.setOrchestrate(await loadOrchestrateDefault());
         if (claimedStart) {
           ctx.scheduledRunActive = false;
           ctx.runClaim.release();
