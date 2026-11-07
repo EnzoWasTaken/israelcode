@@ -1765,3 +1765,40 @@ describe("models_change", () => {
     });
   });
 });
+
+describe("budget guardrails", () => {
+  it("updates the meter, and adds a chat notice when a cap or the runaway breaker stops the run", () => {
+    const { hook, getItems, getState } = setup(() => false, {
+      budget: {
+        config: { sessionTokens: 1000, hardStopOnRunaway: true },
+        status: {
+          sessionUsed: 0,
+          sessionCap: 1000,
+          dayUsed: 0,
+          dayCap: null,
+          level: "ok",
+          overridden: false,
+        },
+      },
+    } as Partial<AgentState>);
+    const status = {
+      sessionUsed: 1100,
+      sessionCap: 1000,
+      dayUsed: 1100,
+      dayCap: null,
+      level: "exceeded",
+      overridden: false,
+    };
+    act(() => {
+      hook.result.current.handleEvent(ev("budget_state", status));
+      hook.result.current.handleEvent(ev("budget_exceeded", { status }));
+      hook.result.current.handleEvent(
+        ev("runaway_stopped", { reasons: ["8 failed tool calls in a row"] }),
+      );
+    });
+    expect(getState()?.budget?.status).toEqual(status);
+    const texts = getItems().map((it) => (it as { text?: string }).text ?? "");
+    expect(texts[0]).toMatch(/reached this session's cap of 1k tokens/);
+    expect(texts[1]).toMatch(/going in circles \(8 failed tool calls in a row\)/);
+  });
+});

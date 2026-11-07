@@ -144,6 +144,8 @@ import {
   loadAutopilot,
   loadUltracodeDefault,
   loadOrchestrateDefault,
+  loadBudgetPref,
+  projectModelKey,
   loadWorkerModelPref,
   loadPermissionModeDefault,
   isCommandAlwaysAllowed,
@@ -157,6 +159,9 @@ import { localTrophyDate } from "./core/trophies/engine.js";
 import { handleSessionRoutes } from "./app-sidecar/session-routes.js";
 import { handleGoalRoutes } from "./app-sidecar/goal-routes.js";
 import { handleOrchestrationRoutes } from "./app-sidecar/orchestration-routes.js";
+import { handleBudgetRoutes } from "./app-sidecar/budget-routes.js";
+import { createBudgetController, type BudgetController } from "./app-sidecar/budget.js";
+import { readDayUsage } from "./core/budget-guard.js";
 import { resolveWorkerPick } from "./app-sidecar/orchestration.js";
 import { readGitState, resolveGitCwd } from "./app-sidecar/git-target.js";
 import {
@@ -1134,6 +1139,7 @@ async function createSession(
   };
   let session!: AgentSession;
   let workerModel: ChildModelPick | null = null;
+  let budget: BudgetController | null = null;
   if (mode === "chat") {
     session = createChatAgent(chatAgent, {
       ...baseSessionOptions,
@@ -1215,6 +1221,21 @@ async function createSession(
     session.setUltracode(await loadUltracodeDefault());
     session.setOrchestrate(await loadOrchestrateDefault());
     session.setPermissionMode(await loadPermissionModeDefault());
+    // Budget guardrails: token caps per project and the runaway breaker. The
+    // controller stops a run the way the Stop button does (same lifecycle,
+    // same journal) so run_end and the transcript stay consistent.
+    const projectKey = projectModelKey(cwd);
+    budget = createBudgetController({
+      projectKey,
+      config: await loadBudgetPref(cwd),
+      dayUsed: await readDayUsage(projectKey),
+      broadcast,
+      stopRun: async () => {
+        await runLifecycle.cancel(CANCEL_TIMEOUT_MS);
+      },
+      loopBreakStats: () => session.getLoopBreakStats(),
+    });
+    budget.attach(session.eventBus);
   }
   // This window just moved into a worktree (Git panel branch picker): tell the
   // agent where it now works before its next turn.
@@ -2162,6 +2183,7 @@ async function createSession(
     const assistantsBeforeRun = countAssistantMessages(session.getMessages());
     const messagesBeforeRun = session.getMessages().length;
     let runSucceeded = false;
+    budget?.noteRunStart();
     broadcast("run_start", {
       text: label,
       runState: runLifecycle.state,
@@ -2920,6 +2942,9 @@ async function createSession(
     set workerModel(v) {
       workerModel = v;
     },
+    get budget() {
+      return budget;
+    },
     syncKenAutoModel,
     get autopilotReviewing() {
       return autopilotReviewing;
@@ -3063,6 +3088,7 @@ async function createSession(
     if (handleWorkspaceRoutes(routeCtx, req, res, url, method)) return;
     if (handleGoalRoutes(routeCtx, req, res, url, method)) return;
     if (handleOrchestrationRoutes(routeCtx, req, res, url, method)) return;
+    if (handleBudgetRoutes(routeCtx, req, res, url, method)) return;
     if (handleHistoryRoutes(routeCtx, req, res, url, method)) return;
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;

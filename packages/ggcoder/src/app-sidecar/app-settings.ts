@@ -71,6 +71,8 @@ export interface AppSettings {
   permissionMode?: "ask" | "accept-edits";
   /** Per project: commands the user chose to always allow under Ask / Accept edits. */
   allowedCommands?: Record<string, string[]>;
+  /** Token budgets keyed by normalized project cwd. Absent → no caps, runaway stop on. */
+  budgets?: Record<string, BudgetPref>;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -119,6 +121,7 @@ export async function loadAppSettings(): Promise<AppSettings> {
       shellTrusted: stringArray(raw.shellTrusted),
       ultracode: raw.ultracode === true ? true : undefined,
       workerModels: validWorkerModels(raw.workerModels),
+      budgets: validBudgets(raw.budgets),
       orchestrate: raw.orchestrate === true ? true : undefined,
       permissionMode:
         raw.permissionMode === "ask" || raw.permissionMode === "accept-edits"
@@ -366,5 +369,67 @@ export async function saveOrchestrateDefault(enabled: boolean): Promise<void> {
   await updateAppSettings((s) => {
     if (enabled) s.orchestrate = true;
     else delete s.orchestrate;
+  });
+}
+
+// ── Budget guardrails: token caps per project ───────────────────────────────
+
+/** A project's token caps. Missing cap = none; missing hard stop = on. */
+export interface BudgetPref {
+  sessionTokens?: number;
+  dayTokens?: number;
+  hardStopOnRunaway?: boolean;
+}
+
+/** The budget a project runs under when nothing is saved: no caps, runaway stop on. */
+export const DEFAULT_BUDGET: Required<Pick<BudgetPref, "hardStopOnRunaway">> &
+  Pick<BudgetPref, "sessionTokens" | "dayTokens"> = { hardStopOnRunaway: true };
+
+function positiveInt(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined;
+}
+
+/** Keep only well-formed entries so a hand-edited file can't break session start. */
+function validBudgets(value: unknown): Record<string, BudgetPref> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, BudgetPref> = {};
+  for (const [key, pref] of Object.entries(value as Record<string, unknown>)) {
+    if (!pref || typeof pref !== "object") continue;
+    const raw = pref as BudgetPref;
+    const clean: BudgetPref = {};
+    const session = positiveInt(raw.sessionTokens);
+    const day = positiveInt(raw.dayTokens);
+    if (session !== undefined) clean.sessionTokens = session;
+    if (day !== undefined) clean.dayTokens = day;
+    if (raw.hardStopOnRunaway === false) clean.hardStopOnRunaway = false;
+    if (Object.keys(clean).length > 0) out[key] = clean;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Read this project's budget with the defaults filled in. */
+export async function loadBudgetPref(
+  cwd: string,
+): Promise<{ sessionTokens?: number; dayTokens?: number; hardStopOnRunaway: boolean }> {
+  const s = await loadAppSettings();
+  const pref = s.budgets?.[projectModelKey(cwd)];
+  return {
+    ...(pref?.sessionTokens !== undefined ? { sessionTokens: pref.sessionTokens } : {}),
+    ...(pref?.dayTokens !== undefined ? { dayTokens: pref.dayTokens } : {}),
+    hardStopOnRunaway: pref?.hardStopOnRunaway ?? DEFAULT_BUDGET.hardStopOnRunaway,
+  };
+}
+
+/** Persist this project's budget via read-modify-write; a default budget removes the entry. */
+export async function saveBudgetPref(cwd: string, pref: BudgetPref): Promise<void> {
+  const key = projectModelKey(cwd);
+  const clean = validBudgets({ [key]: pref })?.[key];
+  await updateAppSettings((s) => {
+    const next = { ...(s.budgets ?? {}) };
+    if (clean) next[key] = clean;
+    else delete next[key];
+    s.budgets = Object.keys(next).length > 0 ? next : undefined;
   });
 }

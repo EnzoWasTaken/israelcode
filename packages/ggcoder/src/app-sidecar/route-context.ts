@@ -28,6 +28,7 @@ import type {
   OAuthLoginCallbacks,
 } from "@kenkaiiii/gg-core";
 import type { ApprovalBridge } from "./approvals.js";
+import type { BudgetController } from "./budget.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -119,6 +120,8 @@ export interface SessionRouteContext {
   kenModelOverride: KenModelPref | null;
   /** The Worker model Orchestrate's children run on; null: they follow the orchestrator. */
   workerModel: ChildModelPick | null;
+  /** Token caps and the runaway breaker; only coding sessions have one. */
+  readonly budget: BudgetController | null;
   readonly syncKenAutoModel: (provider: Provider, model: string) => Promise<void>;
   autopilotReviewing: boolean;
   taskRunAll: boolean;

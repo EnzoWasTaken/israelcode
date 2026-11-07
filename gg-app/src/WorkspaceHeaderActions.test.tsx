@@ -6,6 +6,8 @@ import { EMPTY_TALLY, tallyGoal, type GoalTally } from "./goal-progress";
 import type { WorkspaceMode } from "./agent";
 
 vi.mock("./WindowLayoutButton", () => ({ WindowLayoutButton: () => <button>Arrange</button> }));
+// BudgetMeter reaches ./agent, whose module scope needs a Tauri window.
+vi.mock("./BudgetMeter", () => ({ BudgetMeter: () => <span className="budget-pill" /> }));
 
 function renderTitleBar(
   opts: {

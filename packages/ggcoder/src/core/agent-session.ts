@@ -178,7 +178,7 @@ import {
 } from "./claude-plugins.js";
 import { enhancePrompt, type EnhanceResult } from "../utils/prompt-enhancer.js";
 import { detectLanguages, detectProjectStack, type LanguageId } from "./language-detector.js";
-import { buildLoopBreakMessage } from "./loop-breaker.js";
+import { buildLoopBreakMessage, type LoopBreakStats } from "./loop-breaker.js";
 import { buildRegroundingMessage, requestTextForRegrounding } from "./regrounding.js";
 import {
   buildSemanticLoopJudgePrompt,
@@ -4767,6 +4767,18 @@ export class AgentSession {
 
   getTurnMetrics(): TurnMetricPayload[] {
     return this.markers.getTurnMetrics();
+  }
+
+  /**
+   * The loop-breaker's stuck signals for the current run, plus how many
+   * nudges it has injected (`hook` events of kind `loop_break`). Read by the
+   * sidecar's runaway detector, which decides when nudging is no longer enough.
+   */
+  getLoopBreakStats(): LoopBreakStats & { nudgesThisRun: number } {
+    return {
+      ...this.loopMonitor.loopBreakStats(),
+      nudgesThisRun: this.loopMonitor.loopBreakNudges(),
+    };
   }
 
   private async persistTurnMetric(event: AgentTurnEndEvent): Promise<void> {

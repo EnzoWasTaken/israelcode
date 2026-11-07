@@ -5,6 +5,7 @@ import {
   detectTextRepetition,
   type CycleDetection,
   type LoopBreakDecision,
+  type LoopBreakStats,
 } from "../loop-breaker.js";
 import {
   MAX_SEMANTIC_LOOP_CALLS,
@@ -100,14 +101,24 @@ export class RunLoopMonitor {
     this.stats.turns = turn;
   }
 
-  /** Deterministic stuck verdict from the current signals. */
-  evaluateLoopBreak(): LoopBreakDecision {
-    return evaluateLoopBreak({
+  /** The stuck signals as the loop-breaker sees them right now. */
+  loopBreakStats(): LoopBreakStats {
+    return {
       consecutiveFailures: this.consecutiveFailures,
       repeatedNoProgressCalls: this.repeatedNoProgressCalls,
       textRepetitionDetected: detectTextRepetition(this.text),
       ...(this.cyclicPattern ? { cyclicPattern: this.cyclicPattern } : {}),
-    });
+    };
+  }
+
+  /** Loop-break nudges injected this run: the deterministic stages plus the semantic one. */
+  loopBreakNudges(): number {
+    return this.loopBreakInjected + (this.semanticLoop.injected ? 1 : 0);
+  }
+
+  /** Deterministic stuck verdict from the current signals. */
+  evaluateLoopBreak(): LoopBreakDecision {
+    return evaluateLoopBreak(this.loopBreakStats());
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   type SubAgentStatePayload,
   type AgentState,
   type BackgroundTask,
+  type BudgetStatus,
   type CacheExpiryStatus,
   type ModelOption,
   type ProjectTask,
@@ -1133,6 +1134,49 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
               : s,
           );
           break;
+        // Budget guardrails: the meter moved, a threshold was crossed, or the
+        // run was stopped for a cap or for running away.
+        case "budget_state":
+          setState((s) =>
+            s && s.budget
+              ? { ...s, budget: { ...s.budget, status: d as unknown as BudgetStatus } }
+              : s,
+          );
+          break;
+        case "budget_warning": {
+          const used = Math.round(Number(d.used ?? 0) / 1000);
+          const cap = Math.round(Number(d.cap ?? 0) / 1000);
+          const scope = d.scope === "day" ? "today's" : "this session's";
+          const pct = d.level === "warn80" ? 80 : 50;
+          toast(`${pct}% of ${scope} token budget used: ${used}k of ${cap}k.`, "warning", 8000);
+          break;
+        }
+        case "budget_exceeded": {
+          endStreamingText();
+          const status = d.status as BudgetStatus | undefined;
+          const over =
+            status && status.sessionCap !== null && status.sessionUsed >= status.sessionCap
+              ? `this session's cap of ${Math.round(status.sessionCap / 1000)}k tokens`
+              : status && status.dayCap !== null
+                ? `today's cap of ${Math.round(status.dayCap / 1000)}k tokens`
+                : "its token budget";
+          pushItem({
+            kind: "info",
+            id: nextId(),
+            text: `Stopped: the run reached ${over}. Raise the cap or choose Continue anyway in the budget meter.`,
+          });
+          break;
+        }
+        case "runaway_stopped": {
+          endStreamingText();
+          const reasons = Array.isArray(d.reasons) ? d.reasons.map(String).join("; ") : "";
+          pushItem({
+            kind: "info",
+            id: nextId(),
+            text: `Stopped: the run was going in circles${reasons ? ` (${reasons})` : ""}. Nudging didn't help, so Israel Code stopped it to save tokens. Change the approach and send again.`,
+          });
+          break;
+        }
         case "thinking_change":
           setState((s) =>
             s

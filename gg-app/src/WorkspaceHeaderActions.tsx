@@ -1,4 +1,5 @@
-import type { ProjectTask, WorkspaceMode } from "./agent";
+import type { BudgetState, ProjectTask, WorkspaceMode } from "./agent";
+import { BudgetMeter } from "./BudgetMeter";
 import { fl } from "./flavor";
 import { Icon } from "./icons";
 import { WindowLayoutButton } from "./WindowLayoutButton";
@@ -42,6 +43,8 @@ export function TitleBarActions({
   commitCommand,
   hasCommit,
   onCommit,
+  budget = null,
+  onBudgetChange,
 }: {
   workspaceMode: WorkspaceMode;
   isGoal?: boolean;
@@ -64,6 +67,9 @@ export function TitleBarActions({
   commitCommand: string | null;
   hasCommit: boolean;
   onCommit: () => void;
+  /** Token caps and meter (code windows); shown only while a cap is set. */
+  budget?: BudgetState | null;
+  onBudgetChange?: (next: BudgetState) => void;
 }): React.ReactElement {
   const showGit = workspaceMode === "code" || isGoal;
   return (
@@ -121,6 +127,9 @@ export function TitleBarActions({
         >
           <Icon name={goalState === "running" ? "pause" : "play"} size={14} />
         </button>
+      )}
+      {workspaceMode === "code" && !isGoal && budget && onBudgetChange && (
+        <BudgetMeter budget={budget} onChange={onBudgetChange} />
       )}
       {showGit &&
         (needsGitInit && !isGoal ? (

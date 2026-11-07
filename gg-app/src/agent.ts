@@ -226,6 +226,8 @@ export interface AgentState {
   ultracode?: boolean;
   /** Native orchestration: the pinned Worker model (null: follows the main model) and the toggle. */
   orchestration?: OrchestrationState;
+  /** Token caps and the meter (coding sessions); null elsewhere. */
+  budget?: BudgetState | null;
   /** Which tool calls wait for approval (coding sessions). */
   permissionMode?: PermissionMode;
   /** Approval cards still waiting (a reloaded window shows them again). */
@@ -1258,6 +1260,61 @@ export interface OrchestrationState {
   workerModel: string | null;
   /** Orchestrate on: plan → delegate to Worker-model children → review before replying. */
   orchestrate: boolean;
+}
+
+/** Token caps for a project. Budgets are in tokens: Israel Code has no
+ *  authoritative pricing, so it never speaks in dollars. */
+export interface BudgetConfig {
+  /** Tokens (input + output) this session may spend; absent: no cap. */
+  sessionTokens?: number;
+  /** Tokens this project may spend today across windows; absent: no cap. */
+  dayTokens?: number;
+  /** Stop a run the runaway breaker calls hopeless. */
+  hardStopOnRunaway: boolean;
+}
+
+export type BudgetLevel = "ok" | "warn50" | "warn80" | "exceeded";
+
+/** Where the meter stands, as `budget_state` events carry it. */
+export interface BudgetStatus {
+  sessionUsed: number;
+  sessionCap: number | null;
+  dayUsed: number;
+  dayCap: number | null;
+  level: BudgetLevel;
+  /** "Continue anyway" was chosen: caps no longer stop this session. */
+  overridden: boolean;
+}
+
+/** `/budget`, the ready frame and `AgentState.budget`. */
+export interface BudgetState {
+  config: BudgetConfig;
+  status: BudgetStatus;
+}
+
+export async function getBudget(): Promise<BudgetState> {
+  await waitForReady();
+  return invoke<BudgetState>("agent_get_budget");
+}
+
+/** Save the project's caps (null = no cap) and apply them to this session. */
+export async function setBudget(config: {
+  sessionTokens: number | null;
+  dayTokens: number | null;
+  hardStopOnRunaway: boolean;
+}): Promise<BudgetState> {
+  await waitForReady();
+  return invoke<BudgetState>("agent_set_budget", {
+    sessionTokens: config.sessionTokens,
+    dayTokens: config.dayTokens,
+    hardStopOnRunaway: config.hardStopOnRunaway,
+  });
+}
+
+/** Continue past a used-up cap for the rest of this session. */
+export async function budgetContinue(): Promise<BudgetState> {
+  await waitForReady();
+  return invoke<BudgetState>("agent_budget_continue");
 }
 
 /** Pin the Worker model Orchestrate's children run on, or clear it (null) so

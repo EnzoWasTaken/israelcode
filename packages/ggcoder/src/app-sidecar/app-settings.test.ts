@@ -15,6 +15,8 @@ vi.mock("node:os", async (importOriginal) => {
 const {
   appSettingsFile,
   loadAppSettings,
+  loadBudgetPref,
+  saveBudgetPref,
   loadOrchestrateDefault,
   loadWorkerModelPref,
   saveAutopilot,
@@ -120,5 +122,53 @@ describe("native orchestration settings", () => {
     await saveOrchestrateDefault(false);
     expect(await loadOrchestrateDefault()).toBe(false);
     expect("orchestrate" in (await readFile())).toBe(false);
+  });
+});
+
+describe("budget settings", () => {
+  it("defaults to no caps with the runaway stop on", async () => {
+    expect(await loadBudgetPref("/proj")).toEqual({ hardStopOnRunaway: true });
+  });
+
+  it("saves caps per project, drops a default entry and keeps other settings", async () => {
+    await saveAutopilot("/proj", true);
+    await saveBudgetPref("/proj", { sessionTokens: 200_000, hardStopOnRunaway: true });
+    expect(await loadBudgetPref("/proj")).toEqual({
+      sessionTokens: 200_000,
+      hardStopOnRunaway: true,
+    });
+    expect(await loadBudgetPref("/other")).toEqual({ hardStopOnRunaway: true });
+    await saveBudgetPref("/other", { dayTokens: 1_000_000.7, hardStopOnRunaway: false });
+    expect(await loadBudgetPref("/other")).toEqual({
+      dayTokens: 1_000_000,
+      hardStopOnRunaway: false,
+    });
+    const file = await readFile();
+    expect(file.autopilot).toEqual({ [path.resolve("/proj")]: true });
+    expect(file.budgets).toEqual({
+      [path.resolve("/proj")]: { sessionTokens: 200_000 },
+      [path.resolve("/other")]: { dayTokens: 1_000_000, hardStopOnRunaway: false },
+    });
+    await saveBudgetPref("/proj", { hardStopOnRunaway: true });
+    await saveBudgetPref("/other", {});
+    expect("budgets" in (await readFile())).toBe(false);
+  });
+
+  it("ignores malformed budget entries on load", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(
+      appSettingsFile(),
+      JSON.stringify({
+        projectsRoot: "/root",
+        budgets: {
+          [path.resolve("/ok")]: { sessionTokens: 5000, hardStopOnRunaway: "no" },
+          [path.resolve("/neg")]: { sessionTokens: -5, dayTokens: "lots" },
+          [path.resolve("/junk")]: 42,
+        },
+      }),
+    );
+    expect((await loadAppSettings()).budgets).toEqual({
+      [path.resolve("/ok")]: { sessionTokens: 5000 },
+    });
   });
 });

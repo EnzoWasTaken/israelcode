@@ -12813,3 +12813,69 @@ select {
   color: var(--warning);
   font-style: italic;
 }
+
+/* ── Token budget meter (title bar) ─────────────────────────────────────── */
+.budget-pill {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.budget-pill[data-tone="warn"] {
+  color: var(--caution);
+}
+.budget-pill[data-tone="exceeded"] {
+  color: var(--error);
+}
+.budget-popover {
+  width: 320px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.budget-figures {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.budget-exceeded {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+}
+.budget-exceeded p {
+  margin: 0;
+}
+.budget-cap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.budget-cap-label {
+  font-size: var(--fs-sm);
+}
+.budget-cap-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.budget-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--fs-sm);
+}
+.budget-actions {
+  display: flex;
+  justify-content: flex-end;
+}

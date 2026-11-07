@@ -3095,6 +3095,8 @@ function App(): React.ReactElement {
               }
               onGoalPauseChange={state?.goal?.phase === "active" ? setGoalPaused : undefined}
               xpChips={xpChips}
+              budget={state?.budget ?? null}
+              onBudgetChange={(next) => setState((s) => (s ? { ...s, budget: next } : s))}
               running={running}
               dirtyCount={state?.gitDirtyFileCount ?? 0}
               needsGitInit={needsGitInit}
