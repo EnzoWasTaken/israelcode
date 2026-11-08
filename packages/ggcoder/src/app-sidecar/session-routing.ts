@@ -58,6 +58,12 @@ export interface AutoRouteSessionState {
   baseline?: RouteBaseline;
   /** Auto was turned off mid-run; the baseline is restored once the run ends. */
   restorePending?: boolean;
+  /** The user flipped Auto in this window; saved-settings changes no longer move it. */
+  userToggled?: boolean;
+  /** Last saved `enabled` this window saw, so only a real change is followed. */
+  savedEnabled?: boolean;
+  /** Aborts an in-flight routing decision (Stop). */
+  routeAbort?: AbortController;
 }
 
 export const AUTO_UNAVAILABLE_EXPLANATION = "Auto routing unavailable — using your current model";
@@ -270,8 +276,29 @@ export async function restoreBaseline(ctx: SessionRouteContext): Promise<void> {
   });
 }
 
+/**
+ * A Settings save changed the saved default. It is the default for NEW windows: a live window
+ * follows it only when its own Auto was never toggled by the user and the saved value really
+ * changed. Returns whether this window followed.
+ */
+export async function followSavedAutoDefault(
+  ctx: SessionRouteContext,
+  enabled: boolean,
+): Promise<boolean> {
+  const changed = ctx.autoRoute.savedEnabled !== enabled;
+  ctx.autoRoute.savedEnabled = enabled;
+  if (!changed || ctx.autoRoute.userToggled) return false;
+  await setAutoEnabled(ctx, enabled);
+  return true;
+}
+
 /** Turn Auto on/off for this session. Turning it off returns to the user's own model. */
-export async function setAutoEnabled(ctx: SessionRouteContext, enabled: boolean): Promise<void> {
+export async function setAutoEnabled(
+  ctx: SessionRouteContext,
+  enabled: boolean,
+  opts: { byUser?: boolean } = {},
+): Promise<void> {
+  if (opts.byUser) ctx.autoRoute.userToggled = true;
   ctx.autoRoute.enabled = enabled;
   if (enabled) {
     ensureBaseline(ctx);
@@ -321,16 +348,24 @@ export async function routeUserPrompt(
   if (!ctx.autoRoute.enabled || !autoRouteAvailability(ctx).available) return null;
   const runtime = ctx.routing;
   let request: RouteRequest | null = null;
+  let abort: AbortController | undefined;
   try {
     ensureBaseline(ctx);
     request = buildRouteRequest(ctx, input);
     const config: AutoRouteConfig = { ...runtime.config(), enabled: true };
     const registry = await runtime.buildRegistry(config);
-    const { adapter } = await runtime.buildAdapter(config);
+    abort = new AbortController();
+    ctx.autoRoute.routeAbort = abort;
     const decision = await routeTask(request, {
       config,
       registry,
-      adapter,
+      adapter: null,
+      // Built only on a cache miss: a hit needs no credentials or secrets lookup.
+      getAdapter: async () => {
+        const { adapter, reason } = await runtime.buildAdapter(config);
+        return { adapter, reason, secrets: adapter ? await runtime.secrets() : [] };
+      },
+      signal: abort.signal,
       cache: runtime.cache,
       log: (e) => runtime.diagnostics.record(e),
     });
@@ -363,6 +398,8 @@ export async function routeUserPrompt(
       // Routing must never block the prompt.
     }
     return null;
+  } finally {
+    if (abort && ctx.autoRoute.routeAbort === abort) ctx.autoRoute.routeAbort = undefined;
   }
 }
 
@@ -486,9 +523,17 @@ export async function runPromptWithRouting(
     : typedUltracode
       ? "ultracode"
       : undefined;
-  const routed = userPrompt
-    ? await routeUserPrompt(ctx, { text, attachments: input.attachments, keywordMode })
-    : null;
+  // A slash command is sent as its short `/name` and expanded inside AgentSession.prompt (async,
+  // private to the session), so the router would classify the name, not the body. Keep the
+  // current model for those instead of guessing.
+  const slashTemplate =
+    userPrompt &&
+    input.attachments.length === 0 &&
+    (await ctx.session.willExpandPromptTemplate(text));
+  const routed =
+    userPrompt && !slashTemplate
+      ? await routeUserPrompt(ctx, { text, attachments: input.attachments, keywordMode })
+      : null;
   if (routed?.applied.ultracode) flags.ultracode = true;
   if (routed?.applied.orchestrate) flags.orchestrate = true;
   // "ultracode" / "orchestrate" typed in the prompt: that mode for this run only.

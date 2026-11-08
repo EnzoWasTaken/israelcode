@@ -83,8 +83,8 @@ export class DecisionError extends Error {
   }
 }
 
-export function truncateTaskText(text: string): string {
-  const safe = redactText(text);
+export function truncateTaskText(text: string, extraSecrets: Iterable<string> = []): string {
+  const safe = redactText(text, { secrets: extraSecrets });
   if (safe.length <= MAX_DECISION_TEXT_CHARS) return safe;
   return `${safe.slice(0, 2800)}\n…\n${safe.slice(-1100)}`;
 }
@@ -111,6 +111,7 @@ export function buildDecisionInput(
   req: RouteRequest,
   signals: RouteSignals,
   constraints: Constraints,
+  extraSecrets: Iterable<string> = [],
 ): DecisionInput {
   return {
     signals: {
@@ -126,7 +127,7 @@ export function buildDecisionInput(
     },
     candidates: constraints.candidates.map(describeCandidate),
     allowedModes: constraints.allowedModes,
-    taskText: truncateTaskText(req.text),
+    taskText: truncateTaskText(req.text, extraSecrets),
     currentModel: `${req.current.provider}:${req.current.model}`,
   };
 }

@@ -21,6 +21,7 @@ import {
 import { toDiagnostic, type RouteDiagnostic } from "./diagnostics.js";
 import { explainConstraintViolation, explainPinWarning, explainReason } from "./explain.js";
 import { deterministicRoute } from "./fallback.js";
+import { shouldKeepCurrent } from "./switch-cost.js";
 import { extractSignals, type RouteSignals } from "./signals.js";
 import type {
   Difficulty,
@@ -32,10 +33,23 @@ import type {
   TaskKind,
 } from "./types.js";
 
+/** A decision adapter resolved on demand (so a cache hit never pays for credential lookups). */
+export interface ResolvedAdapter {
+  adapter: DecisionAdapter | null;
+  /** Why there is no adapter. */
+  reason?: RouteFallbackReason;
+  /** Extra exact secret values to redact from the task text sent to the decider. */
+  secrets?: readonly string[];
+}
+
 export interface RouterDeps {
   config: AutoRouteConfig;
   registry: ModelCapability[];
   adapter: DecisionAdapter | null;
+  /** Takes precedence over `adapter`; only called when the decision model is actually needed. */
+  getAdapter?: () => Promise<ResolvedAdapter>;
+  /** Aborts the decision call (the user pressed Stop); routing then falls back deterministically. */
+  signal?: AbortSignal;
   cache?: RouteCache;
   now?: () => number;
   /** Overrides config.timeoutMs. */
@@ -114,26 +128,37 @@ async function callWithTimeout(
   adapter: DecisionAdapter,
   input: Parameters<DecisionAdapter["decide"]>[0],
   ms: number,
+  outer?: AbortSignal,
 ): Promise<RawRouteChoice> {
   const ctrl = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       ctrl.abort();
       reject(new DecisionError("timeout"));
     }, ms);
+    if (outer) {
+      onAbort = () => {
+        ctrl.abort();
+        reject(new DecisionError("provider_error", "aborted"));
+      };
+      if (outer.aborted) onAbort();
+      else outer.addEventListener("abort", onAbort, { once: true });
+    }
   });
   try {
     return await Promise.race([adapter.decide(input, ctrl.signal), timeout]);
   } finally {
     clearTimeout(timer);
+    if (outer && onAbort) outer.removeEventListener("abort", onAbort);
   }
 }
 
 export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<RouteDecision> {
   const now = deps.now ?? Date.now;
   const t0 = now();
-  const { config, registry, adapter, cache } = deps;
+  const { config, registry, cache } = deps;
   const signals = extractSignals(req);
   const cons = resolveConstraints(req, signals, config, registry);
   const pins = req.pins;
@@ -211,6 +236,13 @@ export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<Ro
     fallbackReason,
   });
 
+  const currentCap = registry.find(
+    (c) => c.provider === req.current.provider && c.model === req.current.model,
+  );
+  /** The current model is known and can't read the needed modality. */
+  const currentLacksModality = (kind: "vision" | "video"): boolean =>
+    !!currentCap && !(kind === "vision" ? currentCap.vision : currentCap.video);
+
   // (0) Feature off: never touch the user's choices.
   if (!config.enabled) {
     return finish(currentDraft("disabled", explainReason("disabled"), "disabled"));
@@ -233,7 +265,10 @@ export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<Ro
       applyPins(
         currentDraft(
           cons.unmet === "no_models" ? "auto_unavailable" : "no_capable_model",
-          explainConstraintViolation(cons.unmet ?? "no_models"),
+          explainConstraintViolation(
+            cons.unmet ?? "no_models",
+            (cons.unmet === "vision" || cons.unmet === "video") && currentLacksModality(cons.unmet),
+          ),
           "constraint_violation",
         ),
       ),
@@ -268,14 +303,23 @@ export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<Ro
   let validated: Validated | null = null;
   let fallbackReason: RouteFallbackReason | undefined;
   let raw: RawRouteChoice | undefined;
-  if (!adapter) {
+  let adapter: DecisionAdapter | null = deps.adapter;
+  let secrets: readonly string[] = [];
+  if (deps.getAdapter) {
+    const resolved = await deps.getAdapter();
+    adapter = resolved.adapter;
+    secrets = resolved.secrets ?? [];
+    if (!adapter) fallbackReason = resolved.reason ?? "no_decision_provider";
+  } else if (!adapter) {
     fallbackReason = "no_decision_provider";
-  } else {
+  }
+  if (adapter) {
     try {
       raw = await callWithTimeout(
         adapter,
-        buildDecisionInput(req, signals, cons),
+        buildDecisionInput(req, signals, cons, secrets),
         deps.timeoutMs ?? config.timeoutMs,
+        deps.signal,
       );
       validated = validateRaw(raw, cons, config);
       if (!validated.ok) fallbackReason = validated.reason;
@@ -325,6 +369,35 @@ export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<Ro
       fallbackReason,
       ...(raw?.usage ? { usage: raw.usage } : {}),
     };
+  }
+  // Switch-cost rule: after validation, before pins. Providers cache per model, so mid-conversation
+  // flips are expensive; stay put unless the current model can't do the job (see switch-cost.ts).
+  const target = cons.candidates.find(
+    (c) => c.provider === draft.provider && c.model === draft.model,
+  );
+  const currentCandidate = cons.candidates.find(isCurrent);
+  if (
+    target &&
+    shouldKeepCurrent({
+      turns: req.conversation.turns,
+      estimatedTokens: req.conversation.estimatedTokens,
+      current: currentCandidate,
+      target,
+      difficulty: draft.difficulty,
+      confidence: draft.confidence,
+    })
+  ) {
+    const keep = currentCandidate!;
+    draft.provider = keep.provider;
+    draft.model = keep.model;
+    draft.effort = draft.effort ? clampEffort(draft.effort, keep.thinkingLevels) : null;
+    draft.reason = deriveReason(
+      draft.executionMode,
+      signals,
+      draft.taskKind,
+      draft.difficulty,
+      true,
+    );
   }
   draft.explanation = explainReason(draft.reason);
 

@@ -382,7 +382,7 @@ export function handleRoutingSessionRoute(
     if (typeof body.enabled === "boolean") {
       try {
         // Turning Auto off returns the window to the user's own model and reasoning level.
-        await setAutoEnabled(ctx, body.enabled);
+        await setAutoEnabled(ctx, body.enabled, { byUser: true });
       } catch (err) {
         json(res, 500, { error: err instanceof Error ? err.message : String(err) });
         return;
