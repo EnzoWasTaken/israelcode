@@ -37,12 +37,28 @@ not know routing rules; the UI knows neither.
    3. Hard constraints (`resolveConstraints`): available, not paid, within
       `maxCostTier`, on the allow-list, vision/video if attached, enough
       context. No candidate → current model, `constraint_violation`.
-   4. Cache lookup (and follow-up reuse of the session's last decision).
-   5. Decision adapter with a timeout (default 4 s); the answer is validated
+   4. Cache lookup (and follow-up reuse of the session's last decision — only
+      real follow-ups: "yes", "continue", "go ahead"…, never with attachments).
+      The decision adapter (credential resolution) is built lazily, only on a
+      miss; the capability registry is cached for 30 s (`REGISTRY_TTL_MS`) and
+      dropped on config save and login/logout.
+   5. Decision adapter with a timeout (default 4 s) **and the run's Stop**
+      (`autoRoute.routeAbort`, aborted by `/cancel`); the answer is validated
       (model in candidates, mode allowed, effort clamped to the model and
-      `maxEffort`). Any failure or confidence below `confidenceThreshold` →
-      deterministic rules.
-   6. Pins override per dimension; a short content-free explanation is attached.
+      `maxEffort`). Any failure, abort or confidence below
+      `confidenceThreshold` → deterministic rules. Task text sent to the decider
+      is redacted with the user's stored keys and environment secrets.
+   6. **Switch-cost rule** (`switch-cost.ts`, after validation, before pins).
+      Providers cache the prompt prefix per model, so a mid-conversation flip
+      rewrites the whole prefix (~1.25× input instead of ~0.1× read) and adds a
+      history note. With `turns > 0` and an estimated context of at least 8k
+      tokens, keep the current model (`kept_current`, "Kept your current
+      model") when it passed the hard constraints (candidate: available, vision/
+      video, context window, tools) and is adequate for the decided difficulty
+      (hard: reasoning strength or high cost tier; moderate: coding or reasoning
+      strength; trivial/simple: always) — unless confidence ≥ 0.9 and the target
+      is at least 2 `qualityScore` points better. Small contexts switch freely.
+   7. Pins override per dimension; a short content-free explanation is attached.
 4. `applyDecision` switches model / effort / Ultracode / Orchestrate for this
    run and broadcasts `route_decision` **before** the run starts; a
    `route_decision` app marker is persisted. A thrown error runs the prompt on
@@ -97,6 +113,18 @@ arrives while a run (or run claim, or autopilot cycle) is active returns
 `queued` before `runPromptWithRouting`, and steers the run already going on its
 existing route. Covered by `prompt-routes-queue.test.ts`.
 
+**Slash commands** that expand to a template are not routed: the prompt is sent
+as the short `/name` and expanded inside `AgentSession.prompt`, so the router
+would classify the name, not the body. They run on the current model.
+
+**Saved default vs live windows.** `enabled` in Settings is the default for NEW
+windows. A live window follows a saved change only if the user never toggled
+Auto there (`userToggled`) and the saved value really changed
+(`followSavedAutoDefault`); an unrelated Settings save changes nothing.
+**Manual `/model`** while Auto is on persists the user's baseline (or pinned)
+effort, never Auto's routed effort. **`/prewarm`** is skipped for Auto sessions
+(the prompt may route to another model).
+
 ## Cache key and invalidation
 
 `RouteCache` is daemon-wide, a bounded LRU (100) with TTL `cacheTtlMs`
@@ -107,13 +135,16 @@ fingerprint, registry fingerprint, workspace, Goal flag, `spawn_agent`, and the
 current provider/model — never raw text. Any config change clears the cache
 (`routing-runtime.ts`); registry, pin, model or workspace changes change the
 key. Follow-ups ("yes, go ahead") reuse the session's last decision if it is
-still a valid candidate and mode.
+still a valid candidate and mode (a follow-up is a short affirmation or
+continue-word; a short but new request such as "refactor auth" is routed).
 
 ## Escalation bounds and retry semantics
 
 After a classified provider failure (`classifyEscalation`: rate limit, model
 unavailable, provider transient, context overflow; **not** auth, billing,
-aborts or bugs), `nextEscalation` may pick another model if:
+aborts or bugs), `nextEscalation` may pick another model (the nearest in
+quality to the failed one, not necessarily a stronger one; for context overflow,
+the smallest larger window) if:
 
 - escalation is enabled and `attempt <= escalation.maxAttempts` (default 1,
   hard max 2);

@@ -9,6 +9,7 @@ import type { Message } from "@kenkaiiii/gg-ai";
 import { getAllModels } from "../core/model-registry.js";
 import {
   DEFAULT_AUTO_ROUTE_CONFIG,
+  RouteCache,
   buildCapabilityRegistry,
   type DecisionAdapter,
   type RawRouteChoice,
@@ -24,6 +25,7 @@ import {
   runPromptWithRouting,
   setAutoEnabled,
   runWithEscalation,
+  followSavedAutoDefault,
 } from "./session-routing.js";
 
 const registry = buildCapabilityRegistry({
@@ -56,6 +58,8 @@ function makeCtx(opts: {
   pins?: SessionRouteContext["autoRoute"]["pins"];
   mode?: "code" | "chat" | "motion";
   thinking?: "low" | "high";
+  slash?: boolean;
+  buildAdapter?: () => Promise<unknown>;
 }) {
   const flags = { ultracode: false, orchestrate: false, thinking: opts.thinking };
   const state = { provider: "openai", model: "gpt-6-luna" };
@@ -85,14 +89,18 @@ function makeCtx(opts: {
         if (opts.throwing) throw new Error("boom");
         return registry;
       },
-      buildAdapter: async () => ({
-        adapter: opts.adapter === undefined ? adapterPicking("haiku") : opts.adapter,
-        lastStatus: () => null,
-      }),
+      secrets: async () => [],
+      buildAdapter:
+        opts.buildAdapter ??
+        (async () => ({
+          adapter: opts.adapter === undefined ? adapterPicking("haiku") : opts.adapter,
+          lastStatus: () => null,
+        })),
       cache: undefined,
       diagnostics: { record: vi.fn() },
     },
     session: {
+      willExpandPromptTemplate: async () => opts.slash === true,
       getMessages: () => messages,
       getState: () => state,
       getThinkingLevel: () => flags.thinking,
@@ -440,5 +448,70 @@ describe("baseline restore when Auto is turned off", () => {
     const fs = await import("node:fs");
     const src = fs.readFileSync(new URL("./session-routing.ts", import.meta.url), "utf8");
     expect(src).not.toMatch(/saveProjectModelPrefs|persistModelSelection|persistThinkingLevel/);
+  });
+});
+
+describe("saved Auto default vs live windows", () => {
+  it("does not turn Auto back on in a window the user switched off", async () => {
+    const t = makeCtx({ enabled: true });
+    t.raw.autoRoute = { ...t.raw.autoRoute, savedEnabled: false } as never;
+    await setAutoEnabled(t.ctx, false, { byUser: true });
+    expect(await followSavedAutoDefault(t.ctx, true)).toBe(false);
+    expect(t.ctx.autoRoute.enabled).toBe(false);
+  });
+
+  it("follows a real change for a never-toggled window, but not an unchanged save", async () => {
+    const t = makeCtx({ enabled: false });
+    (t.ctx.autoRoute as { savedEnabled?: boolean }).savedEnabled = false;
+    expect(await followSavedAutoDefault(t.ctx, false)).toBe(false);
+    expect(await followSavedAutoDefault(t.ctx, true)).toBe(true);
+    expect(t.ctx.autoRoute.enabled).toBe(true);
+    // An unrelated settings edit re-saves the same value.
+    t.ctx.autoRoute.enabled = false;
+    expect(await followSavedAutoDefault(t.ctx, true)).toBe(false);
+    expect(t.ctx.autoRoute.enabled).toBe(false);
+  });
+});
+
+describe("routing latency and cancellation", () => {
+  it("does not build the adapter on a route-cache hit", async () => {
+    const buildAdapter = vi.fn(async () => ({
+      adapter: adapterPicking("luna"),
+      lastStatus: () => null,
+    }));
+    const t = makeCtx({ buildAdapter });
+    (t.raw.routing as { cache: unknown }).cache = new RouteCache();
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    expect(buildAdapter).toHaveBeenCalledTimes(1);
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    expect(buildAdapter).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts a pending decision when Stop fires, and still runs the prompt", async () => {
+    const slow: DecisionAdapter = {
+      id: "slow",
+      label: "slow",
+      decide: () => new Promise(() => {}),
+    };
+    const t = makeCtx({ adapter: slow });
+    const p = routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    await vi.waitFor(() => expect(t.ctx.autoRoute.routeAbort).toBeDefined());
+    t.ctx.autoRoute.routeAbort!.abort();
+    const run = await p;
+    expect(run?.decision.source).toBe("fallback");
+    expect(t.ctx.autoRoute.routeAbort).toBeUndefined();
+  });
+
+  it("does not route a slash-command template", async () => {
+    const t = makeCtx({ slash: true });
+    const send = vi.fn(async () => {});
+    await runPromptWithRouting(
+      t.ctx,
+      { text: "/review", attachments: [], meta: undefined, send, retry: send },
+      { ultracode: false, orchestrate: false },
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(t.switchModel).not.toHaveBeenCalled();
+    expect(t.ctx.autoRoute.lastDecision).toBeNull();
   });
 });

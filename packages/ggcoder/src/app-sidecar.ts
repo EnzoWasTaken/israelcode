@@ -213,7 +213,7 @@ import { createRoutingRuntime, type RoutingRuntime } from "./app-sidecar/routing
 import { handleRoutingRoutes, handleRoutingSessionRoute } from "./app-sidecar/routing-routes.js";
 import {
   autoRoutePayload,
-  setAutoEnabled,
+  followSavedAutoDefault,
   type AutoRouteSessionState,
 } from "./app-sidecar/session-routing.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
@@ -3051,9 +3051,11 @@ async function createSession(
     enabled: routing.config().enabled,
     pins: {},
     lastDecision: null,
+    savedEnabled: routing.config().enabled,
   };
   const unsubscribeRouting = routing.onConfigChange((config) => {
-    void setAutoEnabled(routeCtx, config.enabled)
+    // The saved value is the default for new windows; see followSavedAutoDefault.
+    void followSavedAutoDefault(routeCtx, config.enabled)
       .catch((err: unknown) => log("WARN", "routing", "Auto toggle failed", { err: String(err) }))
       .finally(() => broadcast("route_state", autoRoutePayload({ mode, goal, autoRoute })));
   });

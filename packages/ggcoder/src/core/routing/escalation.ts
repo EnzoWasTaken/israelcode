@@ -17,7 +17,8 @@ export interface EscalationDeps {
 }
 
 /**
- * Next safe alternative after `prev` failed, or null. `attempt` is the 1-based
+ * Next alternative after `prev` failed (the nearest in quality to it, not necessarily a stronger
+ * one; for context overflow, the smallest larger window), or null. `attempt` is the 1-based
  * number of this escalation (1 = first retry); it is bounded by
  * `config.escalation.maxAttempts`. Pinned models are never replaced.
  */

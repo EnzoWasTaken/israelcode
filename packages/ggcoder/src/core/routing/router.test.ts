@@ -271,3 +271,188 @@ describe("routeTask", () => {
     await expect(routeTask(makeRequest({ text: "hi" }), deps(null, { log }))).resolves.toBeTruthy();
   });
 });
+
+describe("switch-cost rule (stickiness)", () => {
+  const big = { sessionKey: "s1", turns: 4, estimatedTokens: 40_000 };
+  const toHaiku = (over: Partial<RawRouteChoice> = {}) =>
+    adapterOf(async () => choice({ difficulty: "simple", ...over }));
+
+  it("keeps the current model mid-conversation instead of flipping to a cheaper one", async () => {
+    const d = await routeTask(
+      makeRequest({ text: "rename a variable", conversation: big }),
+      deps(toHaiku()),
+    );
+    expect(d).toMatchObject({
+      model: "claude-sonnet-5-5",
+      reason: "kept_current",
+      explanation: "Kept your current model",
+      source: "router",
+    });
+  });
+
+  it("switches freely when the context is small or it is the first turn", async () => {
+    const small = await routeTask(makeRequest({ text: "rename a variable" }), deps(toHaiku()));
+    expect(small.model).toBe("claude-haiku-5-5");
+    const first = await routeTask(
+      makeRequest({
+        text: "rename a variable",
+        conversation: { ...big, turns: 0 },
+      }),
+      deps(toHaiku()),
+    );
+    expect(first.model).toBe("claude-haiku-5-5");
+  });
+
+  it("switches up when the current model is under-powered for a hard task", async () => {
+    const d = await routeTask(
+      makeRequest({ text: "redesign the whole thing", conversation: big }),
+      deps(
+        adapterOf(async () => choice({ model: "anthropic:claude-opus-5-5", difficulty: "hard" })),
+      ),
+    );
+    expect(d.model).toBe("claude-opus-5-5");
+  });
+
+  it("switches when confident and the capability gap is real, not when unsure", async () => {
+    const current = {
+      provider: "anthropic",
+      model: "claude-haiku-5-5",
+      thinkingLevel: null,
+      executionMode: "standard" as const,
+    };
+    const pick = (confidence: number) =>
+      routeTask(
+        makeRequest({ text: "refactor this module carefully", conversation: big, current }),
+        deps(
+          adapterOf(async () =>
+            choice({ model: "anthropic:claude-opus-5-5", difficulty: "moderate", confidence }),
+          ),
+        ),
+      );
+    // haiku is not adequate for moderate work, so it switches regardless.
+    expect((await pick(0.7)).model).toBe("claude-opus-5-5");
+    const sonnetCurrent = { ...current, model: "claude-sonnet-5-5" };
+    const sure = await routeTask(
+      makeRequest({
+        text: "refactor this module carefully",
+        conversation: big,
+        current: sonnetCurrent,
+      }),
+      deps(
+        adapterOf(async () =>
+          choice({ model: "anthropic:claude-opus-5-5", difficulty: "moderate", confidence: 0.95 }),
+        ),
+      ),
+    );
+    const unsure = await routeTask(
+      makeRequest({
+        text: "refactor this module carefully",
+        conversation: big,
+        current: sonnetCurrent,
+      }),
+      deps(
+        adapterOf(async () =>
+          choice({ model: "anthropic:claude-opus-5-5", difficulty: "moderate", confidence: 0.7 }),
+        ),
+      ),
+    );
+    expect(sure.model).toBe("claude-opus-5-5");
+    expect(unsure).toMatchObject({ model: "claude-sonnet-5-5", reason: "kept_current" });
+  });
+
+  it("never keeps a current model that fails a hard requirement", async () => {
+    const d = await routeTask(
+      makeRequest({
+        text: "what is in this",
+        attachments: [{ kind: "image" }],
+        conversation: big,
+        current: {
+          provider: "deepseek",
+          model: "textonly-coder",
+          thinkingLevel: null,
+          executionMode: "standard",
+        },
+      }),
+      deps(
+        adapterOf(async () => choice({ taskKind: "vision" })),
+        {
+          registry: makeRegistry([realModel("claude-haiku-5-5"), TEXT_ONLY]),
+        },
+      ),
+    );
+    expect(d.model).toBe("claude-haiku-5-5");
+  });
+
+  it("lets pins override the kept model", async () => {
+    const d = await routeTask(
+      makeRequest({
+        text: "rename a variable",
+        conversation: big,
+        pins: { model: { provider: "anthropic", model: "claude-haiku-5-5" } },
+      }),
+      deps(toHaiku()),
+    );
+    expect(d.model).toBe("claude-haiku-5-5");
+  });
+});
+
+describe("lazy adapter, abort and constraint wording", () => {
+  it("does not resolve the adapter on a cache hit", async () => {
+    const cache = new RouteCache();
+    const getAdapter = vi.fn(async () => ({ adapter: adapterOf(async () => choice()) }));
+    const req = makeRequest({ text: "what is a monad" });
+    await routeTask(req, deps(null, { cache, getAdapter }));
+    await routeTask(req, deps(null, { cache, getAdapter }));
+    expect(getAdapter).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports why there is no adapter", async () => {
+    const d = await routeTask(
+      makeRequest({ text: "hello there friend" }),
+      deps(null, { getAdapter: async () => ({ adapter: null, reason: "missing_credentials" }) }),
+    );
+    expect(d.fallbackReason).toBe("missing_credentials");
+  });
+
+  it("falls back immediately when the outer signal aborts", async () => {
+    const ctrl = new AbortController();
+    const a = adapterOf(() => new Promise(() => {}));
+    const p = routeTask(makeRequest({ text: "what is a monad" }), deps(a, { signal: ctrl.signal }));
+    ctrl.abort();
+    const d = await p;
+    expect(d.source).toBe("fallback");
+  });
+
+  it("passes extra secrets to the redactor", async () => {
+    let seen = "";
+    const a = adapterOf(async (input) => {
+      seen = input.taskText;
+      return choice();
+    });
+    await routeTask(
+      makeRequest({ text: "use key hunter2-secret-value please" }),
+      deps(null, { getAdapter: async () => ({ adapter: a, secrets: ["hunter2-secret-value"] }) }),
+    );
+    expect(seen).not.toContain("hunter2-secret-value");
+  });
+
+  it("explains a missing vision model and whether the current one can read images", async () => {
+    const registry = makeRegistry([TEXT_ONLY]);
+    const d = await routeTask(
+      makeRequest({
+        text: "what is this",
+        attachments: [{ kind: "image" }],
+        current: {
+          provider: "deepseek",
+          model: "textonly-coder",
+          thinkingLevel: null,
+          executionMode: "standard",
+        },
+      }),
+      deps(null, { registry }),
+    );
+    expect(d).toMatchObject({ reason: "no_capable_model", fallbackReason: "constraint_violation" });
+    expect(d.explanation).toContain("connect one in Settings");
+    expect(d.explanation).toContain("current model can't either");
+  });
+});

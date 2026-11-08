@@ -388,7 +388,7 @@ export function SettingsAutoRouting(): React.ReactElement {
             />
             <CheckRow
               label="Escalate when a run struggles"
-              help="Retry on a stronger choice if the first attempt fails."
+              help="Retry on a different model if the first attempt fails."
               checked={draft.escalation.enabled}
               onChange={(enabled) =>
                 setDraft({ ...draft, escalation: { ...draft.escalation, enabled } })

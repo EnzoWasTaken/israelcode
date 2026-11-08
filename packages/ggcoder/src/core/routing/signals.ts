@@ -114,8 +114,8 @@ export function extractSignals(req: RouteRequest): RouteSignals {
     req.conversation.turns > 0 &&
     !hasAtt &&
     trimmed.length > 0 &&
-    ((trimmed.length <= 40 && FOLLOW_UP.test(trimmed)) ||
-      (trimmed.split(/\s+/).length <= 3 && trimmed.length <= 24 && !GREETING.test(trimmed)));
+    trimmed.length <= 40 &&
+    FOLLOW_UP.test(trimmed);
 
   return {
     needsImage,

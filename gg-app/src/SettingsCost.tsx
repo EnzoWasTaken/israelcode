@@ -57,7 +57,7 @@ export function SettingsCost({
               <dt>Escalation</dt>
               <dd>
                 {config.escalation.enabled
-                  ? `On, up to ${config.escalation.maxAttempts} ${config.escalation.maxAttempts === 1 ? "retry" : "retries"} on a stronger choice`
+                  ? `On, up to ${config.escalation.maxAttempts} ${config.escalation.maxAttempts === 1 ? "retry" : "retries"} on another model`
                   : "Off"}
               </dd>
             </div>

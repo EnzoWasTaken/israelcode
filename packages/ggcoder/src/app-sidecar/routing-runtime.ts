@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { environmentSecrets } from "@kenkaiiii/gg-ai";
 import path from "node:path";
 import type { AuthStorage } from "@kenkaiiii/gg-core";
 import { getAllModels, getModel } from "../core/model-registry.js";
@@ -49,6 +50,8 @@ export function maskKey(key: string): string {
   return `••••${key.slice(-4)}`;
 }
 
+/** How long a built capability registry (one auth check per provider) is reused. */
+export const REGISTRY_TTL_MS = 30_000;
 export const DIAGNOSTICS_RING = 50;
 export const DIAGNOSTICS_FILE_MAX_LINES = 500;
 
@@ -122,7 +125,12 @@ export interface RoutingRuntime {
   setConfig(config: AutoRouteConfig): Promise<void>;
   /** Called after the config is saved; returns an unsubscribe function. */
   onConfigChange(cb: (config: AutoRouteConfig) => void): () => void;
+  /** Cached briefly (see REGISTRY_TTL_MS); dropped on config save and `invalidateRegistry`. */
   buildRegistry(config?: AutoRouteConfig): Promise<ModelCapability[]>;
+  /** Drop the cached capability registry (after a login/logout or config change). */
+  invalidateRegistry(): void;
+  /** Stored keys/tokens and sensitive environment values, to redact from text sent to a decider. */
+  secrets(): Promise<string[]>;
   buildAdapter(config?: AutoRouteConfig): Promise<BuiltAdapter>;
   credentialStatus(): Promise<{ openrouter: CredentialStatus; typesafe: CredentialStatus }>;
   deciderOptions(): Promise<DeciderOption[]>;
@@ -135,6 +143,7 @@ export interface RoutingRuntimeDeps {
   fetchFn?: typeof fetch;
   /** Test seams. */
   initialConfig?: AutoRouteConfig;
+  now?: () => number;
   persist?: (config: AutoRouteConfig) => Promise<void>;
 }
 
@@ -163,13 +172,40 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
     return { openrouter: await read("openrouter"), typesafe: await read("typesafe") };
   }
 
+  const now = deps.now ?? Date.now;
+  let registryCache: { config: AutoRouteConfig; at: number; value: ModelCapability[] } | null =
+    null;
+
   async function buildRegistry(config = current): Promise<ModelCapability[]> {
+    if (
+      registryCache &&
+      registryCache.config === config &&
+      now() - registryCache.at < REGISTRY_TTL_MS
+    ) {
+      return registryCache.value;
+    }
     const connected = await connectedProviders();
-    return buildCapabilityRegistry({
+    const value = buildCapabilityRegistry({
       models: getAllModels().filter((m) => m.provider !== "local"),
       isAvailable: (provider) => connected.has(provider),
       candidateAllowList: config.candidateModels,
     });
+    registryCache = { config, at: now(), value };
+    return value;
+  }
+
+  /** Stored API keys / tokens plus sensitive environment values, for redacting task text. */
+  async function knownSecrets(): Promise<string[]> {
+    const out = new Set<string>(environmentSecrets(process.env));
+    for (const key of [...ALL_PROVIDERS, "openrouter", "typesafe"]) {
+      try {
+        const token = (await auth.getCredentials(key))?.accessToken;
+        if (token && token.length >= 8) out.add(token);
+      } catch {
+        // an unreadable entry just isn't redacted by value
+      }
+    }
+    return [...out].sort((a, b) => b.length - a.length);
   }
 
   return {
@@ -179,6 +215,7 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
     async setConfig(config) {
       await (deps.persist ?? saveAutoRouteConfig)(config);
       current = config;
+      registryCache = null;
       cache.clear();
       for (const cb of listeners) {
         try {
@@ -193,6 +230,10 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
       return () => listeners.delete(cb);
     },
     buildRegistry,
+    invalidateRegistry() {
+      registryCache = null;
+    },
+    secrets: knownSecrets,
     async buildAdapter(config = current) {
       let status: number | null = null;
       const lastStatus = () => status;

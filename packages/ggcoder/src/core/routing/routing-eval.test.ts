@@ -284,3 +284,17 @@ describe("routing eval — deterministic specifics", () => {
     expect(d.effort).toBe("low");
   });
 });
+
+describe("short follow-up heuristic", () => {
+  it("only treats real follow-ups as follow-ups", () => {
+    expect(extractSignals(makeRequest({ text: "yes please" })).isFollowUp).toBe(true);
+    expect(extractSignals(makeRequest({ text: "refactor auth" })).isFollowUp).toBe(false);
+    expect(extractSignals(makeRequest({ text: "fix login bug" })).isFollowUp).toBe(false);
+  });
+  it("never with attachments", () => {
+    expect(
+      extractSignals(makeRequest({ text: "ok continue", attachments: [{ kind: "image" }] }))
+        .isFollowUp,
+    ).toBe(false);
+  });
+});

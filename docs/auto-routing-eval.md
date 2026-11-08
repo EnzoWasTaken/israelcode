@@ -77,6 +77,20 @@ lowest rung).
   the deterministic router picks Ultracode while the scripted decider picks
   Orchestrate — both are accepted by the test.
 
+## Behaviour changes (review fixes)
+
+- **Switch-cost rule**: the fixtures above use small contexts (< 8k tokens), so
+  their expected routes are unchanged. With a larger mid-conversation context the
+  router now keeps the current model (`kept_current`) unless it is under-powered
+  for the difficulty or a confident (≥ 0.9) decision has a real quality gap;
+  covered in `router.test.ts` ("switch-cost rule").
+- **Short follow-up**: only affirmations/continue-words count; "refactor auth" is
+  now routed normally. No fixture changed.
+- **No vision-capable model**: the decision is the current model with reason
+  `no_capable_model` and the explanation "No connected model can read images —
+  connect one in Settings" (plus ", and your current model can't either" when it
+  can't read images).
+
 ## Vision and video cases
 
 - The **screenshot** case requires a vision-capable model. The deterministic

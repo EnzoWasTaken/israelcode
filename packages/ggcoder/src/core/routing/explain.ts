@@ -12,7 +12,7 @@ export const EXPLANATIONS: Record<RouteReasonCode, string> = {
   coding: "Selected for coding",
   orchestration: "Using orchestration for a multi-step task",
   ultracode: "Using Ultracode for a large multi-file task",
-  kept_current: "Kept the current model",
+  kept_current: "Kept your current model",
   balanced_default: "Balanced model for this task",
   pinned: "Using your pinned choices",
   pinned_invalid: "Your pinned model can't handle this task",
@@ -28,12 +28,17 @@ export function explainReason(code: RouteReasonCode): string {
 
 export function explainConstraintViolation(
   unmet: "no_models" | "vision" | "video" | "context",
+  currentLacks?: boolean,
 ): string {
   switch (unmet) {
     case "vision":
-      return "No connected model can read images — using your current model";
+      return currentLacks
+        ? "No connected model can read images, and your current model can't either — connect one in Settings"
+        : "No connected model can read images — connect one in Settings";
     case "video":
-      return "No connected model can read video — using your current model";
+      return currentLacks
+        ? "No connected model can read video, and your current model can't either — connect one in Settings"
+        : "No connected model can read video — connect one in Settings";
     case "context":
       return "No connected model has enough context — using your current model";
     default:

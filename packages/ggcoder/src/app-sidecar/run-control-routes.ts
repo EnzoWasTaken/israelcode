@@ -184,6 +184,12 @@ export function handleRunControlRoutes(
       // Clamp the reasoning level to what the new model supports (mirrors the
       // CLI): keep thinking on at the first supported tier if it was on but
       // the prior level is unsupported here; leave it off if it was off.
+      // While Auto is on the session level is Auto's routed effort, not the user's: use their
+      // baseline (or pinned) effort for the preference instead.
+      const baseline = ctx.autoRoute.baseline;
+      if (ctx.autoRoute.enabled && (ctx.autoRoute.pins.effort || baseline)) {
+        ctx.session.setThinkingLevel(ctx.autoRoute.pins.effort ?? baseline?.thinkingLevel);
+      }
       const prevLevel = ctx.session.getThinkingLevel();
       if (prevLevel && !isThinkingLevelSupported(target.provider, target.id, prevLevel)) {
         ctx.session.setThinkingLevel(getNextThinkingLevel(target.provider, target.id, undefined));
@@ -442,17 +448,22 @@ export function handleRunControlRoutes(
     // Best-effort Anthropic cache prewarm on the composer's first keystroke.
     // Fire-and-forget: AgentSession.prewarm() applies its own gating (provider,
     // setting, history size, TTL, in-flight) and swallows request errors.
-    if (!ctx.running) {
+    // Auto sessions skip it: the prompt may be routed to a different model, and a cache warmed
+    // for the current one would be wasted (and cost a cache write).
+    const skip = ctx.running || ctx.autoRoute.enabled;
+    if (!skip) {
       void ctx.session.prewarm().catch((err: unknown) => {
         log("WARN", "app-sidecar", "prewarm failed", { err: String(err) });
       });
     }
-    json(res, 202, { accepted: !ctx.running });
+    json(res, 202, { accepted: !skip });
     return true;
   }
 
   if (method === "POST" && url === "/cancel") {
     void (async () => {
+      // Stop also ends an in-flight Auto routing decision (it can wait seconds on the decider).
+      ctx.autoRoute.routeAbort?.abort();
       const { result, drained } = await cancelActiveRun(ctx);
       if (result.status === "failed") {
         ctx.broadcast("cancel_failed", {
