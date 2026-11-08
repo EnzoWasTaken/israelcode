@@ -19,9 +19,11 @@ import {
   hasModelSource,
   openWhatsNewWindow,
   setRemoteActive,
+  type BackgroundSessionRow,
   getServeStatus,
 } from "./agent";
 import { useAppUpdate } from "./update";
+import { BackgroundSection } from "./BackgroundSessions";
 import { toast } from "./toast";
 import { fl, hourGreeting, useFlavorEnabled } from "./flavor";
 
@@ -51,6 +53,8 @@ interface Props {
    * folder). A counter, not a boolean, so repeats always re-fire.
    */
   refreshSignal?: number;
+  /** Reopen a background conversation in this window. */
+  onOpenBackground?: (row: BackgroundSessionRow) => Promise<void> | void;
 }
 
 /**
@@ -68,6 +72,7 @@ export function HomeScreen({
   worldShown = false,
   onSettings,
   refreshSignal = 0,
+  onOpenBackground,
 }: Props): React.ReactElement {
   const [folderSet, setFolderSet] = useState(false);
   const [providerConnected, setProviderConnected] = useState(false);
@@ -268,6 +273,7 @@ export function HomeScreen({
           </span>
         </div>
       </div>
+      {ready && onOpenBackground && <BackgroundSection onOpen={onOpenBackground} />}
       {/* Settings: a GG Royale pixel gear. */}
       <PixelTip
         text={fl(

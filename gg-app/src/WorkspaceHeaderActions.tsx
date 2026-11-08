@@ -1,4 +1,5 @@
 import type {
+  BackgroundSessionRow,
   BudgetState,
   ProjectTask,
   VerifyState,
@@ -14,6 +15,7 @@ import { VerifyControl } from "./VerifyControl";
 import { fl } from "./flavor";
 import { Icon } from "./icons";
 import { WindowLayoutButton } from "./WindowLayoutButton";
+import { BackgroundIndicator } from "./BackgroundSessions";
 import { describeTally, type GoalTally } from "./goal-progress";
 
 /** A started goal shows either its conversation or its workers at work. */
@@ -56,6 +58,7 @@ export function TitleBarActions({
   onCommit,
   budget = null,
   onBudgetChange,
+  onOpenBackground,
 }: {
   workspaceMode: WorkspaceMode;
   isGoal?: boolean;
@@ -81,6 +84,8 @@ export function TitleBarActions({
   /** Token caps and meter (code windows); shown only while a cap is set. */
   budget?: BudgetState | null;
   onBudgetChange?: (next: BudgetState) => void;
+  /** Reopen a background conversation here; shows the quiet "N running" indicator when set. */
+  onOpenBackground?: (row: BackgroundSessionRow) => Promise<void> | void;
 }): React.ReactElement {
   const showGit = workspaceMode === "code" || isGoal;
   return (
@@ -92,6 +97,7 @@ export function TitleBarActions({
           </span>
         ))}
       </div>
+      {onOpenBackground && <BackgroundIndicator onOpen={onOpenBackground} />}
       {isGoal && goalView && goalTally && (
         <p className="goal-tally" role="status" aria-label={describeTally(goalTally)}>
           <span className="goal-tally-part" data-live={goalTally.working > 0 || undefined}>
