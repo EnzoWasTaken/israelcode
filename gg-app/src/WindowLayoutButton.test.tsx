@@ -42,4 +42,18 @@ describe("WindowLayoutButton (Windows/Linux fallback)", () => {
     await waitFor(() => expect(arrangeAllWindows).toHaveBeenCalledOnce());
     expect(setupWindows).not.toHaveBeenCalled();
   });
+
+  it("opens upward when the trigger is at the window bottom", () => {
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(120);
+    const trigger = { top: 600, bottom: 630 } as DOMRect;
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(trigger);
+    window.innerHeight = 640;
+    render(<WindowLayoutButton />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Arrange into multiple project windows" }));
+
+    expect(screen.getByRole("menu").getAttribute("data-flip")).toBe("up");
+    rect.mockRestore();
+    vi.restoreAllMocks();
+  });
 });

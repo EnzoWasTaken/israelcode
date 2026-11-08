@@ -4933,6 +4933,11 @@ select {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-md);
 }
+.winlayout-menu[data-flip="up"] {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform-origin: right bottom;
+}
 .winlayout-item {
   display: flex;
   align-items: center;
