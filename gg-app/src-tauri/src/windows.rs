@@ -376,12 +376,13 @@ pub(crate) async fn select_project(
         map.get_mut(&label)
             .and_then(|window| window.session_id.take())
     };
-    // Dispose the old session on the daemon (best-effort, off-thread).
+    // Detach the old session (best-effort, off-thread): the daemon keeps it
+    // running in the background if busy, else disposes it.
     if let Some(id) = old_id {
         if let Some(port) = port_for(&webview) {
             let app2 = app.clone();
             tauri::async_runtime::spawn(async move {
-                daemon_delete_session(&app2, port, &id).await;
+                daemon_detach_session(&app2, port, &id).await;
             });
         }
     }

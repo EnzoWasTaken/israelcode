@@ -44,6 +44,9 @@ pub(crate) struct TrayStatus {
     /// True while the Telegram serve loop is running. Flips the Remote item
     /// between "Remote" and "Remote · Turn off".
     pub(crate) remote_active: bool,
+    /// Sessions still working with no window open (app kept alive in the
+    /// tray). Zero hides the status line.
+    pub(crate) background_tasks: usize,
 }
 
 #[derive(Default)]
@@ -98,6 +101,20 @@ pub(crate) fn build_tray_menu(
             tray_id::UPDATE,
             format!("Update now \u{2192} v{version}"),
             true,
+            None::<&str>,
+        )?)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+    }
+    if status.background_tasks > 0 {
+        let n = status.background_tasks;
+        menu.append(&MenuItem::with_id(
+            app,
+            "tray:background-status",
+            format!(
+                "{n} task{} running in background",
+                if n == 1 { "" } else { "s" }
+            ),
+            false,
             None::<&str>,
         )?)?;
         menu.append(&PredefinedMenuItem::separator(app)?)?;
@@ -216,6 +233,8 @@ pub(crate) fn dispatch_tray_action(app: tauri::AppHandle, action: &'static str) 
 
     // Window building must not run on the caller's thread (see `new_window`).
     tauri::async_runtime::spawn(async move {
+        // A window is coming back; the "running in background" line is stale.
+        update_tray_status(&app, |s| s.background_tasks = 0);
         let label = next_window_label(&app);
         // Park the intent BEFORE the webview can mount, so the claim on mount
         // never races the window build.

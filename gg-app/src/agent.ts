@@ -3020,6 +3020,111 @@ export function onSteroidsChange(cb: (status: SteroidsStatus) => void): () => vo
   });
 }
 
+// ── Persistent background sessions ───────────────────────────
+
+export type BackgroundSessionStatus =
+  "running" | "awaiting_input" | "completed" | "failed" | "cancelled" | "interrupted" | "idle";
+
+export interface BackgroundSessionRow {
+  id: string | null;
+  sessionPath: string | null;
+  cwd: string;
+  mode: "code" | "chat" | "motion";
+  chatAgent: string | null;
+  title: string;
+  status: BackgroundSessionStatus;
+  detail: string | null;
+  /** True while a window is showing this session. */
+  attached: boolean;
+  startedAt: number | null;
+  updatedAt: number;
+}
+
+const BACKGROUND_STATUSES: readonly BackgroundSessionStatus[] = [
+  "running",
+  "awaiting_input",
+  "completed",
+  "failed",
+  "cancelled",
+  "interrupted",
+  "idle",
+];
+
+const optString = (v: unknown): string | null => (typeof v === "string" ? v : null);
+const optNumber = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
+
+/** Defensively coerce a daemon row; returns null when it is not an object. */
+export function normalizeBackgroundRow(raw: unknown): BackgroundSessionRow | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const status = BACKGROUND_STATUSES.find((s) => s === r.status) ?? "idle";
+  const mode = r.mode === "chat" || r.mode === "motion" ? r.mode : "code";
+  return {
+    id: optString(r.id),
+    sessionPath: optString(r.sessionPath),
+    cwd: optString(r.cwd) ?? "",
+    mode,
+    chatAgent: optString(r.chatAgent),
+    title: optString(r.title) ?? "",
+    status,
+    detail: optString(r.detail),
+    attached: r.attached === true,
+    startedAt: optNumber(r.startedAt),
+    updatedAt: optNumber(r.updatedAt) ?? 0,
+  };
+}
+
+export function normalizeBackgroundSessions(raw: unknown): BackgroundSessionRow[] {
+  const list = raw && typeof raw === "object" ? (raw as { sessions?: unknown }).sessions : null;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((row) => normalizeBackgroundRow(row) ?? []);
+}
+
+/** Every session the daemon holds (running, finished, detached). */
+export async function listBackgroundSessions(): Promise<BackgroundSessionRow[]> {
+  await waitForReady();
+  return normalizeBackgroundSessions(await invoke("background_sessions_list"));
+}
+
+export async function stopBackgroundSession(id: string): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_stop", { id });
+}
+
+/** Remove a finished session from the list (the conversation file stays). */
+export async function dismissBackgroundSession(target: {
+  id?: string;
+  sessionPath?: string;
+}): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_dismiss", {
+    id: target.id ?? null,
+    sessionPath: target.sessionPath ?? null,
+  });
+}
+
+/** Stop, dispose and delete the conversation file. */
+export async function deleteBackgroundSession(target: {
+  id?: string;
+  sessionPath?: string;
+}): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_delete", {
+    id: target.id ?? null,
+    sessionPath: target.sessionPath ?? null,
+  });
+}
+
+/** Fires with the daemon's full background-session list whenever it changes. */
+export function onBackgroundSessions(cb: (sessions: BackgroundSessionRow[]) => void): () => void {
+  return subscribe((e) => {
+    if (e.type === "background_sessions") {
+      cb(normalizeBackgroundSessions(e.data));
+    }
+  });
+}
+
 // ── MCP server management (mirrors `ggcoder mcp`) ────────────
 
 /** One configured MCP server joined with its live connection status. */

@@ -2,6 +2,7 @@
 
 pub(crate) mod agent;
 pub(crate) mod agent_admin;
+pub(crate) mod background;
 pub(crate) mod budget;
 pub(crate) mod compaction;
 pub(crate) mod files;

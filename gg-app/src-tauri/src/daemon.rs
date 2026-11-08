@@ -358,6 +358,9 @@ pub(crate) async fn daemon_create_session(
         .and_then(|session_id| session_id.as_str())
         .map(|session_id| session_id.to_string())
         .ok_or_else(|| "agent daemon returned no session id".to_string())?;
+    if value.get("reattached").and_then(|v| v.as_bool()) == Some(true) {
+        log::info!("daemon reattached live background session daemon_session_id={id}");
+    }
     Ok((id, json_session_path(&value)))
 }
 
@@ -381,6 +384,67 @@ pub(crate) async fn daemon_delete_session(app: &tauri::AppHandle, port: u16, id:
         ))
         .send()
         .await;
+}
+
+/// POST /session/:id/detach: the window is going away (closed or re-pointed).
+/// The daemon keeps busy/awaiting-input sessions running and disposes idle
+/// ones. Best-effort; a daemon without the route (404) gets the old DELETE.
+pub(crate) async fn daemon_detach_session(app: &tauri::AppHandle, port: u16, id: &str) {
+    let client = app.state::<reqwest::Client>().inner().clone();
+    let url = format!("{}/session/{}/detach", sidecar_base(port), urlencoding(id));
+    match client.post(url).send().await {
+        Ok(res) if res.status() == reqwest::StatusCode::NOT_FOUND => {
+            log::info!("daemon has no detach route; deleting session daemon_session_id={id}");
+            daemon_delete_session(app, port, id).await;
+        }
+        Ok(res) if !res.status().is_success() => {
+            log::warn!(
+                "session detach failed daemon_session_id={id} status={}",
+                res.status()
+            );
+        }
+        Ok(_) => {}
+        Err(e) => log::warn!(
+            "session detach failed daemon_session_id={id} error={}",
+            e.without_url()
+        ),
+    }
+}
+
+/// Number of background sessions still working (`running` or
+/// `awaiting_input`) in a `GET /background-sessions` body.
+pub(crate) fn count_active_background(value: &serde_json::Value) -> usize {
+    value
+        .get("sessions")
+        .and_then(|s| s.as_array())
+        .map(|rows| {
+            rows.iter()
+                .filter(|row| {
+                    matches!(
+                        row.get("status").and_then(|s| s.as_str()),
+                        Some("running" | "awaiting_input")
+                    )
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+/// Ask the daemon how many sessions are active; `None` on any error/timeout.
+#[cfg(any(target_os = "macos", windows))]
+pub(crate) async fn active_background_count(app: &tauri::AppHandle, port: u16) -> Option<usize> {
+    let client = app.state::<reqwest::Client>().inner().clone();
+    let res = client
+        .get(format!("{}/background-sessions", sidecar_base(port)))
+        .timeout(std::time::Duration::from_millis(1500))
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let value = res.json::<serde_json::Value>().await.ok()?;
+    Some(count_active_background(&value))
 }
 
 pub(crate) fn publish_window_session(
@@ -1003,5 +1067,20 @@ mod tests {
             json_session_path(&serde_json::json!({ "sessionId": "x", "sessionPath": "" })),
             None
         );
+    }
+}
+
+#[cfg(test)]
+mod background_tests {
+    use super::count_active_background;
+
+    #[test]
+    fn counts_only_running_and_awaiting_input() {
+        let v = serde_json::json!({ "sessions": [
+            { "status": "running" }, { "status": "awaiting_input" },
+            { "status": "completed" }, { "status": "idle" }, {}
+        ]});
+        assert_eq!(count_active_background(&v), 2);
+        assert_eq!(count_active_background(&serde_json::json!({})), 0);
     }
 }
