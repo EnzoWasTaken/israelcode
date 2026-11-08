@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { EXECUTION_MODES } from "./capabilities.js";
 import { DECISION_SERVICE_DEFAULTS, type DecisionService } from "./config.js";
-import type {
-  TASK_KINDS} from "./decision-adapter.js";
+import type { TASK_KINDS } from "./decision-adapter.js";
 import {
   DecisionError,
   DIFFICULTY_LEVELS,
