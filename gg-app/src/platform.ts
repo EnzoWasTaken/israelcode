@@ -37,3 +37,8 @@ export function tagPlatform(doc: Document = document, nav: Navigator = navigator
 export function supportsNativeSelectPopup(doc: Document = document): boolean {
   return doc.documentElement.classList.contains("platform-macos");
 }
+
+/** ⌘ instead of Ctrl in shortcut labels: the document was tagged macOS at boot. */
+export function isMacPlatform(doc: Document = document): boolean {
+  return doc.documentElement.classList.contains("platform-macos");
+}

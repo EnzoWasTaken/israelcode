@@ -75,6 +75,7 @@ export function InitGitModal({ defaultName, onClose, onInitialize }: Props): Rea
         className="modal-input"
         style={{ color: theme.text, background: theme.inputBackground }}
         value={name}
+        aria-label="Repository name"
         placeholder="my-project"
         autoFocus
         onChange={(e) => setName(e.target.value)}

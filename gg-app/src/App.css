@@ -27,3 +27,5 @@
 @import "./styles/app/memories-and-queue.css";
 @import "./styles/app/ask-user.css";
 @import "./styles/app/commands-and-meters.css";
+@import "./styles/app/empty-states.css";
+@import "./styles/app/command-palette.css";

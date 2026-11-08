@@ -25,6 +25,7 @@ import { WindowLayoutButton } from "./WindowLayoutButton";
 import { RadioButton } from "./RadioButton";
 import { NewProjectModal } from "./NewProjectModal";
 import { toast } from "./toast";
+import { EmptyState } from "./EmptyState";
 
 /**
  * Does this row point at another tool's transcript rather than a GG Coder
@@ -33,6 +34,9 @@ import { toast } from "./toast";
 function isForeignSession(session: RecentSession): boolean {
   return session.source === "claude-code" || session.source === "codex";
 }
+
+/** Fewer projects than this leaves room for a hint under the list. */
+const SHORT_LIST = 8;
 
 interface Props {
   /** Called after the agent has been re-pointed at `cwd` (+ optional session). */
@@ -256,7 +260,23 @@ export function ProjectPicker({
             placeholder={"Search projects\u2026"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter opens the top match; Escape clears the search first
+              // (and only goes Back once there's nothing left to clear).
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                const top = filteredProjects[0];
+                if (top && query.trim()) {
+                  e.preventDefault();
+                  openProject(top);
+                }
+              } else if (e.key === "Escape" && query) {
+                e.preventDefault();
+                e.stopPropagation();
+                setQuery("");
+              }
+            }}
             aria-label="Search projects"
+            title="Enter opens the top match · Esc clears"
           />
         )}
         <span className="picker-head-actions">
@@ -301,7 +321,9 @@ export function ProjectPicker({
           )}
           {!loading && !loadError && projects.length === 0 && (
             <div className="picker-empty">
-              <span style={{ color: theme.textMuted }}>No projects yet.</span>
+              <span style={{ color: theme.textMuted }}>
+                No projects yet. Open a folder you already work in, or start a new one.
+              </span>
               <span style={{ display: "flex", gap: "var(--space-4)" }}>
                 <button
                   className="btn btn-ghost btn-sm"
@@ -318,9 +340,24 @@ export function ProjectPicker({
             </div>
           )}
           {!loading && projects.length > 0 && filteredProjects.length === 0 && (
-            <div className="picker-empty" style={{ color: theme.textMuted }}>
-              {`No projects match \u201c${query.trim()}\u201d`}
-            </div>
+            <EmptyState
+              message={`No projects match \u201c${query.trim()}\u201d. Open its folder or start a new one.`}
+            >
+              <button className="btn btn-ghost btn-sm" onClick={() => setQuery("")}>
+                {"Clear search"}
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={busy}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={openExisting}
+              >
+                {"Open existing"}
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
+                {"+ New project"}
+              </button>
+            </EmptyState>
           )}
           {!loading && filteredProjects.length > 0 && (
             <div className="picker-reveal">
@@ -358,6 +395,21 @@ export function ProjectPicker({
                 </div>
               ))}
             </div>
+          )}
+          {!loading && !query.trim() && projects.length > 0 && projects.length < SHORT_LIST && (
+            <EmptyState
+              className="picker-tail"
+              message="Missing a project? Open its folder and it joins this list."
+            >
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={busy}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={openExisting}
+              >
+                {"Open existing"}
+              </button>
+            </EmptyState>
           )}
         </div>
       ) : (

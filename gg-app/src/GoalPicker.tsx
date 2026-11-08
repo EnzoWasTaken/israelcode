@@ -18,6 +18,7 @@ import { WindowLayoutButton } from "./WindowLayoutButton";
 import { RadioButton } from "./RadioButton";
 import { NewGoalModal } from "./NewGoalModal";
 import { ConfirmModal } from "./ConfirmModal";
+import { EmptyState } from "./EmptyState";
 
 interface Props {
   /** Called after this window has been pointed at the goal's coordinator. */
@@ -178,7 +179,23 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
             placeholder={"Search goals\u2026"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // Same keys as the project search: Enter opens the top match,
+              // Escape clears the search before it can go Back.
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                const top = filteredGoals[0];
+                if (top && query.trim()) {
+                  e.preventDefault();
+                  choose(top);
+                }
+              } else if (e.key === "Escape" && query) {
+                e.preventDefault();
+                e.stopPropagation();
+                setQuery("");
+              }
+            }}
             aria-label="Search goals"
+            title="Enter opens the top match · Esc clears"
           />
         )}
         <span className="picker-head-actions">
@@ -212,9 +229,14 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
           </div>
         )}
         {!loading && goals.length > 0 && filteredGoals.length === 0 && (
-          <div className="picker-empty" style={{ color: theme.textMuted }}>
-            {`No goals match \u201c${query.trim()}\u201d`}
-          </div>
+          <EmptyState
+            message={`No goals match \u201c${query.trim()}\u201d. Try other words or start one.`}
+          >
+            <button className="btn btn-ghost btn-sm" onClick={() => setQuery("")}>
+              {"Clear search"}
+            </button>
+            {newGoalButton}
+          </EmptyState>
         )}
         {!loading && filteredGoals.length > 0 && (
           <div className="picker-reveal">

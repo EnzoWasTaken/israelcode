@@ -304,6 +304,7 @@ export function Composer({
         />
         <button
           className="icon-circle"
+          aria-label="Attach files"
           title={fl("Attach files", "Attach files. Screenshots, PDFs, your grandmother's recipe")}
           onClick={() => fileInputRef.current?.click()}
         >
@@ -392,6 +393,7 @@ export function Composer({
           )}
           <textarea
             ref={setTextarea}
+            aria-label="Message"
             // AskBand's number keys still pick an option while this is empty.
             data-composer-input=""
             className={`input${enhanceAnim ? " input-anim" : ""}${kenActive ? " input-ken" : ""}${

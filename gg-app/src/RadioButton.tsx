@@ -22,6 +22,7 @@ export function RadioButton(): React.ReactElement {
     <>
       <button
         className="btn btn-ghost btn-sm btn-nav-icon"
+        aria-label="Internet radio"
         title={playing ? "Radio playing" : "Internet radio"}
         style={playing ? { color: theme.accent } : undefined}
         onClick={() => setOpen(true)}

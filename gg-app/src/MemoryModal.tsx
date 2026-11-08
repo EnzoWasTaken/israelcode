@@ -192,7 +192,9 @@ export function MemoryModal({ onClose }: Props): React.ReactElement {
           </div>
         ) : entries.length === 0 ? (
           <div className="memory-modal-state">
-            {activeTab === "memories" ? "No durable memories yet." : "No Jiwa instructions yet."}
+            {activeTab === "memories"
+              ? "No durable memories yet. Ask the agent to remember something and it lands here."
+              : "No Jiwa instructions yet."}
           </div>
         ) : (
           <table className="memory-table">

@@ -1,0 +1,189 @@
+/* ── Command palette, shortcuts sheet, shortcut hint (src/commands/) ──
+   Both surfaces are Modals, so entrance, exit and reduced motion come from
+   modals.css. Theme tokens only: the colour restyle changes their values. */
+.modal.command-palette {
+  width: min(560px, 92vw);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* Sits high, like a spotlight, so a long list grows downward. */
+  align-self: flex-start;
+  margin-top: 14vh;
+}
+/* The title names the dialog for assistive tech; the input is the header. */
+.command-palette .modal-head {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.cmdk-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  background: var(--surface-1);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}
+.cmdk-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+.cmdk-list {
+  max-height: min(420px, 56vh);
+  overflow-y: auto;
+}
+.cmdk-section {
+  padding: var(--space-4) var(--space-6) var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cmdk-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+.cmdk-row[aria-selected="true"] {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+.cmdk-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmdk-title mark {
+  background: none;
+  color: var(--primary);
+  font-weight: 600;
+}
+.cmdk-detail {
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.cmdk-empty {
+  margin: 0;
+  padding: var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+}
+.cmdk-keys {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+.cmdk-keys kbd,
+.shortcut-hint kbd {
+  min-width: 1.6em;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ── Shortcuts sheet ── */
+.modal.shortcuts-sheet {
+  width: min(640px, 92vw);
+}
+.shortcuts-groups {
+  max-height: 64vh;
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-8);
+}
+.shortcuts-heading {
+  margin: 0 0 var(--space-3);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.shortcuts-group dl {
+  margin: 0;
+}
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-base);
+}
+.shortcuts-row dt {
+  color: var(--text-secondary);
+}
+.shortcuts-row dd {
+  margin: 0;
+}
+
+/* ── Shortcut hint: in flow under the deck, never over content ── */
+.shortcut-hint {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  animation: fade-in var(--dur-enter) var(--ease-out) backwards;
+}
+.shortcut-hint.is-quiet {
+  justify-content: flex-end;
+  padding-block: 0;
+  animation: none;
+}
+.shortcut-hint-dismiss,
+.shortcut-hint-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+}
+.shortcut-hint-link {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.shortcut-hint-link:hover {
+  color: var(--text-secondary);
+}
+.shortcut-hint-link kbd {
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-hint {
+    animation: none;
+  }
+}

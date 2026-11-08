@@ -23,6 +23,7 @@ import {
 import {
   aboutLines,
   GG_CODER_STARTED,
+  PORTRAIT_NOTE,
   SOURCE_URL,
   UPSTREAM_URL,
   type KenSay,
@@ -94,6 +95,8 @@ export function AboutPage(): React.ReactElement {
       <ShipLogCard log={log} version={version} />
       {/* Credit the pixel fonts (Alagard asks for it; m5x7 is CC0, credited anyway). */}
       <p className="about-credits">Pixel fonts: m5x7 by Daniel Linssen, Alagard by Hewett Tsoi.</p>
+      {/* Israel's portrait caricatures a real person: say it is parody. */}
+      <p className="about-credits">{PORTRAIT_NOTE}</p>
       {/* AGPL-3.0 "Appropriate Legal Notices": license, no warranty, where the source is. */}
       <p className="about-credits">
         Israel Code is free software under the GNU AGPL-3.0, with no warranty. It is a modified

@@ -136,7 +136,7 @@ describe("ProjectPicker load failures", () => {
     render(<ProjectPicker onChosen={vi.fn()} />);
 
     expect(await screen.findByText("Couldn't load your projects.")).toBeTruthy();
-    expect(screen.queryByText("No projects yet.")).toBeNull();
+    expect(screen.queryByText(/No projects yet/)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
@@ -255,6 +255,53 @@ describe("ProjectPicker returning from a session", () => {
     listProjectsMock.mockResolvedValue([OTHER_PROJECT]);
     render(<ProjectPicker onChosen={vi.fn()} initialProjectPath="/Users/dev/gone" />);
     expect(await screen.findByText("Choose a project")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Open existing" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Open existing" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("ProjectPicker search keys and empty states", () => {
+  it("offers next steps when the search matches nothing, and Clear search resets it", async () => {
+    await renderProjectList([PROJECT, OTHER_PROJECT]);
+    const search = screen.getByRole("textbox", { name: "Search projects" });
+    fireEvent.change(search, { target: { value: "zzz" } });
+    expect(screen.getByText(/No projects match/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Open existing" }).length).toBe(2);
+    expect(screen.getAllByRole("button", { name: "+ New project" }).length).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(screen.getByText("scratch")).toBeTruthy();
+  });
+
+  it("opens the top match on Enter", async () => {
+    listSessionsMock.mockResolvedValue([]);
+    await renderProjectList([PROJECT, OTHER_PROJECT]);
+    const search = screen.getByRole("textbox", { name: "Search projects" });
+    fireEvent.change(search, { target: { value: "scr" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(await screen.findByText("No previous sessions yet.")).toBeTruthy();
+    expect(screen.getByText("scratch")).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Search projects" })).toBeNull();
+  });
+
+  it("clears the search on Escape without letting the key go Back", async () => {
+    await renderProjectList([PROJECT, OTHER_PROJECT]);
+    const outer = vi.fn();
+    window.addEventListener("keydown", outer);
+    try {
+      const search = screen.getByRole<HTMLInputElement>("textbox", { name: "Search projects" });
+      fireEvent.change(search, { target: { value: "scr" } });
+      fireEvent.keyDown(search, { key: "Escape" });
+      expect(search.value).toBe("");
+      expect(outer).not.toHaveBeenCalled();
+      // Nothing left to clear: Escape carries on to the window as before.
+      fireEvent.keyDown(search, { key: "Escape" });
+      expect(outer).toHaveBeenCalledOnce();
+    } finally {
+      window.removeEventListener("keydown", outer);
+    }
+  });
+
+  it("fills a short list with a hint to open a missing project", async () => {
+    await renderProjectList([PROJECT]);
+    expect(screen.getByText(/Missing a project\?/)).toBeTruthy();
   });
 });

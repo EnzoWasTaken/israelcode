@@ -209,6 +209,6 @@ describe("SkillsModal", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
     await waitFor(() => expect(removeMock).toHaveBeenCalledWith("pdf", "global", undefined));
-    expect(await screen.findByText("No skills installed yet.")).toBeTruthy();
+    expect(await screen.findByText(/No skills installed yet/)).toBeTruthy();
   });
 });

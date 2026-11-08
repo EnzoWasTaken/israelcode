@@ -108,7 +108,7 @@ import { useWindowFocused } from "./useWindowFocused";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { useProgress } from "./useProgress";
 import { useTrophies } from "./useTrophies";
-import { type SettingsTabId } from "./SettingsScreen";
+import type { SettingsTabId } from "./settings-sections";
 import { toast } from "./toast";
 import { takeNewBlockedSkillMessages } from "./blocked-skills";
 import { takeNewSecurityNotices } from "./security-notices";
@@ -148,6 +148,18 @@ import { useWindowTitle } from "./useWindowTitle";
 import { EntryScreen } from "./EntryScreen";
 import { TranscriptView } from "./TranscriptView";
 import { WorkspaceModalHost } from "./WorkspaceModalHost";
+import { CommandCenter, ShortcutHint } from "./commands/CommandCenter";
+import { modelCommands, projectCommands, sessionCommands } from "./commands/dynamic-commands";
+import type { CommandHandlers } from "./commands/command-registry";
+import { setColorSchemePref } from "./color-scheme";
+import {
+  arrangeAllWindows,
+  focusWindowByOffset,
+  newWindow,
+  openWhatsNewWindow,
+  setPermissionMode,
+  setThinkingLevel,
+} from "./agent";
 import { createComposerSubmit } from "./composer-submit";
 import "./App.css";
 import "./Deck.css";
@@ -1450,6 +1462,121 @@ function App(): React.ReactElement {
       setEntryView("home");
     }
   };
+  // The command palette and shortcuts sheet (commands/): what this screen can do.
+  const inWorkspace = !needsProject && !showPicker;
+  const workspaceCwd = inWorkspace ? state?.cwd : undefined;
+  const codeTools = inWorkspace && workspaceMode === "code" && !state?.goal;
+  const openSettingsPage = (tab: SettingsTabId): void =>
+    showScreen(() => {
+      setShowPicker(false);
+      setNeedsProject(true);
+      setSettingsTab(tab);
+      setEntryView("settings");
+    });
+  const openProjectFromPalette = (path: string): void => {
+    void selectProject(path)
+      .then(() =>
+        showScreen(() => {
+          setWorkspaceMode("code");
+          setShowPicker(false);
+          resetForChosenProject();
+        }),
+      )
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
+  };
+  const commandHandlers: Omit<CommandHandlers, "openShortcuts"> = {
+    toggleTheme: () =>
+      setColorSchemePref(document.documentElement.dataset.theme === "light" ? "dark" : "light"),
+    openWhatsNew: () => void openWhatsNewWindow("calm").catch(() => {}),
+    openSettings: openSettingsPage,
+    newWindow: () => void newWindow(),
+    nextWindow: () => void focusWindowByOffset(1),
+    prevWindow: () => void focusWindowByOffset(-1),
+    arrangeWindows: () => void arrangeAllWindows(),
+    goHome: () =>
+      showScreen(() => {
+        setShowPicker(false);
+        setNeedsProject(true);
+        setEntryView("home");
+      }),
+    openProjects: () =>
+      showScreen(() => {
+        setShowPicker(false);
+        setNeedsProject(true);
+        setWorkspaceMode("code");
+        setEntryView("projects");
+      }),
+    ...(inWorkspace && {
+      newSession: running ? undefined : () => setConfirmNewSession(true),
+      backToSessions: () => showScreen(() => setShowPicker(true)),
+      openNotes: () => setDeckPanel("notes"),
+      openMemories: () => setDeckPanel("brain"),
+      exportTranscript: items.length > 0 ? () => void exportTranscript() : undefined,
+      toggleTools,
+      thinkingLevels: state?.supportedThinkingLevels,
+      thinkingLevel: state?.thinkingLevel,
+      setThinking: running
+        ? undefined
+        : (level: string) =>
+            void setThinkingLevel(level)
+              .then((r) => setState((s) => (s ? { ...s, ...r } : s)))
+              .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error")),
+    }),
+    ...(codeTools && {
+      openChecklist,
+      openTasks,
+      cyclePermission,
+      planOn: state?.planMode ?? false,
+      togglePlan:
+        running && !state?.planMode
+          ? undefined
+          : () =>
+              void setPermissionMode(state?.planMode ? (state.permissionMode ?? "ask") : "plan")
+                .then((r) =>
+                  setState((s) =>
+                    s ? { ...s, permissionMode: r.permissionMode, planMode: r.planMode } : s,
+                  ),
+                )
+                .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error")),
+      autopilotOn: state?.autopilot ?? false,
+      toggleAutopilot: () => {
+        const next = !(state?.autopilot ?? false);
+        setState((s) => (s ? { ...s, autopilot: next } : s));
+        void setAutopilot(next);
+        setKenPowerBanner(next ? "on" : "off");
+      },
+      ...(ultracodeAvailable && {
+        ultracodeOn: state?.ultracode ?? false,
+        toggleUltracode: () => changeUltracode(!(state?.ultracode ?? false)),
+        orchestrateOn: state?.orchestration?.orchestrate ?? false,
+        toggleOrchestrate: () => changeOrchestrate(!(state?.orchestration?.orchestrate ?? false)),
+      }),
+    }),
+  };
+  const projectLoader = projectCommands(openProjectFromPalette);
+  const sessionLoader = workspaceCwd
+    ? sessionCommands(workspaceCwd, workspaceMode, (session) => {
+        void selectWorkspace(workspaceMode, workspaceCwd, session.path, session.chatAgent)
+          .then(() =>
+            showScreen(() => {
+              setShowPicker(false);
+              resetForChosenProject();
+            }),
+          )
+          .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
+      })
+    : null;
+  const modelLoader = inWorkspace ? modelCommands(state?.model, (m) => onSelectModel(m.id)) : null;
+  const switchLoaders = sessionLoader ? [projectLoader, sessionLoader] : [projectLoader];
+  const modelLoaders = modelLoader ? [modelLoader] : [];
+  const commandCenter = (
+    <CommandCenter
+      handlers={commandHandlers}
+      loaders={[...switchLoaders, ...modelLoaders]}
+      switchLoaders={switchLoaders}
+      modelLoaders={modelLoaders}
+    />
+  );
   const inMonitor = monitorOpen ? " app-in-monitor" : "";
   const worldLayer = showWorld ? (
     <div className="world-overlay">
@@ -1489,6 +1616,7 @@ function App(): React.ReactElement {
             onChosen={onProjectChosen}
           />
           {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {commandCenter}
           <Toaster />
         </div>
         {worldLayer}
@@ -1533,6 +1661,7 @@ function App(): React.ReactElement {
             />
           )}
           {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {commandCenter}
           {/* Tray Settings can toast a save failure over the picker. */}
           <Toaster />
         </div>
@@ -2022,7 +2151,9 @@ function App(): React.ReactElement {
               }
             />
 
+            <ShortcutHint />
             <UpdateBanner appUpdate={appUpdate} />
+            {commandCenter}
           </div>
         </Activity>
 

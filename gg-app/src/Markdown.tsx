@@ -8,6 +8,7 @@ import {
   useState,
   createContext,
 } from "react";
+import { PromptSendContext } from "./prompt-send";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -288,7 +289,7 @@ const PromptReadyContext = createContext(true);
  * the prompt never reached the agent, so the button can offer it again. Defaults
  * to null, in which case the button falls back to sending directly with no
  * transcript row (safe for any render outside App). */
-const PromptSendContext = createContext<((text: string) => Promise<boolean>) | null>(null);
+export { PromptSendProvider } from "./prompt-send";
 
 /**
  * A Ken-recommended GG Coder prompt. Ken wraps every runnable prompt in a
@@ -587,7 +588,3 @@ export const Markdown = memo(function Markdown({
     </div>
   );
 });
-
-/** Provider for the "Send to GG Coder" click handler. App wraps the transcript
- *  with this so prompt-block buttons push a transcript row + send. */
-export const PromptSendProvider = PromptSendContext.Provider;

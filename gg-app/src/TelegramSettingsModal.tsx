@@ -110,6 +110,7 @@ export function TelegramSettingsModal({ onClose, onSaved }: Props): React.ReactE
           className="modal-input"
           style={{ color: theme.text, background: theme.inputBackground }}
           value={botToken}
+          aria-label="Telegram bot token"
           placeholder={
             tokenPreview ? `Saved (${tokenPreview}) — leave blank to keep` : "123456789:ABCdef…"
           }
@@ -133,6 +134,7 @@ export function TelegramSettingsModal({ onClose, onSaved }: Props): React.ReactE
           className="modal-input"
           style={{ color: theme.text, background: theme.inputBackground }}
           value={userId}
+          aria-label="Telegram user ID"
           placeholder="123456789"
           inputMode="numeric"
           onChange={(e) => setUserId(e.target.value.replace(/[^0-9]/g, ""))}

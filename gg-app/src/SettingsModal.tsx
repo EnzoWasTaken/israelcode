@@ -202,6 +202,7 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
                 className="modal-input"
                 style={{ color: theme.text, background: theme.inputBackground }}
                 value={projectsRoot}
+                aria-label="Project folder"
                 placeholder="/Users/you/gg-projects"
                 onChange={(e) => setProjectsRoot(e.target.value)}
                 onBlur={embedded ? (e) => void persist(e.currentTarget.value) : undefined}

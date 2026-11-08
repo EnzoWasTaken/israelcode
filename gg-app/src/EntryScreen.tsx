@@ -1,10 +1,12 @@
-import { Suspense, type Dispatch, type ReactElement, type SetStateAction } from "react";
+import { Suspense, useEffect, type Dispatch, type ReactElement, type SetStateAction } from "react";
 import type { BackgroundSessionRow, WorkspaceMode } from "./agent";
 import type { EntryView } from "./app-entry-view";
 import { ChatPicker } from "./ChatPicker";
 import { HomeScreen } from "./HomeScreen";
 import { ProjectPicker } from "./ProjectPicker";
-import { SettingsScreen, type SettingsTabId } from "./SettingsScreen";
+import type { SettingsTabId } from "./settings-sections";
+import { SettingsScreen, preloadSettingsScreen } from "./LazySettingsScreen";
+import { whenIdle } from "./idle-preload";
 import { GoalPicker } from "./LazyGoalPicker";
 import { showScreen } from "./view-transition";
 
@@ -42,6 +44,8 @@ export function EntryScreen({
   onOpenBackground: (row: BackgroundSessionRow) => Promise<void>;
   onChosen: () => void;
 }): ReactElement {
+  // Warm the Settings chunk once Home has painted, so opening it never waits.
+  useEffect(() => whenIdle(() => void preloadSettingsScreen()), []);
   return (
     <>
       {entryView === "home" || entryView === "world" ? (
@@ -85,16 +89,20 @@ export function EntryScreen({
           onOpenBackground={onOpenBackground}
         />
       ) : entryView === "settings" ? (
-        <SettingsScreen
-          initialTab={settingsTab}
-          onClose={() =>
-            showScreen(() => {
-              setEntryView("home");
-              // Settings may have changed the folder or providers.
-              setHomeRefreshSignal((n) => n + 1);
-            })
-          }
-        />
+        <Suspense fallback={null}>
+          <SettingsScreen
+            // The palette can open a page while Settings shows another.
+            key={settingsTab}
+            initialTab={settingsTab}
+            onClose={() =>
+              showScreen(() => {
+                setEntryView("home");
+                // Settings may have changed the folder or providers.
+                setHomeRefreshSignal((n) => n + 1);
+              })
+            }
+          />
+        </Suspense>
       ) : entryView === "goals" ? (
         <Suspense fallback={null}>
           <GoalPicker onChosen={onChosen} onClose={() => showScreen(() => setEntryView("home"))} />

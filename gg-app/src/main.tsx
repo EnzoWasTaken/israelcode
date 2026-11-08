@@ -11,6 +11,8 @@ import { tagPlatform } from "./platform";
 import { installColorScheme } from "./color-scheme";
 import { parseMode } from "./whatsnew-content";
 import { installMotionAttribute } from "./window-motion";
+import { whenIdle } from "./idle-preload";
+import { preloadMarkdown } from "./LazyMarkdown";
 
 // Release history belongs to the notes window, not every workspace's startup.
 const WhatsNewWindow = lazy(() =>
@@ -79,4 +81,7 @@ if (params.get("whatsnew") === "1") {
       <BootGate />
     </>,
   );
+  // Home doesn't render markdown; warm it after first paint so a transcript
+  // (a restored or newly opened project) never waits on it.
+  whenIdle(() => void preloadMarkdown());
 }

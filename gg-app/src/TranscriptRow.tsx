@@ -24,7 +24,7 @@ import { AskBand } from "./AskBand";
 import { ShellBlock } from "./ShellBlock";
 import { VerifyStrip } from "./VerifyStrip";
 import type { ShellActions } from "./useShellRuns";
-import { Markdown } from "./Markdown";
+import { Markdown } from "./LazyMarkdown";
 import { ImageGenCard } from "./image-gen/ImageGenCard";
 import { ImageCard } from "./ImageCard";
 import { segmentDoneMarkers, hasDoneMarker } from "./plan-steps";

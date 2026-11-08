@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentState, ChecklistSnapshot, HistoryEntry, SidecarEvent } from "./agent";
 
 mockWindows("main");
@@ -164,6 +164,12 @@ function clickTool(name: string): void {
   }
   fireEvent.click(screen.getByRole("button", { name }));
 }
+
+// The transcript waits for the lazily loaded markdown renderer (main.tsx
+// preloads it on idle in the app); load it up front so timing stays the app's.
+beforeAll(async () => {
+  await (await import("./LazyMarkdown")).preloadMarkdown();
+}, 30_000);
 
 describe("checklist workspace navigation", () => {
   it("plays a reply's entrance once while the checklist is open, and none on close", async () => {

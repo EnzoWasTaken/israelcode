@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpIcon } from "@phosphor-icons/react";
 import { useDialogFocus } from "./dialog-focus";
 import { theme } from "./theme";
-import { Markdown } from "./Markdown";
+import { Markdown } from "./LazyMarkdown";
 import { ShimmerText } from "./ShimmerText";
 import { CritterLine } from "./CritterLine";
 import { PlanCritters } from "./PlanCritters";
@@ -131,7 +131,9 @@ export function PlanReviewModal({
           <CritterLine critter={critter} tone="working" color={theme.warning} text={intro} />
         </div>
         <div className="plan-review-doc">
-          <Markdown>{content || "_(plan is empty)_"}</Markdown>
+          <Suspense fallback={null}>
+            <Markdown>{content || "_(plan is empty)_"}</Markdown>
+          </Suspense>
         </div>
       </div>
 

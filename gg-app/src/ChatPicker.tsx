@@ -30,14 +30,14 @@ const COPY = {
   chat: {
     title: "Chats",
     newLabel: "+ New chat",
-    empty: "No previous chats yet.",
+    empty: "No chats yet. Start one and it shows up here to pick up later.",
     noRoot: "Choose a projects folder in Settings before starting a chat.",
     loadError: "Chats could not be loaded.",
   },
   motion: {
     title: "Motion",
     newLabel: "+ New video",
-    empty: "No motion sessions yet.",
+    empty: "No videos yet. Start one and it shows up here to pick up later.",
     noRoot: "Choose a projects folder in Settings before starting a video.",
     loadError: "Motion sessions could not be loaded.",
   },

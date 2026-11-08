@@ -118,7 +118,7 @@ describe("ChatPicker", () => {
 
     render(<ChatPicker mode="motion" onChosen={onChosen} />);
 
-    expect(await screen.findByText("No motion sessions yet.")).toBeDefined();
+    expect(await screen.findByText(/No videos yet/)).toBeDefined();
     expect(listSessionsMock).toHaveBeenCalledWith("/workspaces/Israel Motion", "motion");
     fireEvent.click(screen.getAllByRole("button", { name: "+ New video" })[0]);
     await waitFor(() => {

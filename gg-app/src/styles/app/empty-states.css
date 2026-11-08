@@ -1,0 +1,30 @@
+/* Empty lists and searches with no match: one line, then the next step. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.picker-list > .empty-state {
+  flex: 1 1 auto;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+/* Under a short list, so the rest of the window still says something. */
+.empty-state.picker-tail {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  padding-top: var(--space-12);
+}

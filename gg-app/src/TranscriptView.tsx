@@ -1,8 +1,9 @@
-import type { ComponentProps, ReactElement, RefObject } from "react";
+import { Suspense, type ComponentProps, type ReactElement, type RefObject } from "react";
 import { retryWindowSession, type AgentState, type ModelOption, type WorkspaceMode } from "./agent";
 import { KenPowerBanner } from "./KenPowerBanner";
 import { LiveTextContext, type LiveTextStore } from "./live-text";
-import { PromptSendProvider } from "./Markdown";
+import { PromptSendProvider } from "./prompt-send";
+import { useMarkdownReady } from "./LazyMarkdown";
 import { ModelSelect } from "./ModelSelect";
 import { TranscriptSkeleton } from "./Skeleton";
 import { theme } from "./theme";
@@ -84,6 +85,7 @@ export function TranscriptView({
   onRewind: RowProps["onRewind"];
   shellActions: RowProps["shellActions"];
 }): ReactElement {
+  const markdownReady = useMarkdownReady();
   const {
     onTranscriptScroll,
     onTranscriptWheel,
@@ -108,7 +110,7 @@ export function TranscriptView({
         onScroll={onTranscriptScroll}
         onWheel={onTranscriptWheel}
       >
-        {!hydrated && items.length === 0 ? (
+        {(!hydrated && items.length === 0) || (items.length > 0 && !markdownReady) ? (
           <TranscriptSkeleton />
         ) : (
           <>
@@ -148,71 +150,77 @@ export function TranscriptView({
                 </div>
               ) : null)}
             <PromptSendProvider value={sendKenRecommendedPrompt}>
-              <LiveTextContext.Provider value={liveText}>
-                {visibleItems.flatMap((it) => {
-                  const phases = it.kind === "user" ? ultracodePhaseMap.get(it.id) : undefined;
-                  const row = (
-                    <TranscriptRow
-                      key={it.id}
-                      item={it}
-                      view={chatView}
-                      animateIn={it.id >= liveFromId}
-                      consumeEntrance={entrances.consume}
-                      kenTalking={it.id === talkingKenId}
-                      mainModel={state?.model}
-                      errorActive={it.id === currentErrorId}
-                      errorModelPicker={
-                        it.kind === "error" && it.id === currentErrorId ? (
-                          <ModelSelect
-                            models={models}
-                            currentModel={
-                              it.scope === "ken_error" || it.scope === "autopilot_error"
-                                ? (state?.kenModel ?? state?.model ?? "")
-                                : (state?.model ?? "")
-                            }
-                            onSelect={
-                              it.scope === "ken_error" || it.scope === "autopilot_error"
-                                ? onSelectKenModel
-                                : onSelectModel
-                            }
-                            disabled={modelSwitchDisabled}
-                            title={
-                              it.scope === "ken_error" || it.scope === "autopilot_error"
-                                ? "Switch Israel's model"
-                                : "Switch model"
-                            }
-                            label={it.reason === "usage_limit" ? "Switch provider" : "Choose model"}
-                            color={theme.primary}
-                          />
-                        ) : undefined
-                      }
-                      onContentGrow={maybeScrollToBottom}
-                      onAskAnswer={answerAsk}
-                      onAskType={typeAskInstead}
-                      onRewind={onRewind}
-                      shellActions={shellActions}
-                    />
-                  );
-                  // Zero-height landing spot for "You have new chats". A flat
-                  // keyed list, so rows never remount when it comes and goes.
-                  return it.id === firstNewId
-                    ? [
-                        <div
-                          key="new-marker"
-                          ref={newMarkerRef}
-                          className="transcript-new-marker"
-                          aria-hidden="true"
-                        />,
-                        row,
-                        ...(phases
-                          ? [<UltracodePhases key={`uc-${it.id}`} phases={phases} />]
-                          : []),
-                      ]
-                    : phases
-                      ? [row, <UltracodePhases key={`uc-${it.id}`} phases={phases} />]
-                      : [row];
-                })}
-              </LiveTextContext.Provider>
+              {/* Markdown loads lazily (LazyMarkdown.tsx); on the rare first
+                  render before it lands, show the skeleton, not raw text. */}
+              <Suspense fallback={<TranscriptSkeleton />}>
+                <LiveTextContext.Provider value={liveText}>
+                  {visibleItems.flatMap((it) => {
+                    const phases = it.kind === "user" ? ultracodePhaseMap.get(it.id) : undefined;
+                    const row = (
+                      <TranscriptRow
+                        key={it.id}
+                        item={it}
+                        view={chatView}
+                        animateIn={it.id >= liveFromId}
+                        consumeEntrance={entrances.consume}
+                        kenTalking={it.id === talkingKenId}
+                        mainModel={state?.model}
+                        errorActive={it.id === currentErrorId}
+                        errorModelPicker={
+                          it.kind === "error" && it.id === currentErrorId ? (
+                            <ModelSelect
+                              models={models}
+                              currentModel={
+                                it.scope === "ken_error" || it.scope === "autopilot_error"
+                                  ? (state?.kenModel ?? state?.model ?? "")
+                                  : (state?.model ?? "")
+                              }
+                              onSelect={
+                                it.scope === "ken_error" || it.scope === "autopilot_error"
+                                  ? onSelectKenModel
+                                  : onSelectModel
+                              }
+                              disabled={modelSwitchDisabled}
+                              title={
+                                it.scope === "ken_error" || it.scope === "autopilot_error"
+                                  ? "Switch Israel's model"
+                                  : "Switch model"
+                              }
+                              label={
+                                it.reason === "usage_limit" ? "Switch provider" : "Choose model"
+                              }
+                              color={theme.primary}
+                            />
+                          ) : undefined
+                        }
+                        onContentGrow={maybeScrollToBottom}
+                        onAskAnswer={answerAsk}
+                        onAskType={typeAskInstead}
+                        onRewind={onRewind}
+                        shellActions={shellActions}
+                      />
+                    );
+                    // Zero-height landing spot for "You have new chats". A flat
+                    // keyed list, so rows never remount when it comes and goes.
+                    return it.id === firstNewId
+                      ? [
+                          <div
+                            key="new-marker"
+                            ref={newMarkerRef}
+                            className="transcript-new-marker"
+                            aria-hidden="true"
+                          />,
+                          row,
+                          ...(phases
+                            ? [<UltracodePhases key={`uc-${it.id}`} phases={phases} />]
+                            : []),
+                        ]
+                      : phases
+                        ? [row, <UltracodePhases key={`uc-${it.id}`} phases={phases} />]
+                        : [row];
+                  })}
+                </LiveTextContext.Provider>
+              </Suspense>
             </PromptSendProvider>
           </>
         )}

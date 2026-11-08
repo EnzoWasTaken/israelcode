@@ -56,6 +56,16 @@ describe("AboutPage", () => {
     expect(openUrl).toHaveBeenCalledWith(UPSTREAM_URL);
   });
 
+  it("marks Israel's portrait as a parody caricature", async () => {
+    await renderPage();
+
+    expect(
+      screen.getByText(
+        "Israel's pixel portrait is a stylized caricature of Benjamin Netanyahu, drawn as parody and tribute. It isn't affiliated with or endorsed by him or any government.",
+      ),
+    ).not.toBeNull();
+  });
+
   it("dates Israel Code from the CLI and the calendar from the desktop app", async () => {
     await renderPage();
 
