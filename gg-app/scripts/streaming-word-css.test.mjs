@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readSheet } from "./read-sheet.mjs";
 import { describe, expect, it } from "vitest";
 
 // Read straight from disk: inside Vitest, Vite stubs stylesheets out, so the
 // app's own tests can't see a CSS rule.
-const css = readFileSync(new URL("../src/App.css", import.meta.url), "utf8");
+const css = readSheet(new URL("../src/App.css", import.meta.url));
 
 describe("streaming word spans", () => {
   it("are plain inline text, so lines break the same with or without them", () => {

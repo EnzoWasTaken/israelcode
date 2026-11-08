@@ -1,0 +1,420 @@
+/* ── ask_user question band ──
+   The agent's question, inside the reply it belongs to. Deliberately built from
+   the app's existing vocabulary rather than a look of its own: every option is a
+   .btn ghost pill, the recommendation is a .badge, and color stays a data
+   signal (only the chosen/primary action is tinted). The band itself is a plain
+   surface block with a neutral keyline — it must not glow blue at the reader. */
+.ask-band {
+  /* The whole conversation column, left to right: a question is the turn's
+     focus, and the full width keeps every option on one line. */
+  width: auto;
+  margin: var(--space-4) 0 var(--space-3);
+  padding: var(--space-7) var(--space-8);
+  /* A step above the transcript, plus a hairline: at --surface-1 the band was
+     the same value as the canvas behind it and simply dissolved into it. */
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+/* Resolved or dead: no surface at all, just a quiet line in the transcript. */
+.ask-band.is-done,
+.ask-band.is-closed {
+  /* Once answered the card is gone entirely — what remains is just a message
+     in the transcript, so it must not keep the band's surface or hairline.
+     It must also drop `fit-content`: the answer bubble aligns to its parent's
+     right edge, and a shrink-wrapped parent left it stranded mid-column
+     instead of on the transcript's edge like every other user message. */
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+/* Answered: the reply IS a message the user sent, so it renders as a user
+   bubble on the right like every other one — not as a left-aligned status
+   line. Shimmer matches the "ideal?" hook treatment. */
+.ask-answered {
+  display: flex;
+  justify-content: flex-end;
+}
+.ask-answered-bubble {
+  --shimmer-base: var(--text-muted);
+  --shimmer-bright: var(--text);
+  display: inline-block;
+  margin: 0;
+}
+/* The sweep marks the moment of answering, then rests (it looped forever on
+   every answered question in the history). Restored answers never sweep. */
+.ask-answered-bubble .shimmer-text {
+  animation: none;
+}
+.ask-answered-bubble.is-live .shimmer-text {
+  animation: ggshimmer 2.4s linear 2;
+}
+.ask-closed {
+  font-size: var(--fs-base);
+  /* Dim measured 3.37:1 on the bare transcript canvas this line sits on, under
+     the 4.5:1 floor. Muted clears it and still reads as the quietest row. */
+  color: var(--text-muted);
+}
+/* The question is the most important line in the band, so it is set at the
+   chat's own size (15px, like the reply above it); at 13px it read as a form
+   label smaller than the sentence that introduced it. */
+.ask-subq-q {
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+.ask-detail {
+  margin: -4px 0 var(--space-5);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  /* Secondary, not muted: this sits on a raised surface, and muted grey on grey
+     was genuinely hard to read. */
+  color: var(--text-secondary);
+}
+/* "Agent continued with its best guess": a note about the run, not part of the
+   question, so it is smaller and ruled off from it. `width: 0; min-width: 100%`
+   keeps it out of the band's fit-content sizing — it wraps to the width the
+   question and options set instead of stretching the card. */
+.ask-deferred-note {
+  width: 0;
+  min-width: 100%;
+  margin: 0 0 var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.ask-subq-num {
+  margin-right: var(--space-4);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  font-weight: 500;
+  /* Dim measured 2.84:1 on the band's surface. These numbers are permanent now
+     that answered questions stay on screen, so they have to clear 4.5:1. */
+  color: var(--text-muted);
+}
+/* Several questions in one band: numbered, each resolving on its own. */
+/* Separator between questions. --border (7% alpha white) vanishes against the
+   band's raised surface, so this needs its own stronger value to actually read
+   as a division. */
+.ask-subq + .ask-subq {
+  margin-top: var(--space-7);
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--border-strong);
+}
+
+/* One shape for every question. Options stack full-width instead of flowing as
+   inline chips: a two-word yes/no laid out as chips read as a different
+   component from a hinted choice laid out as rows, and a chip row also could not
+   survive a 480px window once a label grew. Stacking always is the cheaper
+   answer than a rule deciding which questions get which layout. */
+.ask-options {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  /* Inside a fit-content band the rows still align to each other, so the band
+     sizes to the LONGEST row rather than each row sizing independently. */
+  min-width: 100%;
+}
+/* AFFORDANCE, and it belongs to EVERY option. `.btn-ghost` fills with
+   --surface-2, which is exactly the band's own background: an option had no
+   edge, no fill of its own and no hover, so the choices read as static text with
+   numbers in front of them. Each one gets its own raised surface plus a
+   hairline, so it reads as a control before it is touched — the border doubles
+   as the division between rows, which a bare divider line could not do (a
+   divider separates list items; an edge says "press me").
+
+   This was once scoped to stacked rows alone, which is why a short yes/no
+   confirm — the one shape that rendered as chips — looked like a different
+   component from every other question the app asks. */
+.ask-options .btn {
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
+  /* `.btn` is nowrap for chips; a long label here must wrap inside the
+     transcript column rather than push the whole band past its right edge. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  /* Chat-sized and medium weight: 12px bold read as a button caption, not as
+     an answer you would say. */
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 1.35;
+  gap: var(--space-5);
+  max-width: 100%;
+  border-radius: var(--radius-button);
+  padding: 9px var(--space-6);
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  /* The shared button timing: quick in, slower out (see .btn). */
+  transition:
+    background-color var(--t-out),
+    border-color var(--t-out),
+    color var(--t-out),
+    box-shadow var(--t-out);
+}
+.ask-options .btn:hover:not(:disabled),
+.ask-options .btn:active:not(:disabled),
+.ask-options .btn[data-key-press] {
+  transition:
+    background-color var(--t-in),
+    border-color var(--t-in),
+    color var(--t-in),
+    box-shadow var(--t-in);
+}
+.ask-options .btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-3));
+  border-color: color-mix(in srgb, var(--primary) 42%, transparent);
+}
+/* Pressed, by pointer or by its number key (`data-key-press`, set by AskBand
+   for one --dur-press beat, since a scripted click never matches :active).
+   A full-width row dips like the other wide rows (0.99), not the 0.96 of a
+   compact button, or its edges visibly lurch. */
+.ask-options .btn:active:not(:disabled),
+.ask-options .btn[data-key-press] {
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface-3));
+  scale: 0.99;
+}
+.ask-options .btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Selected. In a band of several questions this fill IS the answered state: the
+   question stays on screen with its pick filled, so it can be changed while the
+   others are still being decided. The fill and its ink have to be re-stated (not
+   inherited from `.btn-primary`) because the rule above is the more specific
+   selector and would otherwise leave near-black label text on the dark row. */
+.ask-options .btn.btn-primary {
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+  border-color: transparent;
+}
+.ask-options .btn.btn-primary:hover:not(:disabled) {
+  background: var(--primary-fill-hi);
+  border-color: transparent;
+}
+/* The pick that finishes the band: the chosen row keeps its fill for one
+   --dur-ask-hold beat (so the choice is seen landing), then the card dissolves
+   out and the answer arrives as the user bubble at the end of the chat.
+   AskBand waits HOLD_MS + EXIT_MS before sending. The exit is `dissolve-in`
+   run backwards (same opacity and 6px blur, no scale), since the answered
+   bubble arrives with `dissolve-in` itself: one dissolve out, one back in. */
+@keyframes ask-band-out {
+  to {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+.ask-band.is-committing {
+  pointer-events: none;
+  animation: ask-band-out var(--dur-strip-out) var(--ease-in) var(--dur-ask-hold) forwards;
+}
+/* The lead slot (keycap or checkbox) and the badge sit on the label's FIRST
+   line, not centred against a two-line block, so they align with the text they
+   belong to. Both lead shapes are the same 18px square, so labels line up
+   across a band that mixes single and multi questions. */
+.ask-options .ask-num,
+.ask-options .ask-box {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  /* Centre the 18px square on the label's 14px × 1.35 first line. */
+  margin-top: 0.5px;
+}
+/* The badge is a separate idea from the label, so it is pushed to the far edge
+   rather than trailing it with the button's own 8px gap. */
+.ask-options .badge {
+  margin-top: 1px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+/* `margin-left: auto` only guarantees air while the row is short. Once the hint
+   line runs long the badge is pushed back until just the button's own 8px gap
+   is left, and the two read as one run of text — so reserve the rest here. */
+.ask-options .ask-row-main {
+  padding-inline-end: var(--space-7);
+}
+.ask-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+/* The plain label (no hint) has no flex container of its own: without
+   `min-width: 0` a long one keeps its intrinsic width and overflows the row. */
+.ask-options .btn > span:not(.ask-num):not(.ask-box):not(.badge) {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ask-row-hint {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  /* On the pill's own gradient, --text-dim measured ~2.2:1 — under the 4.5:1
+     floor for text this size. Muted clears it. */
+  color: var(--text-muted);
+}
+/* Selected: the fill is a light periwinkle, so the row's muted grey hint drops
+   to ~1.6:1 on it. Both the hint and the accelerator index switch to the fill's
+   own near-black ink, softened rather than lightened. */
+.btn-primary .ask-row-hint {
+  color: color-mix(in srgb, var(--on-primary-fill) 78%, var(--primary));
+}
+/* Accelerator index, drawn as a keycap so it reads as "press this key" rather
+   than a list number. Hairline only: a hint, never competing with the label. */
+.ask-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+}
+/* The keycap and checkbox recolour with the row they sit in, on the row's own
+   timing (slow out at rest, quick in under the pointer or a key), instead of
+   snapping ahead of the fill or settling at a different speed. */
+.ask-options .ask-num,
+.ask-options .ask-box {
+  transition:
+    background-color var(--t-out),
+    border-color var(--t-out),
+    color var(--t-out);
+}
+.ask-options .btn:hover:not(:disabled) :is(.ask-num, .ask-box),
+.ask-options .btn:active:not(:disabled) :is(.ask-num, .ask-box),
+.ask-options .btn[data-key-press] :is(.ask-num, .ask-box) {
+  transition:
+    background-color var(--t-in),
+    border-color var(--t-in),
+    color var(--t-in);
+}
+.btn-primary .ask-num {
+  border-color: color-mix(in srgb, var(--on-primary-fill) 30%, transparent);
+  color: color-mix(in srgb, var(--on-primary-fill) 70%, var(--primary));
+}
+/* Keeps the slot (10+ options, a typed answer) so labels stay aligned, with no
+   keycap drawn. After the selected rule above, which would otherwise outline
+   an empty box on a typed answer's filled row. */
+.ask-num.ask-num-empty {
+  border-color: transparent;
+}
+/* Multi-select checkbox: shown empty on every row so "pick several" is clear
+   before anything is picked (rows used to look like single-choice ones). */
+.ask-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 5px;
+}
+.btn-primary .ask-box {
+  border-color: var(--on-primary-fill);
+  background: var(--on-primary-fill);
+  color: var(--primary);
+}
+/* The keyboard hint under an open band: how to answer without the mouse. */
+.ask-hint {
+  width: 0;
+  min-width: 100%;
+  margin: var(--space-6) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  /* Muted on the band's raised surface: quiet, and still above 4.5:1. */
+  color: var(--text-muted);
+}
+/* The band's only footer: a multi-select's confirm. Everything else that used
+   to live down here (a free-text link, a send button, an answered counter) is
+   gone — the options are the whole interface. */
+.ask-foot {
+  display: flex;
+  margin-top: var(--space-6);
+}
+/* A question asking for information (a URL, a name): its own field and an
+   Answer button, right under the question, so the answer is typed where it's
+   asked. The field reuses .modal-input; it sits on the band's raised surface
+   like the option rows do, so it reads as a control. */
+.ask-text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: min(360px, 100%);
+}
+.ask-text-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--surface-3);
+  border-color: var(--border);
+  color: var(--text);
+  font-size: var(--fs-base);
+  padding: var(--space-4) var(--space-5);
+}
+.ask-text .btn {
+  flex: 0 0 auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-answered-bubble.is-live .shimmer-text {
+    animation: none;
+  }
+  /* Like every other dissolve in the app, reduced motion swaps the blur for a
+     plain fade rather than dropping the exit; the held fill is colour, so the
+     beat stays. */
+  .ask-band.is-committing {
+    animation-name: fade-out;
+  }
+  .ask-options .btn:active:not(:disabled),
+  .ask-options .btn[data-key-press] {
+    scale: none;
+  }
+}
+
+/* ── Pixel tooltip (PixelTip.tsx) ── */
+.pixel-tip-anchor {
+  display: contents;
+}
+/*
+   GG Royale's text tooltip (blackjack.css .tip-body), at 2 screen pixels per
+   art pixel: m5x7 on the game's orange-gold card, ink text, a 1px darker
+   foot and a soft drop, the "Name:" in the game's blue. */
+.pixel-tip {
+  --tip-px: 2px;
+  position: fixed;
+  z-index: var(--z-overlay);
+  max-width: min(calc(120 * var(--tip-px)), calc(100vw - 16px));
+  padding: calc(3 * var(--tip-px)) calc(5 * var(--tip-px)) calc(5 * var(--tip-px));
+  translate: -50% 0;
+  background: #de9b57;
+  color: #1e0c1f;
+  box-shadow:
+    0 var(--tip-px) 0 #c47a3a,
+    0 calc(2 * var(--tip-px)) 0 #1e0c1f66;
+  font-family: "m5x7", monospace;
+  font-size: calc(16 * var(--tip-px));
+  line-height: calc(11 * var(--tip-px));
+  -webkit-font-smoothing: none;
+  text-align: left;
+  pointer-events: none;
+  white-space: normal;
+  width: max-content;
+}
+.pixel-tip.is-above {
+  translate: -50% -100%;
+}
+.pixel-tip-key {
+  color: #34347e;
+}
+@media (max-width: 679px), (max-height: 560px) {
+  .pixel-tip {
+    --tip-px: 1px;
+  }
+}

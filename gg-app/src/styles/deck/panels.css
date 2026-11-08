@@ -1,0 +1,490 @@
+/* ── Panels: in place of the message box ── */
+.deck-panel-host {
+  border-bottom: 1px solid var(--border);
+  animation: fade-in var(--dur-pop-in) var(--ease-out) backwards;
+}
+.deck-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.deck-prow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4) var(--space-6);
+  flex-wrap: wrap;
+}
+.deck-prow + .deck-prow {
+  border-top: 1px dashed var(--border);
+}
+/* A row whose readouts all came back empty (no health score yet, no rank)
+   would be a label on its own: drop it. */
+.deck-prow:has(> .deck-pl:only-child) {
+  display: none;
+}
+.deck-pl {
+  flex: none;
+  width: 44px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.deck-pv {
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+.deck-pm {
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.deck-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.deck-hint {
+  flex: none;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.deck-list {
+  max-height: min(34vh, 260px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* No top padding: a provider's heading sticks flush to the list's top edge,
+     with no strip of rows showing through above it. */
+  padding: 0 var(--space-3) var(--space-3);
+  margin: 0;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.deck-group {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.deck-count {
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.deck-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 28px;
+  padding: 0 var(--space-4);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+.deck-option[aria-selected="true"] {
+  background: var(--key);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+}
+.deck-option[data-current] {
+  color: var(--text);
+  font-weight: 600;
+}
+.deck-option[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.opt-name {
+  white-space: nowrap;
+}
+.opt-name mark {
+  border-radius: var(--radius-sm);
+  background: var(--mark);
+  color: inherit;
+}
+.opt-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+}
+.opt-end {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.deck-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.deck-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13.5px;
+}
+.deck-field input::placeholder {
+  color: var(--text-dim);
+}
+.deck-field:focus-within {
+  color: var(--text);
+}
+.model-head {
+  /* Thinking drops to its own line when the GG / Ken switch fills the row. */
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
+  border-bottom: 1px dashed var(--border);
+}
+.model-head > .key-group:first-child {
+  min-width: 0;
+  max-width: 100%;
+}
+.target-key {
+  min-width: 0;
+}
+.target-key .well {
+  max-width: 14ch;
+}
+.thinking-keys .key {
+  gap: var(--space-3);
+}
+
+/* ⋯ keypad. */
+.deck-pad {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+.deck-pad > .key,
+.deck-pad .winlayout .btn {
+  justify-content: space-between;
+  height: 32px;
+  font-size: var(--fs-sm);
+}
+.deck-pad .winlayout {
+  display: grid;
+}
+.deck-pad .winlayout svg {
+  display: none;
+}
+.deck-pad .winlayout .btn {
+  width: 100%;
+  padding: 0 var(--space-5);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Background tasks. */
+.deck-rows {
+  display: grid;
+  gap: var(--space-1);
+}
+.deck-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 30px;
+  padding: 0 var(--space-4);
+  font-size: var(--fs-sm);
+}
+.row-main {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.row-end {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.row-end.bad {
+  color: var(--error);
+}
+
+/* Usage. */
+/* Usage: context, the 5-hour and the weekly limit side by side, each one
+   line (label, bar, value, reset), wrapping whole meters when narrow. */
+.usage-row {
+  flex-wrap: wrap;
+  column-gap: var(--space-8);
+  row-gap: var(--space-3);
+}
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  white-space: nowrap;
+}
+.meter-k {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.meter-v {
+  min-width: 3ch;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.meter-d {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.meter .cbar.wide {
+  width: 64px;
+}
+.level-row {
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
+}
+/* Project Health in Usage: the same meter as the others, a key to its tool. */
+.meter-link {
+  height: 26px;
+  margin: 0 calc(-1 * var(--space-3));
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.meter-link:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.meter[data-tier="healthy"] .cbar::before {
+  background: var(--success);
+}
+.meter[data-tier="fair"] .cbar::before {
+  background: var(--caution);
+}
+.meter[data-tier="poor"] .cbar::before {
+  background: var(--error);
+}
+
+/* The Project Health tool: summary meter, categories, Review all. Category
+   bars are the same well-and-fill as every other meter, in the tier colour. */
+.health-panel [data-tier="healthy"],
+.health-panel .health-meter-fill[data-tier="healthy"] {
+  color: var(--success);
+}
+.health-panel .health-meter-fill[data-tier="fair"] {
+  color: var(--caution);
+}
+.health-panel .health-meter-fill[data-tier="poor"] {
+  color: var(--error);
+}
+.health-panel .health-meter {
+  height: 8px;
+  padding: var(--space-1);
+  border-radius: 2px;
+  background: var(--well);
+  box-shadow: inset 0 1px 1px var(--well-shadow);
+}
+.health-panel .health-meter-fill {
+  border-radius: 1px;
+  box-shadow: none;
+}
+.health-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.health-panel .health-list {
+  margin: 0;
+  padding: 0;
+}
+.health-panel .health-category {
+  padding: var(--space-4) 0;
+  border-top: 1px dashed var(--border);
+}
+.health-foot {
+  position: sticky;
+  bottom: calc(-1 * var(--space-5));
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 calc(-1 * var(--space-6)) calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px dashed var(--border);
+  background: var(--surface-1);
+}
+.level-key {
+  padding-left: 3px;
+}
+.level-name {
+  font-weight: 600;
+}
+.meter[data-hot] .meter-v {
+  color: var(--warning);
+}
+.meter[data-hot] .cbar::before {
+  background: var(--warning);
+}
+
+/* Radio player. */
+.radio-list .deck-option {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.player {
+  flex-wrap: nowrap;
+  border-top: 1px dashed var(--border-strong);
+}
+/* Play/pause is a key like every other: same size, corner and raised edge.
+   Its cobalt fill is what marks it as the main control. */
+.player .key-icon {
+  flex: none;
+  width: 30px;
+  height: 28px;
+}
+.now {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.3;
+}
+.now b {
+  color: var(--text);
+  font-size: var(--fs-base);
+}
+.now span {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.vol {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  color: var(--text-muted);
+}
+.vol input {
+  width: 88px;
+  height: 8px;
+  appearance: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary) var(--v), var(--well) var(--v));
+  box-shadow: inset 0 1px 1px var(--well-shadow);
+}
+.vol input::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 2px var(--key-shadow);
+}
+.vol-v {
+  width: 4ch;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tools (Notes, Tasks, Brain): in the message box's place, taller ── */
+.tool-head {
+  flex-wrap: nowrap;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+  border-bottom: 1px dashed var(--border);
+}
+.tool-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tool-body:focus {
+  outline: none;
+}
+.tool-body {
+  /* Named, so a sticky bar inside (the checklist's tabs) can cancel exactly
+     this padding and sit flush with the top. */
+  --tool-pad-top: var(--space-5);
+  --tool-pad-x: var(--space-6);
+  height: min(52vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--tool-pad-top) var(--tool-pad-x);
+  scrollbar-width: thin;
+}
+.tool-body > .settings-panel {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Goal settings reuses the dialog's form, which is sized for a floating card:
+   520px wide, its own inner scroller, and a fixed 128px context box. In the
+   deck it takes the panel's full width, scrolls with the tool body, and the
+   context box fits what it holds (one line when empty, up to the dialog's
+   height when full, then scrolls). */
+.tool-body > .goal-modal {
+  width: auto;
+  max-height: none;
+}
+.tool-body > .goal-modal .goal-modal-body {
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+.tool-body > .goal-modal .goal-context-box {
+  height: auto;
+  max-height: 128px;
+}
+.tool-body > .goal-modal .goal-context-empty {
+  justify-content: flex-start;
+  padding: 0 var(--space-2);
+  text-align: left;
+}
+/* The notes dialog's 900px width would overflow the panel, so long lines ran
+   off sideways instead of wrapping. */
+.tool-body > .notes-modal {
+  width: auto;
+}
+.tool-body .notes-input {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+}

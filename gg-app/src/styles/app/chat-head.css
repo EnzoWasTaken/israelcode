@@ -1,0 +1,312 @@
+/* ── Main chat-view header (.chat-head) ──
+   Two stacked rows under one bottom border:
+   1) .chat-head-strip — the macOS traffic-light row: window title (left, where
+      the native title sat) + the show/hide toggle (right). ALWAYS present.
+   2) .chat-head-nav — the action-button row; collapsed away by the toggle.
+   When collapsed only the strip remains, so the title never moves up into the
+   traffic lights. */
+.chat-head {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+}
+/* Personal colour only decorates identity, never actions or status indicators. */
+.chat-head-project-stripe .chat-head-strip::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--project-accent);
+  pointer-events: none;
+}
+.project-colour-trigger {
+  appearance: none;
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: var(--space-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+.project-colour-trigger:hover,
+.project-colour-trigger[aria-expanded="true"] {
+  background: var(--surface-3);
+}
+.chat-head-accent-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--project-accent);
+  pointer-events: none;
+}
+.project-colour-trigger-none .chat-head-accent-dot {
+  background: none;
+  border: 1px solid var(--text-muted);
+}
+.project-colour-trigger:focus-visible,
+.project-colour-picker button:focus-visible,
+.project-colour-picker input:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+.project-colour-picker {
+  position: fixed;
+  z-index: 100;
+  width: 264px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface-3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.project-colour-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+.project-colour-close {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--fs-3xl);
+  cursor: pointer;
+}
+.project-colour-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.project-colour-choice {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.project-colour-choice[aria-pressed="true"] {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.project-colour-choice:hover,
+.project-colour-close:hover {
+  background: var(--surface-2);
+}
+.project-colour-choice[aria-disabled="true"] {
+  color: var(--text-dim);
+  cursor: default;
+}
+.project-colour-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.project-colour-swatch-none {
+  border: 1px solid var(--text-muted);
+}
+.project-colour-check {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.project-colour-stripe-setting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.project-colour-stripe-setting small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.project-colour-error {
+  margin: var(--space-5) 0 0;
+  color: var(--error);
+  line-height: 1.4;
+}
+.chat-head-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  /* Height matches the macOS traffic-light zone so align-items:center lines the
+     title + toggle up with the lights' centerline (~19px from the window top). */
+  height: 38px;
+  /* Native chrome (Windows/Linux): no traffic lights, so no left gutter. */
+  padding: 0 var(--rail);
+}
+/* macOS: left padding clears the traffic lights so the title sits right of them.
+   At the plain 19px midpoint the text read ~2px low beside the lights. Trading
+   1.5px of height for bottom padding keeps the row 38px tall but lifts its
+   centre to 18.25px, where the text's cap-height middle meets the lights'
+   centre (measured on a Retina screenshot, 2 device px per CSS px). */
+.platform-macos .chat-head-strip {
+  height: 36.5px;
+  padding: 0 var(--rail) 1.5px 82px;
+}
+/* The visible window title shows project context: cwd, current branch, then the
+   uncommitted-file count and GitHub issue/PR chips. It grows into available
+   space; on narrow windows the segments truncate in priority order (folder
+   name first, then branch) so the compact counts stay visible and the usage
+   meter and controls remain reachable. */
+.chat-head-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  /* Queried by the uncommitted-count steps below, which need the room the
+     title actually has: the window width minus the macOS traffic-light gutter,
+     the usage meter and the window pill. (Its width never depended on its
+     content anyway: it is the strip's only growing item, so it always fills
+     what's left.) */
+  container: chat-head-title / inline-size;
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--text);
+}
+.chat-head-cwd {
+  color: var(--text-dim);
+  /* Project identity — outlasts the branch, truncates before the counts. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-head-sep {
+  flex: none;
+  margin: 0 var(--space-4);
+  color: var(--border);
+}
+/* Narrow-window cascade (media = window width; halves ≈ 750px, quads ≈ 375px).
+   Segments drop WHOLE, highest-context-cost first, so every surviving count
+   stays complete and readable instead of all ellipsizing into uselessness.
+   The full string always remains in the strip's hover tooltip. */
+@media (max-width: 440px) {
+  /* Quad-tile widths: the folder had already shrunk to nothing, leaving the
+     accent dot and a leading separator. Drop it and that separator explicitly
+     so the whole counts get the room. (The separator to drop is the one not
+     preceded by a count chip.) */
+  /* Direct children only: the CI indicator keeps its own separator. */
+  .chat-head-cwd,
+  .chat-head-health,
+  .chat-head-title > .chat-head-sep:not(.chat-head-github + .chat-head-sep) {
+    display: none;
+  }
+}
+/* Folder name + branch double as click targets: folder opens its location in the
+   OS file manager, branch opens the linked GitHub repo. Button reset only — the
+   base .chat-head-cwd / .chat-head-branch classes keep the color, flex, and
+   truncation. Hover brightens to signal the affordance. */
+.chat-head-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--t-fast);
+}
+.chat-head-link:hover:not(:disabled) {
+  color: var(--text);
+}
+.chat-head-link:disabled {
+  cursor: default;
+}
+/* GitHub issue/PR counts — buttons when the repo URL is known (click opens the
+   issues/pulls page), static text otherwise. Font metrics come from the parent
+   .chat-head-title so the chip aligns with the branch/dirty segments. */
+.chat-head-github {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast);
+  /* Compact, high-signal counts — never truncate or wrap; the narrow-window
+     cascade above drops other segments whole so these stay readable. */
+  flex: none;
+  white-space: nowrap;
+}
+/* Counts stay whole: the folder name is the one elastic segment. (An earlier
+   rule let the trailing chip ellipsize, but a count clipped to "1 …" or to
+   nothing behind a dangling separator carried no information.) */
+.chat-head-github:hover:not(:disabled) {
+  color: var(--text);
+}
+.chat-head-github:disabled {
+  cursor: default;
+}
+/* Project Health percentage beside the folder name. Colour is the only
+   status signal here; the tier also reads out in the label and tooltip. */
+.chat-head-health {
+  flex: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.chat-head-health[data-tier="poor"],
+.health-popover [data-tier="poor"] {
+  color: var(--error);
+}
+.chat-head-health[data-tier="fair"],
+.health-popover [data-tier="fair"] {
+  color: var(--caution);
+}
+.chat-head-health[data-tier="healthy"],
+.health-popover [data-tier="healthy"] {
+  color: var(--success);
+}
+.chat-head-health {
+  border-radius: var(--radius-sm);
+  transition: filter var(--t-in);
+}
+.chat-head-health:hover,
+.chat-head-health[data-open] {
+  filter: brightness(1.18);
+  transition-duration: var(--dur-press);
+}
+.chat-head-health:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

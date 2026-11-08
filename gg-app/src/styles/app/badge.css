@@ -1,0 +1,163 @@
+/* ── Reusable pill badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgb(var(--ink-rgb) / 0.12);
+  border-radius: var(--radius-pill);
+  /* Cap band measured 0.94px HIGH; half the correction sits on top. */
+  padding: 0.5px var(--space-4) 1.5px;
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: var(--gloss-neutral);
+  box-shadow: var(--gloss-shadow-neutral);
+}
+/* A goal working right now: its "Running now" pill (the shared Badge in the
+   success tint) breathes with the header's working count. */
+.goal-status-running {
+  animation: live-breathe var(--dur-breathe) var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@media (prefers-reduced-motion: reduce) {
+  .goal-status-running {
+    animation: none;
+  }
+}
+.picker-preview {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Multi-window layout control: looks like the old icon button, but a
+   transparent native <select> stretched over it takes the click and opens the
+   OS-native dropdown (snaps back to its placeholder after each choice). */
+.winlayout {
+  position: relative;
+  display: inline-flex;
+}
+.winlayout-icon-btn {
+  /* Purely presentational — the overlaying select receives hover/click. */
+  pointer-events: none;
+}
+/* Hover lands on the overlaying select, so mirror the .btn-nav-icon hover
+   (color brighten, no filter — see the .btn-nav-icon comment) from here. */
+.winlayout:has(.winlayout-select:not(:disabled)):hover .winlayout-icon-btn {
+  color: var(--text);
+}
+.winlayout:has(.winlayout-select:disabled) .winlayout-icon-btn {
+  opacity: 0.4;
+}
+.winlayout-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+.winlayout-select:disabled {
+  cursor: default;
+}
+/* Same as .model-picker: ring the visible icon, not the invisible select. */
+.winlayout:has(.winlayout-select:focus-visible) .winlayout-icon-btn {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Windows/Linux fallback: keep the popup inside the webview because native
+   WebView2/WebKitGTK select popups can open without accepting a selection. */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-menu) - 1);
+}
+.winlayout-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  min-width: 150px;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 5px;
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+}
+.winlayout-menu[data-flip="up"] {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform-origin: right bottom;
+}
+.winlayout-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: var(--space-3) 9px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.winlayout-item:hover,
+.winlayout-item:focus-visible {
+  background: var(--surface-1);
+}
+.winlayout-divider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: var(--border);
+}
+/* Hide/show toggle for the nav-button row. Lives at the right of the title
+   strip; small and borderless so it reads as a titlebar control, not a button. */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-button);
+  color: var(--text-muted);
+  padding: var(--space-1);
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast);
+}
+.nav-toggle:hover {
+  background: var(--surface-1);
+  color: var(--text);
+}
+/* Non-scrolling wrapper around `.transcript` — owns the flex sizing +
+   `position: relative` so an absolutely positioned overlay child (the Israel
+   power banner) is pinned to the visible chat viewport, not the scrolled
+   CONTENT inside `.transcript` (a `position: absolute` descendant of a
+   scrolling container is positioned relative to the top of that container's
+   scrollable content, not what's currently on screen — a full-height overlay
+   on a scrolled-down existing session would render far above the visible
+   messages). `.transcript` itself just fills this frame and scrolls. */
+.transcript-frame {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* Clips the overlay's 1px bleed below (see `.ken-power-overlay`) so it never
+     spills onto the chat-head border or the tool panel/footer beyond this
+     frame. */
+  overflow: hidden;
+}

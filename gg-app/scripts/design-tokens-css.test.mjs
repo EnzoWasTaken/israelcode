@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { readSheet } from "./read-sheet.mjs";
 import { describe, expect, it } from "vitest";
 
 // Guards the design-token scales in App.css `:root`. A px literal that equals a
@@ -18,7 +19,7 @@ const FILES = [
 ];
 const sheets = FILES.map((name) => ({
   name,
-  css: readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8")
+  css: readSheet(new URL(`../src/${name}`, import.meta.url))
     // Comments may mention raw values; only real declarations count.
     .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " ")),
 }));
@@ -82,7 +83,10 @@ const decls = declarations();
 function definitionBlocks(css) {
   const ranges = [];
   const root = String.raw`:root(?:\[[^\]]*\])?`;
-  const opener = new RegExp(String.raw`${root}(?:\s*,\s*${root})*\s*\{|@property\s+--[\w-]+\s*\{`, "g");
+  const opener = new RegExp(
+    String.raw`${root}(?:\s*,\s*${root})*\s*\{|@property\s+--[\w-]+\s*\{`,
+    "g",
+  );
   for (const m of css.matchAll(opener)) {
     ranges.push([m.index, css.indexOf("}", m.index) + 1]);
   }

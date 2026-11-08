@@ -1,0 +1,423 @@
+/* ── Git panel (the branch key) ── */
+.git-tabs {
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
+  border-bottom: 1px dashed var(--border);
+}
+.git-tabs .tab-n {
+  margin-left: var(--space-3);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.git-tabs [aria-selected="true"] .tab-n {
+  color: var(--text-secondary);
+}
+/* The CI indicator was drawn for the title bar, whose text set its size: its
+   link inherits its font. Here it would inherit the page's 16px, so it takes
+   the row's keys' type instead and sits level with Open on GitHub. Its leading
+   divider split title-bar segments; in this row it divides nothing. */
+.git-tabs .chat-head-ci {
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.git-tabs .chat-head-ci > .chat-head-sep {
+  display: none;
+}
+.git-panel .git-list {
+  list-style: none;
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4));
+  padding: 0;
+}
+.git-panel .git-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  text-align: left;
+}
+.git-link {
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.git-link:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.git-st,
+.git-num {
+  min-width: 2.2em;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.git-st[data-st="A"] {
+  color: var(--success);
+}
+.git-st[data-st="D"] {
+  color: var(--error);
+}
+.git-dir {
+  color: var(--text-muted);
+}
+.git-delta {
+  display: inline-flex;
+  gap: var(--space-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.git-add {
+  color: var(--success);
+}
+.git-del {
+  color: var(--error);
+}
+.git-bin,
+.git-meta {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.git-more {
+  grid-template-columns: 1fr;
+  color: var(--primary);
+}
+/* Branch picker: the filter doubles as the new-branch name, so it sits above
+   the list in the list's own type size. */
+.branch-picker .branch-filter {
+  font-size: var(--fs-sm);
+  padding: var(--space-3) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.branch-picker .deck-note {
+  margin-bottom: var(--space-4);
+}
+.git-panel .branch-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.git-panel .branch-row:disabled {
+  cursor: default;
+}
+.git-panel .branch-row:disabled:hover {
+  background: transparent;
+}
+.branch-placement {
+  border: 0;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.branch-placement legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+.branch-placement .modal-radio {
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.branch-placement .branch-setup {
+  margin: var(--space-2) 0 0;
+}
+.branch-placement code {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+}
+.git-panel .branch-row:not(:disabled):active {
+  background: rgb(var(--ink-rgb) / 0.08);
+}
+.git-panel .branch-row:disabled:not([aria-current]) {
+  color: var(--text-muted);
+}
+.git-panel .branch-row[aria-current] .git-meta {
+  color: var(--text-secondary);
+}
+
+/* White provider marks (OpenAI, xAI, Moonshot) turn near-black on the light
+   theme; coloured marks are left as their brands draw them. */
+:root[data-theme="light"] .login-logo[data-mono] {
+  filter: invert(1) brightness(0.2);
+}
+
+/* ── Scorecard: a character card ──
+   The level sits in a recessed well beside the rank name, both lit in the
+   rank's own colours (--rank-a / --rank-b, set per effect below), so a
+   Supernova card glows ember and a Platinum one goes silver. Then the XP bar
+   to the next level, and a tile per stat with its milestone bar. */
+.scorecard {
+  --rank-a: var(--primary);
+  --rank-b: var(--primary-hi);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+.scorecard[data-effect="blue"],
+.scorecard[data-effect="gradient"],
+.scorecard[data-effect="gradient-glow"],
+.scorecard[data-effect="animated"] {
+  --rank-a: #6ea8ff;
+  --rank-b: #b88cff;
+}
+.scorecard[data-effect="green"] {
+  --rank-a: #5fd38f;
+  --rank-b: #8ee6b0;
+}
+.scorecard[data-effect="gold"],
+.scorecard[data-effect="gold-shimmer"],
+.scorecard[data-effect="eternal"] {
+  --rank-a: #d9a441;
+  --rank-b: #ffe38a;
+}
+.scorecard[data-effect="ember"] {
+  --rank-a: #ff7a3d;
+  --rank-b: #ffd48a;
+}
+.scorecard[data-effect="nebula"],
+.scorecard[data-effect="prism"] {
+  --rank-a: #c77dff;
+  --rank-b: #ff8fd0;
+}
+.scorecard[data-effect="rift"],
+.scorecard[data-effect="aether"] {
+  --rank-a: #6ef2ff;
+  --rank-b: #8f7bff;
+}
+.scorecard[data-effect="iridescent"],
+.scorecard[data-effect="void"],
+.scorecard[data-effect="origin"] {
+  --rank-a: #a99cff;
+  --rank-b: #7df9ff;
+}
+.scorecard[data-effect="platinum"],
+.scorecard[data-effect="radiant"],
+.scorecard[data-effect="omega"] {
+  --rank-a: #a9b8cc;
+  --rank-b: #eaf6ff;
+}
+
+/* Hero: level well, name and tier, then the XP bar across the full width. */
+.sc-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "level id"
+    "xp xp";
+  align-items: center;
+  column-gap: var(--space-7);
+  row-gap: var(--space-6);
+  padding: var(--space-7);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(
+      120% 140% at 0% 0%,
+      color-mix(in srgb, var(--rank-a) 16%, transparent),
+      transparent 60%
+    ),
+    var(--surface-2);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+}
+.sc-level {
+  grid-area: level;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-width: 84px;
+  padding: var(--space-4) var(--space-6) var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--well);
+  box-shadow:
+    inset 0 1px 2px var(--well-shadow),
+    inset 0 0 0 1px color-mix(in srgb, var(--rank-a) 35%, transparent);
+}
+.sc-level-k {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sc-level-n {
+  font-size: 40px;
+  font-weight: 750;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: transparent;
+  background: linear-gradient(180deg, var(--rank-b), var(--rank-a));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sc-id {
+  grid-area: id;
+  min-width: 0;
+}
+.sc-rank {
+  display: block;
+  margin: 0;
+  font-size: 30px;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-tier {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.sc-glyph {
+  color: var(--rank-b);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+.sc-xp {
+  grid-area: xp;
+  display: grid;
+  gap: var(--space-3);
+}
+.sc-xp-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.sc-xp-k {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sc-xp-v {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.sc-of {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.sc-xp-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+}
+.sc-next {
+  font-weight: 700;
+}
+
+/* Bars: a recessed track, the fill in the rank's colours. */
+.sc-bar {
+  position: relative;
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+}
+.sc-bar::before {
+  content: "";
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  width: calc((100% - 4px) * var(--p, 0) / 100);
+  border-radius: 2px;
+  /* The rank's colour, a step quieter than the XP bar's. */
+  background: color-mix(in srgb, var(--rank-a) 80%, var(--rank-b));
+  transition: width var(--t-out);
+}
+.sc-bar-xp {
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+.sc-bar-xp::before {
+  inset: 3px auto 3px 3px;
+  width: calc((100% - 6px) * var(--p, 0) / 100);
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--rank-a), var(--rank-b));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rank-a) 45%, transparent);
+}
+
+/* Stat tiles: as many across as fit at ~140px each (four in a normal deck,
+   two in a small window), so the card rarely needs scrolling. */
+.sc-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+}
+.sc-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-card);
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+}
+.sc-tile-k {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sc-tile-v {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-tile-goal {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sc-tile-note {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.sc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}

@@ -1,0 +1,518 @@
+/* ── Reusable modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+.modal {
+  width: min(440px, 90vw);
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  padding: var(--space-12);
+  box-shadow: var(--shadow-lg);
+  /* Modals can be mounted inside centered containers (e.g. `.home` is
+     text-align: center). Pin left alignment so every modal's text matches
+     regardless of where it's rendered. */
+  text-align: left;
+}
+/* The dialog itself only takes focus as a fallback; its controls carry the ring. */
+.modal:focus {
+  outline: none;
+}
+
+/* ── On-demand surfaces: one shared entrance ──
+   Modals, menus and popovers arrive the same way: a short fade with a few
+   pixels of travel from the side they open toward. `backwards` (not `both`)
+   so no transform lingers after the entrance: a transformed ancestor would
+   become the containing block for fixed-position children. Exits (modal,
+   dropdown) run through the View Transitions API (see view-transition.ts):
+   the real UI is already updated underneath and only a snapshot fades out,
+   kept to --dur-exit so the ghost is gone before the eye settles on what's
+   behind it. */
+@keyframes surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-y, 4px)) scale(0.98);
+  }
+}
+.modal-backdrop {
+  animation: fade-in var(--dur-enter) linear backwards;
+}
+.modal {
+  animation: surface-in var(--dur-enter) var(--ease-out) backwards;
+}
+/* In-tree menus grow out of their trigger like the portaled panels (Popovers). */
+.dropdown-menu,
+.winlayout-menu,
+.slash-menu,
+.model-menu {
+  animation: pop-in var(--dur-pop-in) var(--ease-expo) backwards;
+}
+.dropdown-menu {
+  transform-origin: center top;
+}
+.winlayout-menu {
+  transform-origin: right top;
+}
+.slash-menu {
+  --pop-enter-y: 6px;
+  transform-origin: 32px bottom;
+}
+.model-menu {
+  --pop-enter-y: 6px;
+  transform-origin: right bottom;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .dropdown-menu,
+  .winlayout-menu,
+  .slash-menu,
+  .model-menu {
+    animation-name: fade-in;
+  }
+}
+
+/* ── Exits (View Transitions) ──
+   Menus use unique local snapshots, never a conversation/root crossfade.
+   Dialogs retain their existing named dismissal snapshot. */
+.modal {
+  view-transition-name: gg-modal;
+}
+/* Only an exiting menu participates. The retained DOM is inert until the
+   browser captures it; the rest of its lifetime is a noninteractive snapshot. */
+.floating-surface {
+  display: contents;
+}
+.floating-surface[data-exiting] > * {
+  view-transition-name: var(--floating-name);
+  view-transition-class: gg-floating;
+  pointer-events: none;
+}
+:root[data-local-transitions],
+:root[data-local-transitions] .modal {
+  view-transition-name: none;
+}
+::view-transition {
+  pointer-events: none;
+}
+@keyframes surface-out {
+  to {
+    opacity: 0;
+    transform: translateY(var(--exit-y, 4px)) scale(0.97);
+  }
+}
+/* The root crossfade a dialog's dismissal plays under its own exit. Screen
+   changes don't crossfade (showScreen in view-transition.ts: WebKit drew the
+   page snapshot with magenta lines). Local menu exits exclude the root above. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-enter);
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(gg-modal),
+::view-transition-old(*.gg-floating) {
+  animation: surface-out var(--dur-exit) var(--ease-in) both;
+}
+::view-transition-old(*.gg-floating) {
+  --exit-y: -4px;
+}
+/* Surfaces that close have no "new" state; anything unexpected there should
+   appear instantly rather than morph. */
+::view-transition-new(gg-modal),
+::view-transition-new(*.gg-floating) {
+  animation: none;
+}
+::view-transition-group(gg-modal),
+::view-transition-group(*.gg-floating) {
+  animation-duration: var(--dur-exit);
+}
+/* Popovers shrink back toward their trigger, a little slower than the fade.
+   The snapshot can't read the panel's custom properties, so the direction
+   comes from a class: below-trigger panels rise away, above-trigger ones sink. */
+.floating-surface[data-exiting] > :is(.pop-panel, .dropdown-menu, .winlayout-menu) {
+  view-transition-class: gg-floating gg-pop-down;
+}
+.floating-surface[data-exiting] > :is(.pop-panel[data-side="above"], .slash-menu, .model-menu) {
+  view-transition-class: gg-floating gg-pop-up;
+}
+::view-transition-old(*.gg-pop-down) {
+  transform-origin: center top;
+  animation: pop-out var(--dur-pop-out) var(--ease-in) both;
+}
+::view-transition-old(*.gg-pop-up) {
+  --pop-exit-y: 4px;
+  transform-origin: center bottom;
+  animation: pop-out var(--dur-pop-out) var(--ease-in) both;
+}
+::view-transition-group(*.gg-pop-down),
+::view-transition-group(*.gg-pop-up) {
+  animation-duration: var(--dur-pop-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*.gg-pop-down),
+  ::view-transition-old(*.gg-pop-up) {
+    animation-name: fade-out;
+  }
+}
+
+/* Any scroll container inside a modal gets a thin, non-overlapping scrollbar so
+   the thumb never sits on top of the row content. */
+.modal ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.modal ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  margin-bottom: var(--space-10);
+}
+.modal-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.modal-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: var(--fs-3xl);
+  line-height: 1;
+  padding: 0;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
+}
+.modal-close:hover {
+  background: rgb(var(--ink-rgb) / 0.06);
+  border-color: rgb(var(--ink-rgb) / 0.1);
+  color: var(--text);
+}
+.modal-label {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-top: var(--space-11);
+  margin-bottom: var(--space-5);
+}
+/* The first label shouldn't double up the title row's bottom margin. */
+.modal-head + .modal-label {
+  margin-top: var(--space-2);
+}
+.modal-input {
+  width: 100%;
+  /* An Alloy well: sunk into whatever surface holds it, with a visible edge,
+     so a field reads as somewhere to type even before it's focused. Focus
+     recolours the same 1px edge, so nothing shifts. */
+  border: 1px solid var(--border-strong);
+  outline: none;
+  border-radius: var(--radius-button);
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-md);
+  line-height: 1.3;
+  padding: var(--space-5) var(--space-6);
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.modal-input::placeholder {
+  color: var(--text-dim);
+}
+/* Text fields show focus on click too: that is where typing will land. Same
+   treatment as an open .dropdown-trigger. */
+.modal-input:focus {
+  border-color: var(--primary);
+  box-shadow:
+    inset 0 1px 1.5px var(--well-shadow),
+    0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.modal-row {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  margin-top: var(--space-7);
+}
+.modal-row .modal-input {
+  flex: 1 1 auto;
+  /* Allow the input to shrink below its content/attribute width so a long path
+     value or a sibling button never forces horizontal overflow. */
+  min-width: 0;
+}
+.modal-hint {
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  margin-top: var(--space-4);
+  /* `break-all` breaks EVERY word at the box edge, so ordinary prose came out
+     hyphen-less and mid-word ("conversat / ion"). Most hints are prose; only a
+     few carry a URL or path. `anywhere` keeps word boundaries and breaks only
+     a run that genuinely cannot fit, which serves both. */
+  overflow-wrap: anywhere;
+}
+/* A hint sitting directly above an input needs breathing room below it,
+   otherwise the field is flush against the description text. */
+.modal-hint + .modal-input {
+  margin-top: var(--space-5);
+}
+
+/* ── New goal modal ── */
+.goal-modal {
+  width: min(520px, 90vw);
+  /* Fits any window: the fields scroll inside .goal-modal-body, while the
+     title and the buttons stay in view on the modal's own glass (no fill of
+     their own, so nothing shows as a separate slab). */
+  max-height: calc(100dvh - 2 * var(--space-8));
+  display: flex;
+  flex-direction: column;
+}
+.goal-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Room for focus rings at the edges, taken back from the layout. */
+  margin: 0 calc(-1 * var(--space-3));
+  padding: 0 var(--space-3) var(--space-1);
+}
+.goal-modal .modal-head,
+.goal-modal .modal-actions,
+.goal-modal .modal-error {
+  flex: 0 0 auto;
+}
+/* Short windows: smaller boxes, so less of the form needs scrolling. */
+@media (max-height: 760px) {
+  .goal-modal .goal-textarea {
+    min-height: 56px;
+  }
+  .goal-modal .goal-context-box {
+    height: 92px;
+  }
+  .goal-modal .modal-actions {
+    margin-top: var(--space-8);
+  }
+}
+.goal-textarea {
+  display: block;
+  resize: vertical;
+  min-height: 84px;
+  max-height: 40vh;
+  line-height: 1.45;
+}
+.goal-context-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-top: var(--space-11);
+  margin-bottom: var(--space-5);
+}
+.goal-context-head .goal-context-label {
+  margin: 0;
+}
+.goal-optional {
+  font-weight: 400;
+}
+.goal-add {
+  position: relative;
+}
+.goal-add > .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  line-height: 1.3;
+}
+/* The goal's attached folders and files: one fixed-height box whether it's
+   empty or holds twenty, so the modal never grows as things are added. Chips
+   wrap and the box scrolls. */
+.goal-context-box {
+  box-sizing: border-box;
+  /* Three rows of chips and a peek of a fourth, so a longer list reads as scrollable. */
+  height: 128px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.goal-context-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.goal-context-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  min-width: 0;
+  /* The remove button carries its own 24px target, so the chip's end is tight. */
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.goal-context-icon {
+  flex: 0 0 auto;
+}
+.goal-context-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Always visible (touch and keyboard can't hover), 24px for an easy target. */
+.goal-context-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast);
+}
+.goal-context-remove:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.goal-context-remove:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.goal-context-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-8);
+  text-align: center;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.goal-preview {
+  color: var(--text-muted);
+}
+.goal-name-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+/* Same tight first-label spacing as `.modal-head + .modal-label`, for the
+   first field inside a goal modal's scrolling body. */
+.modal-head + .goal-name-head > .modal-label,
+.goal-modal-body > .modal-label:first-child,
+.goal-modal-body > .goal-name-head:first-child > .modal-label {
+  margin-top: var(--space-2);
+}
+.goal-name-count {
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+/* Let the row shrink inside its flex wrapper so the goal text truncates to
+   one line instead of widening the row. */
+.goal-item {
+  min-width: 0;
+}
+/* Name then its context badge, kept together on the left of the row. */
+.goal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.goal-title > .picker-name {
+  /* Names are capped at 15 characters; older longer ones are clipped to match. */
+  max-width: 16ch;
+}
+.goal-title > .badge {
+  flex: 0 0 auto;
+}
+/* The goal text shares the row with the delete button's lane, like the title. */
+.goal-meta {
+  min-width: 0;
+  padding-right: 38px;
+}
+.modal-radio-group {
+  display: flex;
+  gap: var(--space-9);
+  align-items: center;
+}
+.modal-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-md);
+  cursor: pointer;
+}
+/* Multi-select elicitation fields stack their checkboxes rather than sitting on
+   one row — an MCP server can ask for a dozen options with long labels. */
+.mcp-elicit-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+/* A boolean field has no heading above it (the checkbox is its own label), so
+   it needs the vertical rhythm .modal-label would have provided. */
+.mcp-elicit-boolean {
+  margin-top: var(--space-11);
+}
+.modal-radio input {
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+.modal-error {
+  font-size: var(--fs-sm);
+  margin-top: var(--space-4);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-5);
+  margin-top: 26px;
+}
+
+/* Internet radio reuses the modal system, with a larger version of the title
+   usage meter as its volume control. */
+.radio-modal {
+  width: min(480px, 90vw);
+}
+/* The station list is a custom listbox (see Dropdown.tsx): a native select
+   popup is drawn by the OS, ignores the theme, and can't carry the per-station
+   description line. */

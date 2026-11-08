@@ -1,0 +1,373 @@
+/* ── Floating chat controls ─────────────────────────────────────────────
+   Export chat (top right, hover-revealed), "You have new chats" (bottom
+   centre) and scroll-to-bottom (bottom right) float over the chat viewport,
+   anchored to `.transcript-frame` — the NON-scrolling sibling. Anchoring to
+   `.transcript` would pin them to the top of the scrolled content instead of
+   what's on screen (same trap the Israel power banner comment above documents).
+
+   Always in the DOM so the exit transition can play; `visibility` joins the
+   transition (delayed on the way out, instant on the way in) so a hidden
+   control is fully inert rather than an invisible click target. Each one
+   slides in from its own edge via `--float-x` / `--float-y`. */
+.transcript-new-pill,
+.transcript-to-bottom {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* An Alloy key, floating: the key face and edge, plus a drop shadow so it
+     reads over the conversation. 28px tall, like the deck's keys. */
+  height: 28px;
+  padding: 0 var(--space-5);
+  --float-fill: var(--key);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--float-fill);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    var(--shadow-md);
+  font-weight: 500;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+  cursor: pointer;
+  /* Hidden state: faded, nudged toward its edge, and untouchable. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(var(--float-x, 0), var(--float-y, 6px));
+  pointer-events: none;
+  transition:
+    opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out),
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast),
+    box-shadow var(--t-fast),
+    visibility 0s linear var(--dur-enter);
+}
+.transcript-new-pill {
+  /* Above the dock, which floats over the frame's bottom edge. */
+  bottom: calc(var(--dock-h, 0px) + 12px);
+  left: 50%;
+  --float-x: -50%;
+}
+/* "You have a new question": same pill and spot, in the amber the activity
+   bar uses for "Need your call", since the agent is waiting on it. The text
+   stays the pill's own light ink (amber text on the light fill measured under
+   3:1); the arrow and a warm rim carry the colour. */
+.transcript-ask-pill {
+  color: var(--warning);
+  font-weight: 600;
+}
+.transcript-ask-pill svg {
+  color: var(--warning);
+}
+.transcript-to-bottom {
+  right: 16px;
+  bottom: calc(var(--dock-h, 0px) + 12px);
+  /* Square key, at the pill's height. */
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+}
+/* Where "You have new chats" lands. Takes no space, so rows never shift. */
+.transcript-new-marker {
+  height: 0;
+}
+.transcript-new-pill.visible,
+.transcript-to-bottom.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(var(--float-x, 0), 0);
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out),
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast),
+    box-shadow var(--t-fast),
+    visibility 0s;
+}
+.transcript-new-pill.visible:hover,
+.transcript-to-bottom.visible:hover {
+  background: var(--surface-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No travel; the fade and the hover colours stay. */
+  .transcript-new-pill,
+  .transcript-to-bottom {
+    --float-y: 0;
+    transition:
+      opacity var(--dur-enter) var(--ease-out),
+      background var(--t-fast),
+      border-color var(--t-fast),
+      color var(--t-fast),
+      box-shadow var(--t-fast),
+      visibility 0s linear var(--dur-enter);
+  }
+  .transcript-new-pill.visible,
+  .transcript-to-bottom.visible {
+    transition:
+      opacity var(--dur-enter) var(--ease-out),
+      background var(--t-fast),
+      border-color var(--t-fast),
+      color var(--t-fast),
+      box-shadow var(--t-fast),
+      visibility 0s;
+  }
+}
+.transcript {
+  flex: 1 1 auto;
+  /* Required so this scrollable flex child actually shrinks (default min-height
+     is `auto`, which keeps it at content height — that pushes the live tool
+     panel / activity bar down over the transcript text instead of scrolling). */
+  min-height: 0;
+  overflow-y: auto;
+  /* Extra bottom padding keeps the last line off the live-region border so the
+     newest message reads with a little breathing room above the tool panel. */
+  /* The 8px scrollbar below consumes layout width, so a plain `--rail` right
+     padding would sit the text 8px further in than the footer/composer. Reserve
+     the gutter always (no shift when it appears) and subtract it back, so the
+     content edge lands on the rail whether or not the transcript scrolls. */
+  scrollbar-gutter: stable;
+  /* Centred column, a touch wider than the deck's: the gutters grow past the
+     rail on wide windows. The scrollbar stays at the window edge; only the
+     content moves in. */
+  padding: var(--space-2) calc(var(--gutter-chat) - var(--scrollbar)) var(--space-8)
+    var(--gutter-chat);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* Fades out under the Ken power banner (see `.ken-power-overlay`). */
+  transition: opacity var(--dur-row) var(--ease-out);
+}
+
+/* NOTE: `content-visibility: auto` was tried here as a long-session perf win but
+   caused jaggedy upward scrolling. Skipped off-screen rows reserve only an
+   estimated height (`contain-intrinsic-size`), and `auto` remembers a row's real
+   size only AFTER it has rendered once. Scrolling up re-enters rows above the
+   viewport whose tall real heights (code blocks, markdown, images) replace the
+   placeholder estimate, shifting everything below and jumping the scroll
+   position. Plain rows render fine even in long sessions, so it's not worth the
+   jank — leave it off. */
+
+/* Live entrances are consumed and owned by transcript-motion.ts.
+   Opacity only: Activity reactivation never replays a permanent CSS class. */
+
+.transcript::-webkit-scrollbar {
+  width: var(--scrollbar);
+}
+.transcript::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.line {
+  min-height: 1.55em;
+}
+.line.info,
+.line.error {
+  padding: 1px 0;
+}
+
+/* ── Plan review (plan_exit) ──
+   A full-window takeover laid out like the chat itself: header strip, the plan
+   where the transcript sits, a critter crew on the activity bar, Accept /
+   Reject in the activity bar, and the chat composer for feedback. The shared
+   `.liveregion`, `.statusrow`, `.inputwrap` and `.footer` rules style the
+   bottom half, so it can never drift from the real composer. */
+.plan-review {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-raised);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  isolation: isolate;
+}
+/* Plan-mode amber ambient wash, built like `.app::before` (gradient falloff,
+   no filter) so it costs one shade pass. */
+.plan-review::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      46% 40% at 100% 100%,
+      color-mix(in srgb, var(--warning) 14%, transparent),
+      transparent 78%
+    ),
+    radial-gradient(
+      50% 42% at 0% 0%,
+      color-mix(in srgb, var(--warning) 7%, transparent),
+      transparent 80%
+    );
+}
+.plan-review-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: 38px;
+  padding: 0 var(--rail);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-base);
+  line-height: 1.3;
+  user-select: none;
+}
+/* Same traffic-light clearance and optical lift as `.chat-head-strip`. */
+.platform-macos .plan-review-head {
+  height: 36.5px;
+  padding: 0 var(--rail) 1.5px 82px;
+}
+.plan-review-title {
+  color: var(--text);
+  font-weight: 600;
+}
+.plan-review-steps {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.plan-review-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Mirrors `.transcript` so the plan's left edge, the critter gutter and the
+     composer below share one rail. */
+  scrollbar-gutter: stable;
+  padding: var(--space-8) calc(var(--rail) - var(--scrollbar)) var(--space-10) var(--rail);
+  font-size: var(--fs-lg);
+  outline: none;
+}
+.plan-review-body::-webkit-scrollbar {
+  width: var(--scrollbar);
+}
+.plan-review-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+/* Focusable so arrow keys scroll a long plan; inset ring because the region
+   runs edge to edge. Pointer clicks never show it. */
+.plan-review-body:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+.plan-review-intro {
+  margin-bottom: var(--space-5);
+}
+/* The plan reads in the assistant text column, right of the critter gutter. */
+.plan-review-doc {
+  padding-left: var(--space-11);
+  max-width: 860px;
+}
+.plan-review .inputrow .input-stack {
+  /* No paperclip here, so the field carries the gap the circle would leave. */
+  padding-left: var(--space-4);
+}
+.plan-review-accept {
+  /* Same height as the Stop/Reject text so the row keeps --bar-pad rhythm. */
+  line-height: 1.25;
+  padding-top: 2.4px;
+  padding-bottom: 3.6px;
+}
+.plan-review-footer {
+  justify-content: flex-start;
+  min-width: 0;
+}
+.plan-review-footer > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The crew's lane is decorative: it never takes clicks meant for the plan. */
+.plan-review-critters {
+  pointer-events: none;
+}
+.plan-review-critters .critter-floor {
+  pointer-events: auto;
+}
+
+/* ── Plan review motion: dissolve in, dissolve out ──
+   Arriving, the whole pane resolves out of a soft blur, then each band
+   settles in reading order (plan, activity bar, composer). Deciding plays the
+   reverse: the pane blurs and fades away, and only then does the decision run
+   (PlanReviewModal waits for `plan-dissolve-out`). The blur only exists while
+   an animation runs (`backwards` / the closing frame), so nothing keeps a
+   window-sized filter alive at rest. */
+@keyframes plan-dissolve-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(1.012);
+  }
+}
+@keyframes plan-dissolve-out {
+  to {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.988);
+  }
+}
+@keyframes plan-band-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(var(--band-y, 8px));
+  }
+}
+.plan-review {
+  animation: plan-dissolve-in 380ms var(--ease-out) backwards;
+}
+.plan-review.leaving {
+  pointer-events: none;
+  animation: plan-dissolve-out var(--dur-plan-out) var(--ease-in) forwards;
+}
+.plan-review-body {
+  animation: plan-band-in 420ms var(--ease-out) 120ms backwards;
+}
+.plan-review .liveregion {
+  animation: plan-band-in 360ms var(--ease-out) 220ms backwards;
+}
+.plan-review .inputwrap,
+.plan-review-footer {
+  --band-y: 12px;
+  animation: plan-band-in 360ms var(--ease-out) 300ms backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-review,
+  .plan-review.leaving,
+  .plan-review-body,
+  .plan-review .liveregion,
+  .plan-review .inputwrap,
+  .plan-review-footer {
+    animation-name: fade-in;
+    animation-duration: var(--dur-enter);
+  }
+}
+
+/* ── Plan mode title ──
+   Home's pixel type: the Alagard title art at one screen pixel per art pixel,
+   and the reason in m5x7 at the chat's text size (--fs-pixel). */
+.plan-logo {
+  margin: var(--space-5) 0;
+}
+.plan-logo-title {
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.plan-logo-reason {
+  margin: var(--space-4) 0 0;
+  font-family: "m5x7", monospace;
+  font-size: var(--fs-pixel);
+  line-height: var(--fs-pixel);
+  -webkit-font-smoothing: none;
+  color: var(--warning);
+}

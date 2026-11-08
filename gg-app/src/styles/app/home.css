@@ -1,0 +1,618 @@
+/* ── Home screen (app entry) ── */
+.home {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 28px;
+  padding: var(--space-12);
+  text-align: center;
+  overflow: hidden;
+}
+/* The campfire scenery (HomeScenery.tsx): the critters' clearing in the
+   pines, in GG Royale's pixel style at 2 screen px per art px. Pinned to the
+   bottom edge so the field always meets the critters' ground. */
+.home-scenery {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-scenery-canvas {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  image-rendering: pixelated;
+}
+/* The critters' ground takes the scenery's light (set on .home by the clock). */
+.home-critters .critter-terrain {
+  filter: var(--scene-ground, none);
+}
+/* Home content sits above the backdrop. The scenery keeps the sky dark
+   behind the text, so the text goes without a halo. */
+.home > .home-title,
+.home > .home-version-row,
+.home > .home-tagline,
+.home > .home-actions {
+  position: relative;
+  z-index: 1;
+}
+/* Entry: each block fades + rises in sequence so the page assembles smoothly
+   on load instead of snapping in all at once. The title is still after that:
+   no looping motion. */
+.home > .home-version-row,
+.home > .home-tagline,
+.home > .home-actions,
+.home > .home-settings,
+.home > .home-version-corner {
+  animation: reveal-up 460ms var(--ease-out) both;
+}
+.home > .home-version-row {
+  animation-delay: 40ms;
+}
+.home > .home-title {
+  animation: reveal-up 460ms var(--ease-out) 120ms both;
+}
+.home > .home-tagline {
+  animation-delay: 240ms;
+}
+.home > .home-actions {
+  animation-delay: 340ms;
+}
+.home > .home-settings,
+.home > .home-version-corner {
+  animation-delay: 460ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home > .home-version-row,
+  .home > .home-tagline,
+  .home > .home-actions,
+  .home > .home-settings,
+  .home > .home-version-corner {
+    animation: none;
+  }
+  .home > .home-title {
+    animation: none;
+  }
+}
+/* Edges: the version or update button top-centre, Settings top-right, and the
+   critters and their terrain along the bottom. The critter lane sits on the
+   window's bottom edge with its terrain inside (.critter-lane.with-terrain),
+   so the ground rises out of the edge just like it does in chat. --home-critter-floor is the ground's depth, the
+   height the critters' feet stand at; --home-above-critters clears the
+   lane's full open height (sprite + headroom for bubbles, see
+   .critter-lane.open). */
+.home {
+  --home-terrain-px: 2px;
+  --home-critter-floor: calc(var(--home-terrain-px) * 8);
+  /* 36px: the critter sprite, 18 cells at 2px. */
+  --home-above-critters: calc(var(--home-critter-floor) + 36px + 48px + 6px);
+}
+.home > .home-critters {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--home-above-critters);
+  z-index: 1;
+  pointer-events: none;
+}
+.home-critters > .critter-lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+/* Ambient hover card: just the name, so no stats-sized minimum. */
+.home-critters .critter-tooltip {
+  min-width: 0;
+}
+/* Top centre, level with the Settings button (top 16px, 44px tall): the
+   update button, only while an update is out. Spans the width and centres its
+   content, rather than translate(-50%), since reveal-up owns transform; only
+   the button takes clicks,
+   so the strip around it stays a window drag area. */
+.home > .home-version-corner {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 16px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.home > .home-version-corner > * {
+  pointer-events: auto;
+}
+
+.ascii-logo {
+  font-family: var(--mono);
+  /* 117 mono columns ≈ 71em wide, so 7px needs ~497px (about the old banner's
+     footprint). Scale down below that instead of overflowing both edges on
+     very narrow viewports. */
+  font-size: min(7px, 100vw / 75);
+  /* The font draws curves with half blocks (▄ ▀), so rows must touch: any
+     extra leading shows as horizontal gaps through every letter. */
+  line-height: 1;
+  white-space: pre;
+}
+.ascii-logo-line {
+  white-space: pre;
+}
+/* ── Banner glitch loop ──
+   Movement only, no colour. A 5s cycle, still most of the time, with two
+   short bursts near its end (~140ms, then ~80ms): the banner jolts a pixel,
+   and one or two thin bands of rows tear sideways by a few pixels, then it all
+   snaps back. The tearing bands are white copies painted from data-text,
+   clipped to a sliver of rows, so they add no text to the page. */
+/* The white shimmer is painted here, on the element whose text it is: WebKit
+   (the macOS app) clips a text background only to the element's own text, so
+   painted on .ascii-logo it left these letters transparent. */
+.ascii-logo-glitch {
+  position: relative;
+  /* White, with a faint brighter band wider than the text, so the animated
+     position shift still reads as a gentle shimmer across the letters. */
+  background: linear-gradient(
+    100deg,
+    #e4e6ee 0%,
+    var(--text) 25%,
+    #ffffff 50%,
+    var(--text) 75%,
+    #e4e6ee 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation:
+    ggshimmer 4s linear infinite,
+    gg-glitch-shake 5s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running), var(--loop-play-state, running);
+}
+.ascii-logo-glitch::before,
+.ascii-logo-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  white-space: pre;
+  pointer-events: none;
+  opacity: 0;
+  /* The banner paints its white through background-clip: text; the copies
+     opt out and fill with the same white, so a tear shows as shape, not
+     colour. */
+  background: none;
+  color: var(--text);
+  -webkit-text-fill-color: currentColor;
+}
+.ascii-logo-glitch::before {
+  animation: gg-glitch-tear-a 5s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.ascii-logo-glitch::after {
+  animation: gg-glitch-tear-b 5s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+/* Burst windows: 82–85% (≈150ms) and 93–94.6% (≈80ms) of the cycle. */
+@keyframes gg-glitch-shake {
+  0%,
+  82%,
+  85%,
+  93%,
+  94.6%,
+  100% {
+    transform: none;
+  }
+  82.1% {
+    transform: translateX(-1px);
+  }
+  83.4% {
+    transform: translateX(1px);
+  }
+  93.1% {
+    transform: translateX(1px);
+  }
+}
+@keyframes gg-glitch-tear-a {
+  0%,
+  82%,
+  85%,
+  93%,
+  94.6%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+  82.1% {
+    opacity: 1;
+    transform: translateX(-4px);
+    clip-path: inset(22% 0 66% 0);
+  }
+  83.4% {
+    opacity: 1;
+    transform: translateX(3px);
+    clip-path: inset(56% 0 33% 0);
+  }
+  93.1% {
+    opacity: 1;
+    transform: translateX(-3px);
+    clip-path: inset(68% 0 21% 0);
+  }
+}
+@keyframes gg-glitch-tear-b {
+  0%,
+  82%,
+  85%,
+  93%,
+  94.6%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+  82.1% {
+    opacity: 1;
+    transform: translateX(3px);
+    clip-path: inset(44% 0 44% 0);
+  }
+  83.4% {
+    opacity: 1;
+    transform: translateX(-2px);
+    clip-path: inset(11% 0 78% 0);
+  }
+}
+/* Reduced motion: no glitch. */
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the slow shimmer (as before); drop the glitch. */
+  .ascii-logo-glitch {
+    animation: ggshimmer 4s linear infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+  .ascii-logo-glitch::before,
+  .ascii-logo-glitch::after {
+    animation: none;
+  }
+}
+
+/* ── Ken power banner (Autopilot on/off) ──────────────────────────────────
+   Takeover of the chat BODY only — lives inside `.transcript-frame`, the
+   non-scrolling sibling wrapping `.transcript` (see that rule below), so it
+   stays pinned to the visible viewport at any scroll position instead of the
+   scrolled chat content. The chat head/nav above and the tool
+   panel/activity bar/input footer below stay visible and untouched. A "Israel is
+   on."/"Israel is off." line (app font, same size as the wake screen's typed
+   line) materializes with
+   the same scale+fade "flash" the app already uses for the zoom-level HUD
+   (see `.zoom-overlay-card`/`zoom-overlay-in`) instead of sliding across the
+   pane — a small, on-brand pop in place, held, then a soft dissolve out.
+
+   The overlay itself paints NO fill. An opaque `--bg` rectangle read as a flat
+   black slab because it covered the app's ambient glow (`.app::before`, which
+   sits behind the whole shell) instead of matching the surrounding chrome.
+   Rather than re-creating that glow here, the transcript underneath simply
+   fades out (see the sibling rule below) so what shows through IS the app
+   background — glow included. Purely decorative — clicks pass through to
+   whatever is underneath. */
+.ken-power-overlay {
+  position: absolute;
+  /* Bleed 1px past every edge (clipped by `.transcript-frame`'s `overflow:
+     hidden`) rather than a flush `inset: 0` — under CSS `zoom` the absolutely
+     positioned overlay's content box can round a hair narrower than its
+     positioned ancestor, leaving a hairline sliver of chat text visible along
+     the top edge. The 1px bleed guarantees full coverage regardless of the
+     rounding direction. */
+  inset: -1px;
+  z-index: var(--z-dropdown);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Mirror `.transcript`'s vertical padding so the line lands on exactly the
+     same optical centre as the wake screen's, which centres inside that padded
+     box — without it the banner sits ~6px lower than the line it replaces. */
+  padding: var(--space-2) 0 var(--space-8);
+  pointer-events: none;
+}
+/* The banner is only in the DOM while it plays, so this sibling selector is
+   the whole show/hide mechanism — no extra state or class plumbing. */
+.ken-power-overlay ~ .transcript {
+  opacity: 0;
+}
+/* One line in the empty chat body, in GG Royale's Alagard. It flashes in
+   and dissolves. */
+.ken-power-banner {
+  /* GG Royale's title face, unsmoothed, with its two-step ink drop. */
+  font-family: "Alagard", serif;
+  font-size: var(--fs-4xl);
+  line-height: 1.2;
+  -webkit-font-smoothing: none;
+  color: #f6d0a8;
+  text-shadow: 0 2px 0 #1e0c1f;
+  /* On its own Royale panel, so it reads the same on either theme. */
+  padding: var(--space-3) var(--space-8) var(--space-4) var(--space-4);
+  background: #3a2433;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 2px 0 #5a3a4a,
+    inset 0 -3px 0 #24141f,
+    0 4px 0 2px #1e0c1f;
+  white-space: pre;
+  text-align: center;
+  /* Ken's face (KenFace mood on/off) leads the words. */
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  animation: ken-power-flash 1150ms var(--ease-out) both;
+}
+.ken-power-banner .ken-face {
+  width: 36px;
+  height: 36px;
+}
+/* Scale-and-fade "power flash": pops in slightly undersized (like the zoom
+   HUD), rests at full size while held, then grows a touch further as it
+   dissolves out — a gentle energize/derez feel with zero lateral motion. */
+@keyframes ken-power-flash {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  16% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  82% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ken-power-banner {
+    animation: ken-power-fade 900ms ease both;
+  }
+}
+@keyframes ken-power-fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+}
+/* Like the game's subtitle under "Royale": Alagard in warm cream with an ink
+   drop, on the same pixel grid as the title. */
+.home-tagline {
+  margin-top: calc(-4 * var(--home-px));
+  font-family: "Alagard", serif;
+  font-size: calc(16 * var(--home-px));
+  line-height: calc(16 * var(--home-px));
+  -webkit-font-smoothing: none;
+  color: #f6d0a8;
+  text-shadow: 0 var(--home-px) 0 #1e0c1f;
+  text-align: center;
+}
+.home-greeting {
+  margin-top: calc(6 * var(--home-px));
+  font-family: "Alagard", serif;
+  font-size: calc(12 * var(--home-px));
+  line-height: calc(12 * var(--home-px));
+  -webkit-font-smoothing: none;
+  color: #ffe9c8;
+  opacity: 0.85;
+  text-shadow: 0 var(--home-px) 0 #1e0c1f;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.home-link {
+  /* Links read as links: the accent, never plain white (which vanished on
+     the light theme's cards). On Home's night scene the scene's own palette
+     makes it the light periwinkle. */
+  color: var(--primary);
+  /* The underline is always drawn but clear at rest, so hover fades it in and
+     out (as .markdown a does); switching the line on would snap. */
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    text-decoration-color var(--t-fast);
+}
+.home-link:hover {
+  text-decoration-color: currentColor;
+}
+/* ── Home title ──
+   "Israel Code" in GG Royale's title lettering: a pixel image at a whole number
+   of screen pixels per art pixel (2×, 1× in very small windows). */
+.home-title {
+  --title-scale: 2;
+  margin: 0;
+  line-height: 0;
+}
+.home-title-art {
+  display: block;
+  width: calc(201px * var(--title-scale));
+  height: calc(39px * var(--title-scale));
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+@media (max-width: 479px), (max-height: 420px) {
+  .home-title {
+    --title-scale: 1;
+  }
+}
+
+/* ── Plate buttons (PlateButton.tsx) ──
+   GG Royale's buttons: three 100×46 pixel canvases (socket, plate, lip) at
+   --plate-scale, the word in Alagard on its 16px grid. Dark lettering, cream
+   while pointed at, as in the game. */
+.plate-button {
+  --plate-scale: 2;
+  position: relative;
+  flex: none;
+  width: calc(100px * var(--plate-scale));
+  height: calc(46px * var(--plate-scale));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.plate-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.plate-face {
+  position: absolute;
+  inset: 0;
+  translate: 0 calc(var(--plate-y, 0) * 1px * var(--plate-scale));
+  pointer-events: none;
+}
+.plate-word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(7px * var(--plate-scale));
+  font-family: "Alagard", serif;
+  font-size: calc(16px * var(--plate-scale));
+  line-height: calc(16px * var(--plate-scale));
+  font-weight: 400;
+  -webkit-font-smoothing: none;
+  color: #1e2a33;
+  text-align: center;
+  white-space: nowrap;
+}
+.plate-button:hover:not(.is-dimmed) .plate-word {
+  color: #f2ead2;
+}
+/* Wine plate (Cancel): the game's dark wine lettering, pale rose on hover. */
+.plate-button.is-wine .plate-word {
+  color: #2a0612;
+}
+.plate-button.is-wine:hover:not(.is-dimmed) .plate-word {
+  color: #f2d8c8;
+}
+.plate-button:focus-visible {
+  outline: calc(1px * var(--plate-scale)) solid #f5bd63;
+  outline-offset: calc(1px * var(--plate-scale));
+}
+/* Prerequisites unmet: sunk in its socket and dull (the game's disabled
+   plate), but still clickable so it can say what's missing. */
+.plate-button.is-dimmed,
+.plate-button.is-dimmed:hover {
+  opacity: 1;
+  filter: none;
+}
+.plate-button.is-dimmed .plate-layer {
+  filter: saturate(0.6) brightness(0.8);
+}
+
+/* ── Home actions ──
+   The ways in (Code, Goals, Chat, Motion, GG Royale) as GG Royale plates under
+   the title, and Settings as a gear pinned to the top-right corner. */
+.home-actions {
+  /* The plates follow Home's size step, except 0.8× in the narrowest windows
+     so all five still fit on one row at the 480px minimum width. */
+  --plate-step: var(--home-step);
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: calc(var(--space-4) * var(--plate-step));
+}
+@media (max-width: 599px) {
+  .home-actions {
+    --plate-step: 0.8;
+  }
+}
+.home-actions .plate-button {
+  --plate-scale: var(--plate-step);
+}
+/* A plate with a tag pinned to the middle of its top edge (Royale's "New").
+   The tag is out of flow, so the plates stay level and the home column keeps
+   its centring; clicks fall through it to the button. */
+.home-action-slot {
+  position: relative;
+  display: flex;
+}
+/* The tag: a little GG Royale label, m5x7 on the game's red with an ink
+   outline and a shaded foot, drawn in --tag-px art pixels (Home's step). */
+.home-actions {
+  --tag-px: var(--home-px);
+}
+.home-loading-dots {
+  display: inline-flex;
+  gap: calc(2 * var(--tag-px));
+  align-items: center;
+  height: calc(5 * var(--tag-px));
+}
+.home-loading-dots i {
+  width: calc(2 * var(--tag-px));
+  height: calc(2 * var(--tag-px));
+  background: currentColor;
+  animation: home-loading-dot 900ms steps(2, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.home-loading-dots i:nth-child(2) {
+  animation-delay: 150ms;
+}
+.home-loading-dots i:nth-child(3) {
+  animation-delay: 300ms;
+}
+@keyframes home-loading-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-loading-dots i {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+.home-action-beta {
+  position: absolute;
+  top: calc(-2 * var(--tag-px));
+  left: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  padding: 0 calc(3 * var(--tag-px)) calc(2 * var(--tag-px));
+  border-radius: calc(2 * var(--tag-px));
+  background: #c2444d;
+  color: #fff0e0;
+  box-shadow:
+    0 0 0 var(--tag-px) #1e0c1f,
+    inset 0 calc(-1 * var(--tag-px)) 0 #921f25;
+  font-family: "m5x7", monospace;
+  font-size: calc(16 * var(--tag-px));
+  font-weight: 400;
+  line-height: calc(11 * var(--tag-px));
+  -webkit-font-smoothing: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* The padding is hit area: the gear itself sits 16px down, 20px in. */
+.home-settings {
+  position: absolute;
+  top: calc(16px - 3 * var(--icon-px));
+  right: calc(20px - 3 * var(--icon-px));
+  z-index: 1;
+}

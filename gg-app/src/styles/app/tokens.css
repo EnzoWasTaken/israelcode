@@ -1,0 +1,447 @@
+/* Registered so the browser can INTERPOLATE it. An unregistered custom
+   property is just a string: swapping it re-rasterises the gradient instantly,
+   which is why the idle -> working -> done changes snapped. Declaring the type
+   makes it a real animatable colour. */
+@property --step-line {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --glow-live {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #3a4fb8;
+}
+
+:root,
+:root[data-theme="dark"] {
+  /* Alloy. Brushed graphite surfaces separated by lightness, keys raised off
+     them, and one cobalt accent. Every colour has a light twin below; nothing
+     outside these two blocks names a raw colour for chrome. */
+  --bg: #15171a;
+  --surface-1: #1f2226;
+  --surface-2: #2a2e33;
+  --surface-3: #33383e;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  /* The ink overlays are drawn in (hover washes, hairlines): white on dark,
+     deep navy on light. Used as `rgb(var(--ink-rgb) / <alpha>)`. */
+  --ink-rgb: 255 255 255;
+
+  /* Text — one ink at four levels. --text-dim is the floor: 4.87:1 on
+     --surface-2; on --surface-3 use --text-muted. */
+  --text: #e8ebef;
+  --text-secondary: #c2c7ce;
+  --text-muted: #a1a8b1;
+  --text-dim: #949ba5;
+
+  /* Accent — cobalt, light enough to carry the dark --on-primary label on a
+     fill (8.1:1) and to read as text on every surface. */
+  --primary: #7f9dff;
+  --primary-hi: #9fb5ff;
+  --on-primary: #050a2e;
+  /* Filled accent controls (send, Commit, the home buttons): the same
+     periwinkle and dark ink in both themes, so a primary button looks the
+     same in light and dark. --primary itself darkens in light mode, for
+     accent text and icons on light surfaces. */
+  --primary-fill: #7f9dff;
+  --primary-fill-hi: #9fb5ff;
+  --on-primary-fill: #050a2e;
+
+  --success: #7fdc95;
+  --on-success: #04180b;
+  --warning: #f0c75e;
+  --on-warning: #1c1405;
+  --error: #ff7d70;
+  /* The composer's Stop key: a deeper red than --error so its white square
+     clears 3:1 (--error is tuned for red text, not a fill under white). */
+  --stop-fill: #d93a3a;
+  --stop-fill-hi: #e44c4c;
+  /* Between warning and error: "improving, not there yet" (Project Health). */
+  --caution: #ff9f5c;
+  --on-error: #240704;
+  --secondary: #7f9dff;
+  --info: #62e8d8;
+
+  /* Ambient glow behind the window. Alloy keeps it faint: the material, not a
+     wash, carries the look. */
+  --glow: #1f46b8;
+
+  --user-text: var(--text);
+  --user-bg: var(--surface-2);
+  /* Code blocks: a panel sunk below the message surface. */
+  --code-bg: #0e1013;
+
+  /* Ken Kai (mentor agent) — must match theme.ken in theme.ts. */
+  --ken: #62e8d8;
+  /* A solid @Ken bubble: Ken's teal with dark ink (11.3:1). */
+  --ken-fill: #62e8d8;
+  --on-ken-fill: #04211e;
+  /* Critters — pink; must match theme.critter in theme.ts. */
+  --critter: #ff8fd0;
+
+  --steroids: #ff4d5e;
+  --steroids-deep: #c8283a;
+  --steroids-glow: rgba(255, 77, 94, 0.45);
+
+  /* Keys: the raised controls of the deck and title bar. A lit top edge, a
+     dark lip below, and a recessed well for the value a key reads out. */
+  --key: #2c3035;
+  --key-hi: rgba(255, 255, 255, 0.09);
+  --key-edge: #0b0c0e;
+  --key-shadow: rgba(0, 0, 0, 0.6);
+  --well: #23272c;
+  --well-shadow: rgba(0, 0, 0, 0.55);
+  --led-off: #3a3f46;
+  --deck-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 0 14px 30px -16px rgba(0, 0, 0, 0.9);
+  --mark: rgba(143, 163, 255, 0.28);
+
+  /* Elevation: neutral black so depth never tints a surface. */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 44px -12px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="light"] {
+  --bg: #dde1e6;
+  --surface-1: #eaedf0;
+  --surface-2: #f5f7f9;
+  --surface-3: #ffffff;
+  --border: rgba(10, 20, 40, 0.1);
+  --border-strong: rgba(10, 20, 40, 0.2);
+  --ink-rgb: 10 20 40;
+
+  --text: #14171b;
+  --text-secondary: #333a42;
+  --text-muted: #4f5761;
+  --text-dim: #59616b;
+
+  --primary: #0038b8;
+  --primary-hi: #1650d0;
+  --on-primary: #ffffff;
+  /* A light theme's links and accent text: the dark cobalt. */
+  --link: #0038b8;
+
+  --success: #1a6c33;
+  --on-success: #ffffff;
+  --warning: #855400;
+  --on-warning: #ffffff;
+  --error: #b8241a;
+  --stop-fill: #b8241a;
+  --stop-fill-hi: #cc2f22;
+  --caution: #9c4700;
+  --on-error: #ffffff;
+  --secondary: #0038b8;
+  --info: #0b6b62;
+
+  --glow: #8ea2e6;
+
+  --ken: #0b6b74;
+  --ken-fill: #0b6b74;
+  --on-ken-fill: #ffffff;
+  --critter: #a8256f;
+
+  --code-bg: #e6e9ed;
+
+  --steroids: #c8283a;
+  --steroids-deep: #9e1c2c;
+  --steroids-glow: rgba(200, 40, 58, 0.3);
+
+  --key: #f5f7f9;
+  --key-hi: #ffffff;
+  --key-edge: #aeb5be;
+  --key-shadow: rgba(30, 45, 70, 0.22);
+  --well: #dfe3e8;
+  --well-shadow: rgba(30, 45, 70, 0.28);
+  --led-off: #bfc6cf;
+  --deck-shadow: 0 1px 0 rgba(10, 20, 40, 0.08), 0 14px 28px -16px rgba(30, 45, 70, 0.45);
+  --mark: rgba(0, 56, 184, 0.16);
+
+  --shadow-sm: 0 2px 6px rgba(30, 45, 70, 0.18);
+  --shadow-md: 0 8px 28px rgba(30, 45, 70, 0.2);
+  --shadow-lg: 0 16px 44px -12px rgba(30, 45, 70, 0.35);
+}
+
+:root {
+  /* Shape system — generous and soft, matching the reference: pills for
+     controls, heavy rounding on cards, no hairline boxes. */
+  --radius-sm: 4px;
+  --radius-button: 8px;
+  --radius-card: 14px;
+  --radius-pill: 9999px;
+
+  /* Motion. Every transition and entrance/exit draws its curve and length from
+     the tokens below; scripts/motion-tokens.test.mjs rejects a raw
+     cubic-bezier() outside :root, a timed transition without a token, and any
+     script timing (EXIT_MS and friends) that drifts from its token.
+
+     Easing roles (curves only):
+     --ease-out     things arriving (menus, reveals, chips): quick start, soft land.
+     --ease-expo    growth that should feel instant then settle (toasts, composer).
+     --ease-in      things leaving: gathers speed on the way out.
+     --ease-in-out  in-place changes (height, progress).
+     --ease-hover   colour-on-hover feedback (--t-in / --t-out).
+     --ease-pop     the critters' overshoot pop (bubbles, props, ticks).
+     --ease-glow    the slow ambient window-glow crossfade.
+     --ease-spring  the Settings tab bar's spring (with --duration-spring).
+
+     Colour feedback (duration + curve shorthands, no movement):
+     --t-fast       plain state changes (glass controls, switches, links).
+     --t-in/--t-out hover enter/exit: quick in so it feels responsive, slower
+                    out so it settles rather than snaps back.
+
+     Durations: --dur-press (press dips), --dur-enter/--dur-exit (surfaces),
+     --dur-row, --dur-dissolve, --dur-strip-*, --dur-toast-*,
+     --dur-enhance-dissolve, --dur-plan-out. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-hover: cubic-bezier(0.32, 0, 0.24, 1);
+  --ease-pop: cubic-bezier(0.3, 1.6, 0.6, 1);
+  --ease-glow: cubic-bezier(0.33, 0, 0.15, 1);
+  --t-fast: 0.15s ease;
+  --t-in: 0.12s var(--ease-hover);
+  --t-out: 0.24s var(--ease-hover);
+  /* The Settings tab bar's spring, from yaatuber's tab bar (Glance's
+     `.spring(response: 0.35, dampingFraction: 0.82)`) sampled into linear():
+     it settles in 0.5s with a ~1% overshoot. SettingsTabBar.tsx reads both
+     values for the animations it runs, so script and CSS cannot disagree. */
+  --duration-spring: 0.5s;
+  --ease-spring: linear(
+    0,
+    0.0569,
+    0.1852,
+    0.3389,
+    0.4905,
+    0.6252,
+    0.7369,
+    0.8246,
+    0.8902,
+    0.9371,
+    0.9689,
+    0.9894,
+    1.0016,
+    1.008,
+    1.0107,
+    1.011,
+    1.0101,
+    1.0085,
+    1.0068,
+    1.0051,
+    1.0037,
+    1.0026,
+    1.0017,
+    1.001,
+    1
+  );
+  /* A control dipping under the pointer (glass buttons, the volume thumb). */
+  --dur-press: 100ms;
+  /* Surfaces that appear on demand (modals, menus, popovers) share one entrance. */
+  --dur-enter: 160ms;
+  /* Leaving is quicker than arriving: the user already decided, so get out of
+     the way. Used by the view-transition exits (modal, dropdown). */
+  --dur-exit: 120ms;
+  /* Popovers and menus (see "Popovers") grow in from their trigger and
+     shrink back toward it. */
+  --dur-pop-in: 280ms;
+  --dur-pop-out: 180ms;
+  /* New transcript rows (your message, the reply, notices) rising into place. */
+  --dur-row: 220ms;
+  /* Things that resolve out of a blur (transcript rows, swapped labels, the
+     tool panel): long enough that the blur reads as a dissolve, not a flicker. */
+  --dur-dissolve: 340ms;
+  /* Composer strips and chip bars (attachments, mentions, queued message, cache
+     notice) growing open and folding shut. --dur-strip-out is mirrored by
+     EXIT_MS in AttachmentBar, ReferencedFiles, QueuedBar and CacheExpiryNotice,
+     and also times an answered ask_user card dissolving out (AskBand's EXIT_MS),
+     so everything in the chat column leaves at one speed. */
+  --dur-strip-in: 260ms;
+  --dur-strip-out: 220ms;
+  /* Toasts rising in and dropping out. --dur-toast-out is Toaster's EXIT_MS. */
+  --dur-toast-in: 320ms;
+  --dur-toast-out: 260ms;
+  /* The Enhance glyph dissolve; EnhanceDissolve's DISSOLVE_MS mirrors it. */
+  --dur-enhance-dissolve: 460ms;
+  /* The plan review dissolving out. PlanReviewModal's EXIT_FALLBACK_MS must
+     stay longer than this so `animationend` normally wins. */
+  --dur-plan-out: 300ms;
+  /* An ask_user band settling: the chosen row holds its fill for one beat so
+     the pick is seen, before the card dissolves out over --dur-strip-out.
+     AskBand's HOLD_MS mirrors it. */
+  --dur-ask-hold: 160ms;
+  /* One breath of something live and working (a goal's working count, its
+     "Running now" pill), with the shared `live-breathe` keyframes. */
+  --dur-breathe: 1.8s;
+
+  /* Keyboard focus: one ring for every control, drawn with box-shadow so it
+     follows the control's radius. :focus-visible means pointer clicks never
+     show it and keyboard focus always does. */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+
+  /* Stacking layers for UI that floats over other UI. Component-internal
+     stacking (0-5) stays local. Order: dropdown < popover < menu < drop
+     overlay < modal < plan review < toast < system (zoom). */
+  --z-dropdown: 10;
+  --z-float: 20;
+  --z-popover: 50;
+  --z-menu: 60;
+  --z-overlay: 80;
+  --z-modal: 100;
+  --z-modal-raised: 120;
+  --z-toast: 200;
+  --z-system: 400;
+
+  /* Button fills. Flat and luminous rather than glossy gradients: the
+     reference gets its depth from the ambient glow behind the surface, not
+     from sheen on each control. Names kept so every consumer still resolves. */
+  --gloss-primary: var(--primary);
+  --gloss-neutral: var(--surface-2);
+  --gloss-success: var(--success);
+  --gloss-shadow-primary: none;
+  --gloss-shadow-neutral: none;
+  --gloss-shadow-success: none;
+
+  /* System UI stacks, matching the reference app: SF Pro on macOS, Segoe on
+     Windows. Text renders in the same face the OS uses everywhere else. */
+  /* Sora everywhere. Monospace survives only where text must align in columns
+     (ASCII art, multi-line code blocks). Tabular figures keep counts, clocks
+     and percentages from jittering as they change. */
+  --sans: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+  /* Fixed-width only where characters must line up as a picture: ASCII
+     banners and pixel faces. Code, paths and commands are set in Sora. */
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  /* Type scale. Every font-size on a step uses these; odd one-off sizes
+     (10px, 13.5px, display sizes) and relative/computed sizes stay literal.
+     Named --fs-* because --text-* are ink colours. */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  /* Conversation text (replies and your messages): a touch larger than UI
+     text, for long reading, and growing with the window (15.5px up to about
+     1100px wide, 17px at 1550, 18px from 1850). Bigger windows get bigger
+     text rather than longer lines, so a line holds the same ~72 characters. */
+  --fs-read: clamp(15.5px, 11.8px + 0.335vw, 18px);
+  /* m5x7 in chat rows: 1.5x its 16px grid (3 device px per art px on Retina),
+     where its letters match --fs-read's size. */
+  --fs-pixel: 24px;
+  /* A reply step's number well. */
+  --step-well: 28px;
+  --step-well-h: 22px;
+  --fs-xl: 16px;
+  --fs-2xl: 18px;
+  --fs-3xl: 20px;
+  --fs-4xl: 24px;
+  /* Spacing scale for padding, margin and gap: --space-N is N x 2px. Odd px
+     values, values above 24px and computed values stay literal. */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-8: 16px;
+  --space-9: 18px;
+  --space-10: 20px;
+  --space-11: 22px;
+  --space-12: 24px;
+  /* Bubble and input geometry, matching the reference app. */
+  /* Composer growth. Expo-out, matching the reference app's panel curve. */
+  --t-composer: 0.16s var(--ease-expo);
+  /* Shared horizontal rail: transcript, composer, header and footer all align
+     to this inset, so nothing steps in or out down the right edge. */
+  --rail: var(--space-8);
+  /* The conversation column: the transcript and the deck share it, centred.
+     It scales with the window: 60% of it, never narrower than 44em of the
+     reading text nor wider than 52em (about 940px at full screen). Below
+     ~720px it is the whole window, less the rails. */
+  --column: clamp(calc(var(--fs-read) * 44), 60vw, calc(var(--fs-read) * 52));
+  /* Each side's gutter: the rail on a small window, half the leftover width on
+     a wide one, so the column centres without wrapping the scroller. */
+  --gutter: max(var(--rail), (100% - var(--column)) / 2);
+  /* The conversation reaches a little past the message box on each side
+     (about two characters), so the box reads as sitting inside it. Where the
+     window has no room to spare, both share the rail. */
+  --column-bleed: calc(var(--fs-read) * 2);
+  --gutter-chat: max(var(--rail), var(--gutter) - var(--column-bleed));
+  /* Width of the transcript's scrollbar, subtracted from its right padding so
+     the scrolling column still aligns with the fixed surfaces above/below. */
+  --scrollbar: 8px;
+  /* Vertical padding of the bars hugging the composer (status row, footer).
+     Each bar owns its whole band, so this value alone centres its text. */
+  --bar-pad: var(--space-7);
+  /* Side gutter of full-screen pages (Settings, the project picker header).
+     Wider than the chat --rail on purpose: a page frames cards, not a
+     transcript column. */
+  --page-pad: var(--space-10);
+  /* Inline padding inside the Settings card material (Settings cards, the
+     checklist screen's sections). */
+  --card-inset: var(--space-10);
+  --radius-bubble: 18px;
+  --radius-input: 22px;
+
+  /* Critter speech bubble — the white bubble critters talk in, and the ink
+     drawn on it (text and the typing cursor). Fixed dark ink: --bg is light
+     in the light theme, which left the words white on white. */
+  --speech-bg: #ffffff;
+  --on-speech: #15171a;
+
+  /* Shimmer highlight — the default moving bright spot of ShimmerText, a step
+     brighter than --text so the sweep reads. */
+  --shimmer-peak: #ffffff;
+
+  /* Decorative — gradients and ink for a few one-off flourishes (radio
+     volume, meters, update banner and progress, rank badges). Not semantic:
+     never reuse these for state or meaning. A decorative colour used twice in
+     one feature gets a token; single-use gradient stops stay literal. */
+  --fx-volume-from: #00f260;
+  --fx-volume-to: #0575e6;
+  --fx-update-from: #36c489;
+  --fx-update-to: #2dd4bf;
+  --on-fx-update: #04130d;
+  --fx-rank-violet: #b88cff;
+  --fx-rank-blue: #6ea8ff;
+  --fx-rank-cyan: #7df9ff;
+  --fx-rank-pink: #ff8bd2;
+  --fx-rank-gold: #ffe38a;
+  --fx-rank-gold-deep: #d9a441;
+  --fx-rank-iris: #a99cff;
+  --fx-rank-radiant: #eaf6ff;
+  /* Meter track (radio volume, title-bar usage meter). */
+  --fx-meter-edge: #313131;
+  --fx-meter-from: #1b2735;
+  --fx-meter-to: #090a0f;
+}
+
+:root {
+  /* The dark palette by name, for night scenes (Home's forest, a Goal's
+     farm) that stay dark in the light theme: see the end of Deck.css. Same
+     values as the dark theme above. */
+  --night-bg: #15171a;
+  --night-surface-1: #1f2226;
+  --night-surface-2: #2a2e33;
+  --night-surface-3: #33383e;
+  --night-border: rgba(255, 255, 255, 0.07);
+  --night-border-strong: rgba(255, 255, 255, 0.16);
+  --night-ink-rgb: 255 255 255;
+  --night-text: #e8ebef;
+  --night-text-secondary: #c2c7ce;
+  --night-text-muted: #a1a8b1;
+  --night-text-dim: #949ba5;
+  --night-primary: #8fa3ff;
+  --night-primary-hi: #a9b8ff;
+  --night-on-primary: #050a2e;
+  --night-success: #7fdc95;
+  --night-warning: #f0c75e;
+  --night-error: #ff7d70;
+  --night-key: #2c3035;
+  --night-key-hi: rgba(255, 255, 255, 0.09);
+  --night-key-edge: #0b0c0e;
+  --night-key-shadow: rgba(0, 0, 0, 0.6);
+  --night-well: #23272c;
+  --night-well-shadow: rgba(0, 0, 0, 0.55);
+}

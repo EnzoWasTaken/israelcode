@@ -1,0 +1,540 @@
+/* ── Markdown rendering (assistant blocks) ── */
+/* Reset the transcript's inherited `pre-wrap` so the markdown source's
+   structural newlines (blank lines between list items / paragraphs) don't
+   render as abnormal vertical gaps. The parser already produces the right
+   block structure; whitespace should collapse normally here. */
+.markdown {
+  white-space: normal;
+}
+
+/* Streaming word reveal: opacity softens token batches without blurring
+   reading text. The spans exist ONLY while a row is streaming (see Markdown.tsx
+   `animate`), so finished prose keeps its plain DOM.
+   Plain inline: the spans must not change where
+   lines break, because they come off when a block finishes. As inline-blocks
+   they did: no break inside "newest-first", a break allowed between "ms" and
+   ";", so every paragraph re-wrapped the instant it finished. That jump was
+   the flicker. */
+.markdown .md-word {
+  animation: md-word-fade var(--dur-row) var(--ease-out) both;
+}
+@keyframes md-word-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* The unrelated local activity-label dissolve retains its existing treatment. */
+@keyframes md-word-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .markdown .md-word {
+    animation: none;
+  }
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p {
+  margin: 0.4em 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  margin: 0.7em 0 0.35em;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.markdown h1 {
+  font-size: 1.3em;
+}
+.markdown h2 {
+  font-size: 1.18em;
+}
+.markdown h3 {
+  font-size: 1.08em;
+}
+.markdown ul,
+.markdown ol {
+  margin: 0.35em 0;
+  padding-left: 1.4em;
+}
+.markdown li {
+  margin: 0.15em 0;
+}
+/* Loose lists wrap each item's text in a <p>; strip its margins so list rows
+   stay compact instead of inheriting paragraph spacing. */
+.markdown li > p {
+  margin: 0;
+}
+.markdown a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  text-underline-offset: 2px;
+  transition: text-decoration-color var(--t-fast);
+}
+.markdown a:hover {
+  text-decoration-color: var(--primary);
+}
+.markdown blockquote {
+  margin: 0.5em 0;
+  padding: 0.1em 0 0.1em 0.9em;
+  border-left: 3px solid color-mix(in srgb, var(--secondary) 50%, var(--border));
+  color: var(--text-muted);
+}
+.markdown blockquote p {
+  margin: 0.2em 0;
+}
+.markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.8em 0;
+}
+/* Inline code: a faint violet-tinted chip with a border so it separates from
+   the dark canvas (a plain dark fill blends in). Accent-tinted text reads as
+   "code" at a glance without shouting. */
+.markdown :not(pre) > code {
+  font-family: var(--sans);
+  font-size: 0.92em;
+  font-weight: 500;
+  /* Zero hue: the chip already says "code", so it does not need a colour to
+     say it again. */
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.08);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.08em 0.4em;
+  word-break: break-word;
+}
+/* Code blocks: deeper inset surface + border so the block reads as a distinct
+   panel against the message background. The wrapper hosts the hover copy
+   button; the <pre> keeps the scroll + selection behavior. */
+.markdown .code-block {
+  position: relative;
+  margin: 0.6em 0;
+}
+.markdown pre {
+  margin: 0;
+  padding: var(--space-6) 36px var(--space-6) var(--space-7);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 0.92em;
+  line-height: 1.55;
+  /* Wrap long lines instead of overflowing to a single clipped row. pre-wrap
+     keeps the code's own newlines/indentation; overflow-wrap breaks runs wider
+     than the panel. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* Selection is allowed; double-click word selection is handled in JS
+     (Markdown.tsx selectWordAtPoint) because the macOS WKWebView otherwise
+     selects the whole preformatted block by paragraph granularity. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+/* Override highlight.js's `pre code.hljs { display:block; padding:1em }` too
+   (matches the .hljs selector specificity) so language-tagged blocks keep the
+   inline, word-selectable structure as well. */
+.markdown pre code,
+.markdown pre code.hljs {
+  display: inline;
+  background: transparent;
+  border: none;
+  padding: 0;
+  overflow-x: visible;
+  font-size: inherit;
+  color: inherit;
+  white-space: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+/* Copy button: pinned top-right, faint until the block is hovered. */
+.markdown .code-copy {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 7px;
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--t-fast),
+    color var(--t-fast),
+    border-color var(--t-fast),
+    background var(--t-fast);
+}
+.markdown .code-block:hover .code-copy,
+.markdown .code-copy:focus-visible {
+  opacity: 1;
+}
+.markdown .code-copy:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+/* Ken Kai (mentor agent). The prose stays in normal ink; Ken is marked by his
+   pixel face on its own row above the reply, and teal headings / bold / links
+   as accents. The runnable-prompt block keeps its own styling below. */
+.ken-msg {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
+}
+.ken-byline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+/* m5x7 at the chat's pixel size, like the plan and critter lines. */
+.ken-byline-name {
+  font-family: "m5x7", monospace;
+  font-size: var(--fs-pixel);
+  line-height: var(--fs-pixel);
+  -webkit-font-smoothing: none;
+  color: var(--ken);
+}
+.ken-msg .assistant-text .markdown :is(h1, h2, h3, h4, strong) {
+  color: var(--ken);
+}
+.ken-msg .assistant-text .markdown a {
+  color: var(--ken);
+  text-decoration-color: color-mix(in srgb, var(--ken) 50%, transparent);
+}
+
+/* ── Ken's face (ken-face.ts, KenFace.tsx) ──
+   A 14×14 pixel portrait. Each expression is its own image stacked on the
+   first; the upper layers sit hidden and keyframes flick them on, so blinking,
+   talking and the banner's wake-up / nod-off are pure CSS. */
+.ken-face {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  /* One cell per CSS px (18×18), kept crisp. */
+  width: 18px;
+  height: 18px;
+  transform-origin: 50% 100%;
+}
+.ken-face-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+}
+.ken-face-layer + .ken-face-layer {
+  opacity: 0;
+}
+
+/* In the reply gutter: one cell per CSS px, centred on the first text line
+   (assistant text is 15px at line-height 1.55), where the dot used to sit. */
+.ken-face-slot {
+  display: inline-flex;
+  align-items: center;
+  height: calc(15px * 1.55);
+}
+.ken-face-chat .ken-face-blink {
+  animation: ken-face-blink 4.6s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.ken-face-chat .ken-face-talk {
+  animation: ken-face-flap 0.34s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.ken-face-chat.ken-face-talking {
+  animation: ken-face-chatter 0.68s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-face-blink {
+  0% {
+    opacity: 0;
+  }
+  94% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0;
+  }
+}
+@keyframes ken-face-flap {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes ken-face-chatter {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+/* "Ken is on.": eyes shut, then they pop open happy and he hops. Timed
+   against the banner's 1150ms flash (it is fully in by 16%). */
+.ken-face-on {
+  animation: ken-face-hop 1150ms var(--ease-out) both;
+}
+.ken-face-on .ken-face-happy {
+  animation: ken-face-wake 1150ms steps(1, end) both;
+}
+@keyframes ken-face-wake {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ken-face-hop {
+  0%,
+  30% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-5px) scale(0.94, 1.06);
+  }
+  52% {
+    transform: none;
+  }
+  58% {
+    transform: translateY(-2px);
+  }
+  64%,
+  100% {
+    transform: none;
+  }
+}
+/* "Ken is off.": a drowsy blink, eyes shut, he sinks and tilts, a "z" rises. */
+.ken-face-off {
+  animation: ken-face-sink 1150ms var(--ease-in-out) both;
+}
+.ken-face-off .ken-face-sleepy {
+  animation: ken-face-doze 1150ms steps(1, end) both;
+}
+.ken-face-z {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ken);
+  text-shadow: none;
+  opacity: 0;
+  animation: ken-face-z 1150ms var(--ease-out) both;
+}
+@keyframes ken-face-doze {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0;
+  }
+  40%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ken-face-sink {
+  0%,
+  40% {
+    transform: none;
+  }
+  70%,
+  100% {
+    transform: translateY(3px) rotate(-8deg);
+  }
+}
+@keyframes ken-face-z {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.7);
+  }
+  60% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.9;
+    transform: translate(6px, -8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(7px, -10px) scale(1);
+  }
+}
+/* Reduced motion: no blinking, talking or hopping; the banner just shows
+   where each beat ends (awake and happy, or asleep). */
+@media (prefers-reduced-motion: reduce) {
+  .ken-face,
+  .ken-face.ken-face-talking,
+  .ken-face .ken-face-layer,
+  .ken-face .ken-face-z {
+    animation: none;
+  }
+  .ken-face-on .ken-face-happy,
+  .ken-face-off .ken-face-sleepy {
+    opacity: 1;
+  }
+}
+
+/* Ken's runnable-prompt block: Ken-tinted, with a Send-to-GG-Coder button. */
+.markdown .ken-prompt-block {
+  margin: 0.6em 0;
+  /* Neutral card (no pink): a subtle raised surface with the standard border,
+     so the prompt reads as an actionable block without the heavy magenta tint. */
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+.markdown .ken-prompt-body {
+  margin: 0;
+  padding: var(--space-6) var(--space-7);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.92em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+/* Send button: neutral surface, standard border, with the Ken color reserved
+   for the text + icon only (the accent, not the whole button). No pink fill. */
+.markdown .ken-prompt-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 var(--space-7) var(--space-6);
+  padding: 5px 11px;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ken);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    border-color var(--t-fast),
+    background var(--t-fast);
+}
+.markdown .ken-prompt-send:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-1);
+}
+/* Sent: settles to a quiet confirmed state in success green, no longer the
+   call-to-action Israel accent. */
+.markdown .ken-prompt-send.sent {
+  color: var(--success);
+  cursor: default;
+  opacity: 0.85;
+}
+/* Tables scroll sideways inside their own frame (Markdown.tsx ScrollTable)
+   rather than squeezing. The chat breaks long words anywhere so prose never
+   overflows, but inside a table that let the browser shrink short columns to
+   one letter wide ("R/i/s/k" stacked down a cell). Cells here wrap only
+   between words, so a column is never narrower than its longest word; the
+   frame scrolls when those widths add up to more than the chat. */
+.markdown .md-table-scroll {
+  max-width: 100%;
+  margin: 0.6em 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+/* Full width of whatever holds it (the whole conversation column in a reply).
+   A table's width is a floor, not a cap, so one wider than this still grows
+   and the frame above scrolls it. */
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--border);
+  padding: 7px var(--space-6);
+  text-align: left;
+  vertical-align: top;
+  word-break: normal;
+  overflow-wrap: normal;
+  line-height: 1.45;
+}
+/* Sentence cells (Markdown.tsx TableCell) keep a readable width: never
+   narrower than a short line, and wrapping at a comfortable measure rather
+   than stretching the table into one very long line. */
+.markdown td.md-cell-prose {
+  min-width: 22ch;
+  max-width: 44ch;
+}
+/* Headers and code (paths, identifiers) never wrap mid-token. */
+.markdown th,
+.markdown td code {
+  white-space: nowrap;
+}
+.markdown th {
+  background: var(--surface-1);
+  font-weight: 600;
+}
+.markdown del {
+  color: var(--text-muted);
+}
+.markdown strong,
+.markdown b {
+  font-weight: 700;
+  color: var(--text);
+}
+.markdown em {
+  color: var(--text-secondary);
+}
+/* First heading shouldn't add top space; tighten heading rhythm overall. */
+.markdown h1:first-child,
+.markdown h2:first-child,
+.markdown h3:first-child {
+  margin-top: 0;
+}
+.markdown th {
+  color: var(--text);
+}
+/* Zebra striping for readability against the dark canvas. */
+.markdown tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--surface-1) 50%, transparent);
+}

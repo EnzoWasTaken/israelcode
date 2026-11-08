@@ -1,0 +1,22 @@
+/* GG Royale's pixel fonts, shared so the app and the game look of a piece:
+   m5x7 (Daniel Linssen, CC0) for body text, Alagard (Hewett Tsoi, free with
+   credit) for titles and plate buttons. Both are drawn on a 16px grid, so use
+   them at 16px or a whole multiple of it. */
+@font-face {
+  font-family: "m5x7";
+  src: url("../../assets/fonts/m5x7/m5x7.ttf") format("truetype");
+  font-display: block;
+}
+@font-face {
+  font-family: "Alagard";
+  src: url("../../assets/fonts/alagard/alagard.ttf") format("truetype");
+  font-display: block;
+}
+@font-face {
+  font-family: "Sora";
+  src: url("../../assets/fonts/sora/sora-latin.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: block;
+}
+
+/* A step's line height in px, resolved where it's set (see the reply steps). */

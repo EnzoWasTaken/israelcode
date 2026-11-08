@@ -1,0 +1,548 @@
+/* ── Slash command palette (opens upward from the input) ── */
+.slash-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-popover);
+  max-height: 44vh;
+  overflow: hidden;
+}
+/* The title stays put; only the rows scroll. */
+.slash-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.slash-menu-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-1) var(--space-4) var(--space-3);
+}
+.slash-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-button);
+  font-family: var(--sans);
+  text-align: left;
+  padding: 5px var(--space-4);
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.slash-name {
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.slash-desc {
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── @-mention file picker (reuses .slash-menu chrome) ── */
+.mention-item {
+  align-items: center;
+  gap: var(--space-4);
+}
+.mention-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.mention-name {
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mention-dir {
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+/* ── Referenced-files chip bar (inline-code styled @path tokens) ── */
+.mention-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  /* padding: see "Composer chip bars" below. */
+}
+.mention-chip {
+  /* Pinned: inheriting the app's 1.55 body line-height made the label's line
+     box taller than its glyphs, which reads as vertically off-centre. */
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid;
+  border-radius: var(--radius-button);
+  /* Cap band measured 0.94px HIGH; half the correction sits on top. */
+  padding: 1.5px var(--space-2) 2.5px var(--space-3);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  max-width: 280px;
+}
+.mention-chip-at {
+  flex: 0 0 auto;
+}
+.mention-chip-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mention-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: color var(--t-fast);
+}
+.mention-chip-remove:hover {
+  color: var(--text);
+}
+
+/* ── Composer chip bars: enter / exit ──
+   Same motion as the queued strip (.queued-bar): a bar grows open from under
+   the composer and folds shut on the way out; chips pop in and collapse
+   sideways so their neighbours glide over. AttachmentBar / ReferencedFiles keep
+   leaving chips mounted for EXIT_MS (220ms) via usePresenceList, and pinSize
+   writes each element's real size to --pin-w / --pin-h so the max-width /
+   max-height collapse starts from it instead of a guessed cap.
+
+   The bars clip (overflow: hidden) so a growing bar never shows chips spilling
+   over the input row. 3px of padding, cancelled by an equal negative margin,
+   keeps the chips' soft drop shadow and pop-in scale inside the clip. */
+.attach-bar,
+.mention-bar {
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: -3px;
+  animation: ggchipbarin var(--dur-strip-in) var(--ease-out);
+}
+.attach-bar {
+  padding: 3px;
+}
+.mention-bar {
+  /* Resting 4px 2px 0, plus the 3px shadow room on every side. */
+  padding: 7px 5px 3px;
+}
+.attach-bar.leaving,
+.mention-bar.leaving {
+  animation: ggchipbarout var(--dur-strip-out) var(--ease-in) forwards;
+  pointer-events: none;
+}
+/* Collapsed state: no height, no padding, and a bottom margin that also soaks
+   up the composer's 8px flex gap (-3 top + -5 bottom + 8 gap = 0), so the
+   composer moves smoothly rather than snapping by the gap. --pin-h is measured
+   with the padding already at 0, hence the slack on the enter target. */
+@keyframes ggchipbarin {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -5px;
+  }
+  to {
+    max-height: calc(var(--pin-h, 160px) + 12px);
+  }
+}
+@keyframes ggchipbarout {
+  from {
+    max-height: var(--pin-h, 160px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -5px;
+  }
+}
+.attach-chip,
+.mention-chip {
+  animation: ggchipin 200ms var(--ease-out);
+}
+.attach-chip {
+  --chip-gap: 8px; /* .attach-bar gap */
+}
+.mention-chip {
+  --chip-gap: 6px; /* .mention-bar gap */
+}
+.attach-chip.leaving,
+.mention-chip.leaving {
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  animation: ggchipout var(--dur-strip-out) var(--ease-in) forwards;
+}
+@keyframes ggchipin {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+/* Shrink to nothing, including the flex gap after the chip (negative right
+   margin), so the chips after it slide left instead of jumping. */
+@keyframes ggchipout {
+  from {
+    /* No fallback on purpose: until pinSize sets it, this resolves to `none`,
+       so the measurement sees the chip's natural width. */
+    max-width: var(--pin-w);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.88);
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    margin-right: calc(-1 * var(--chip-gap));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .attach-bar,
+  .mention-bar,
+  .attach-chip,
+  .mention-chip {
+    animation: none;
+  }
+  /* No exit animation to watch, so don't leave a dead chip up for EXIT_MS. */
+  .attach-bar.leaving,
+  .mention-bar.leaving,
+  .attach-chip.leaving,
+  .mention-chip.leaving {
+    display: none;
+  }
+}
+
+.inputwrap .prompt {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--user-text);
+  /* Match the textarea's first-line metrics exactly (14px / 1.5) so the ">"
+     prompt sits on the same baseline as the placeholder and typed text.
+     The row is align-items:flex-start (pinned to the first line), so without
+     this the chevron inherited the app's 14px / 1.55 and floated a hair high + small. */
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  /* User's own text matches the user-message identity color (mirrors TUI). */
+  color: var(--user-text);
+  font-family: var(--sans);
+  font-size: var(--fs-lg);
+  /* Pin every text-metric property explicitly so the @Ken highlight overlay (a
+     <div>) and this <textarea> compute IDENTICAL glyph advance. Browsers apply
+     different UA defaults for kerning/ligatures/spacing to form controls vs
+     divs, which otherwise drifts the caret from the visible overlay text by a
+     growing amount as you type. */
+  letter-spacing: 0;
+  word-spacing: 0;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  /* Auto-growing multi-line input: JS sets height to fit content; cap growth
+     here and scroll past the cap. No manual resize handle, wrap long lines. */
+  resize: none;
+  overflow-y: auto;
+  /* The textarea wraps, so it never needs horizontal scroll. Pin it hidden:
+     under CSS zoom the content box rounds a sub-pixel wider than the element,
+     which otherwise flashes a full-width grey horizontal scrollbar inside the
+     input. */
+  overflow-x: hidden;
+  max-height: 40vh;
+  line-height: 1.5;
+  box-sizing: border-box;
+  padding: 4.5px 0;
+  margin: 0;
+  /* Reference app's expo-out curve: fast out of the gate, settling softly, so a
+     line appearing or disappearing reads as one motion rather than a jump. */
+  transition: height var(--t-composer);
+}
+/* Reduced motion: the composer still resizes, it just does so instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
+  .inputrow .icon-circle {
+    transition:
+      color var(--t-fast),
+      background-color var(--t-fast),
+      filter var(--t-fast);
+  }
+}
+.input::-webkit-scrollbar {
+  width: 8px;
+}
+.input::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.input::placeholder {
+  /* Reference: --cursor-input-placeholder-foreground = base ink at 36%. */
+  color: color-mix(in srgb, var(--text) 36%, transparent);
+}
+
+.cancel {
+  background: transparent;
+  border: none;
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  padding: 0;
+  /* Underline drawn clear at rest so hover fades it (see .home-link). */
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition:
+    color var(--t-fast),
+    text-decoration-color var(--t-fast);
+}
+.cancel:hover:not(:disabled) {
+  text-decoration-color: currentColor;
+}
+.cancel:disabled {
+  cursor: wait;
+}
+
+/* Above the banner: the running version, then a "What's new" button for
+   what changed in it. Hidden until the version is read, so the row never
+   shifts sideways when the number arrives. */
+.home-version-row {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(5 * var(--home-px));
+}
+.home-version-row.is-pending {
+  visibility: hidden;
+}
+/* The version and What's new stay at 2px art pixels until the title drops to
+   1× (max-width 479px / max-height 420px, see .home-title), so they always
+   match it; at 1px they were too small to read in small windows. */
+.home > .home-version-row {
+  --home-px: 2px;
+}
+@media (max-width: 479px), (max-height: 420px) {
+  .home > .home-version-row {
+    --home-px: 1px;
+  }
+}
+/* GG Royale's pixel type on Home: m5x7 / Alagard on their 16px grid at
+   --home-px screen pixels per art pixel, fixed art colours that read on the
+   night scene in both themes. --home-step sizes the tagline, plates and tag
+   together and only grows once the window is roomy: 1×, then 1.5× (3 device
+   px per art px on Retina), then 2× in big windows. */
+.home {
+  --home-step: 1;
+  --home-px: calc(var(--home-step) * 1px);
+}
+@media (min-width: 900px) and (min-height: 600px) {
+  .home {
+    --home-step: 1.5;
+  }
+}
+@media (min-width: 1600px) and (min-height: 1000px) {
+  .home {
+    --home-step: 2;
+  }
+}
+/* The version is a label, not a control: m5x7 in the game's muted cream. */
+.home-version {
+  font-family: "m5x7", monospace;
+  font-size: calc(16 * var(--home-px));
+  line-height: calc(11 * var(--home-px));
+  -webkit-font-smoothing: none;
+  color: #c9a08c;
+  text-shadow: 0 var(--home-px) 0 #1e0c1f;
+}
+.home-version-sep {
+  display: none;
+}
+/* What's new: a little GG Royale paper tag (the speech bubble's paper, ink
+   outline, shaded foot). Pointing at it lifts it a pixel; pressing sinks it. */
+.home-whatsnew {
+  padding: 0 calc(4 * var(--home-px)) calc(2 * var(--home-px));
+  border: 0;
+  border-radius: calc(2 * var(--home-px));
+  background: #cedbf9;
+  color: #1e0c1f;
+  box-shadow:
+    0 0 0 var(--home-px) #1e0c1f,
+    inset 0 calc(-1 * var(--home-px)) 0 #a9b8e4,
+    0 var(--home-px) 0 var(--home-px) #1e0c1f;
+  font-family: "m5x7", monospace;
+  font-size: calc(16 * var(--home-px));
+  font-weight: 400;
+  line-height: calc(11 * var(--home-px));
+  -webkit-font-smoothing: none;
+  cursor: pointer;
+}
+.home-whatsnew:hover {
+  translate: 0 calc(-1 * var(--home-px));
+  background: #e4ecff;
+  box-shadow:
+    0 0 0 var(--home-px) #1e0c1f,
+    inset 0 calc(-1 * var(--home-px)) 0 #a9b8e4,
+    0 calc(2 * var(--home-px)) 0 var(--home-px) #1e0c1f;
+}
+.home-whatsnew:active {
+  translate: 0 var(--home-px);
+  box-shadow:
+    0 0 0 var(--home-px) #1e0c1f,
+    inset 0 calc(-1 * var(--home-px)) 0 #a9b8e4;
+}
+.home-whatsnew:focus-visible {
+  outline: var(--home-px) solid #f5bd63;
+  outline-offset: calc(2 * var(--home-px));
+}
+
+/* ── Pixel icon buttons (PixelIconButton.tsx) ──
+   A GG Royale sprite icon at --icon-px per art pixel. The padding keeps the
+   hit area at 24px or more when the sprite drops to 1px art pixels. Pointing
+   at it lifts it a pixel and rings it in the game's hover colour; pressing
+   sinks it. */
+.pixel-icon-button {
+  --icon-px: 2px;
+  box-sizing: content-box;
+  width: calc(var(--icon-w) * var(--icon-px));
+  height: calc(var(--icon-h) * var(--icon-px));
+  padding: calc(3 * var(--icon-px));
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.pixel-icon-button > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.pixel-icon-button:hover > canvas {
+  translate: 0 calc(-1 * var(--icon-px));
+  filter: drop-shadow(var(--icon-px) 0 0 #d0cbb1) drop-shadow(calc(-1 * var(--icon-px)) 0 0 #d0cbb1)
+    drop-shadow(0 var(--icon-px) 0 #d0cbb1) drop-shadow(0 calc(-1 * var(--icon-px)) 0 #d0cbb1);
+}
+.pixel-icon-button:active > canvas {
+  translate: 0 var(--icon-px);
+}
+.pixel-icon-button:focus-visible {
+  outline: var(--icon-px) solid #f5bd63;
+  outline-offset: calc(-1 * var(--icon-px));
+}
+@media (max-width: 679px), (max-height: 560px) {
+  .pixel-icon-button {
+    --icon-px: 1px;
+  }
+}
+
+.footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--bar-pad) var(--rail);
+  font-size: var(--fs-base);
+  /* Reserve the bar's height before its contents hydrate so the input/
+     transcript above never shift when the footer fills in (14+14 padding +
+     ~20px line box). Matches .statusrow exactly, so the composer is framed by
+     two identical bands. */
+  min-height: 48px;
+  /* .inputwrap (an earlier sibling) is `position: relative`, which — despite
+     coming first in DOM order — paints ABOVE any non-positioned sibling per
+     CSS stacking rules (positioned elements always paint after static ones).
+     Without this, the growing textarea overlapped the popovers anchored in
+     the footer. Make the footer positioned too, with a higher z-index, so it
+     (and its overlays) stack above the input. */
+  position: relative;
+  z-index: 2;
+}
+
+/* Footer clusters reveal as one faded unit once the session has hydrated,
+   instead of cwd/git/thinking/model popping in piecemeal and reflowing. The
+   skeleton occupies the same box first, so this is a true crossfade in place.
+   The transcript's own hydration reveal is the same motion, so both share one
+   rule — they were identical declarations sitting either side of the keyframe. */
+.transcript-reveal {
+  animation: dissolve-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+
+/* Shared smooth entrance: a small rise + fade. Fast, eased, no layout cost
+   (transform/opacity only). Reused by footer, transcript, and list reveals. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── "Show full output" control ──
+   Long fenced blocks and oversized rows fold to a preview so a single dump
+   cannot balloon the webview; this reveals the rest on demand. Sits under the
+   folded block, matching the code chrome around it. */
+.code-expand {
+  display: block;
+  width: 100%;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-5);
+  font: inherit;
+  font-size: var(--fs-xs);
+  text-align: left;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity var(--t-in);
+}
+.code-expand:hover {
+  opacity: 1;
+}
+/* Fade the last preview line so a fold reads as "there is more", not "the end". */
+.code-block.folded pre {
+  mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.25) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.25) 100%);
+}

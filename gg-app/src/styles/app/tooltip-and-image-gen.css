@@ -1,0 +1,508 @@
+/* ── App-wide tooltip (TooltipLayer) ──
+   Replaces native `title` tooltips. Same surface as .enh-tip so every hint in
+   the app looks alike. Position is set inline by the layer; pointer-events
+   stay on so the pointer can move onto it (WCAG 1.4.13 hoverable). */
+.gg-tooltip {
+  position: fixed;
+  z-index: var(--z-system);
+  max-width: 280px;
+  padding: var(--space-3) 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  text-align: left;
+  /* Some hints are multi-line (model details); keep their breaks. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  --enter-y: 3px;
+  animation: surface-in 120ms var(--ease-out) backwards;
+}
+.gg-tooltip[data-side="bottom"] {
+  --enter-y: -3px;
+}
+/* Leaving: TooltipLayer holds the last hint for EXIT_MS (keep equal to
+   --dur-exit) so it sinks back toward its control instead of vanishing.
+   Clicks and hovers go straight through it. */
+.gg-tooltip[data-leaving] {
+  --exit-y: var(--enter-y);
+  pointer-events: none;
+  animation: surface-out var(--dur-exit) var(--ease-in) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gg-tooltip {
+    animation-name: fade-in;
+  }
+  .gg-tooltip[data-leaving] {
+    animation-name: fade-out;
+  }
+}
+
+/* The term is focusable so keyboard users can open its tooltip; the outline
+   reset above is replaced here, not dropped. */
+.enh-term:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.enh-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+  max-width: 280px;
+  padding: 7px var(--space-5);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-md);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+  color: var(--text-secondary);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--t-fast),
+    transform var(--t-fast),
+    visibility var(--t-fast);
+}
+/* Little arrow pointing down at the term. */
+.enh-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--surface-2);
+}
+.enh-term:hover .enh-tip,
+.enh-term:focus .enh-tip,
+.enh-term:focus-visible .enh-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+/* On --surface-2, so the lowest ink that passes is --text-muted. */
+.enh-tip-said {
+  color: var(--text-muted);
+}
+.enh-tip-orig {
+  color: var(--text);
+}
+.enh-tip-note {
+  color: var(--text-muted);
+}
+
+/* Staged attachment chips above the input. */
+.attach-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.attach-chip {
+  /* Pinned: inheriting the app's 1.55 body line-height made the label's line
+     box taller than its glyphs, which reads as vertically off-centre. */
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 220px;
+  /* Cap band measured 0.94px HIGH; half the correction sits on top. */
+  padding: 3.5px var(--space-3) 4.5px var(--space-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sm);
+}
+.attach-thumb {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex: 0 0 auto;
+}
+/* Image chip thumbnail: opens the image in the default viewer. */
+.attach-thumb-open {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+}
+.attach-thumb-open:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 1px;
+}
+.attach-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.attach-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.attach-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast);
+}
+.attach-remove:hover {
+  color: var(--text);
+  background: var(--surface-1);
+}
+
+/* User bubble inline image attachments. */
+.user-img-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+/* Sent image: opens the image in the default viewer. */
+.user-img-open {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-button);
+  cursor: zoom-in;
+}
+.user-img-open:hover .user-img,
+.user-img-open:focus-visible .user-img {
+  border-color: var(--border-strong);
+}
+.user-img-open:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 1px;
+}
+.user-img {
+  max-width: 180px;
+  max-height: 180px;
+  border-radius: var(--radius-button);
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+
+/* @-referenced file chips inside a sent user message bubble. */
+.user-files-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.user-file-chip {
+  /* Pinned: inheriting the app's 1.55 body line-height made the label's line
+     box taller than its glyphs, which reads as vertically off-centre. */
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  /* Cap band measured 0.94px HIGH; half the correction sits on top. */
+  padding: 0.5px var(--space-3) 1.5px;
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  max-width: 280px;
+}
+.user-file-chip > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tool-produced images (screenshot / read) in the transcript. */
+.img-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-3) 0;
+}
+.img-card {
+  /* The caption row's height, shared with the save button that ends it. */
+  --img-cap-h: 28px;
+  position: relative;
+  margin: 0;
+  max-width: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+.img-card-clickable {
+  transition: border-color var(--t-fast);
+}
+.img-card-clickable:hover {
+  border-color: var(--border-strong);
+}
+/* The whole image and its caption open the file. */
+.img-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.img-open:focus {
+  outline: none;
+}
+.img-open:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-card);
+}
+/* Save: the end of the caption row, or a frosted chip on the image's corner
+   when there is no caption. */
+.img-save {
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: var(--img-cap-h);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color var(--t-out),
+    background-color var(--t-out);
+}
+.img-save:hover {
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.06);
+  transition:
+    color var(--t-in),
+    background-color var(--t-in);
+}
+.img-save:active {
+  background: rgb(var(--ink-rgb) / 0.1);
+}
+.img-save:focus {
+  outline: none;
+}
+.img-save:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -3px;
+  border-radius: var(--radius-button);
+}
+.img-save:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+.img-card:not(.has-cap) .img-save {
+  inset-inline-end: var(--space-3);
+  bottom: var(--space-3);
+  width: 28px;
+  height: 28px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-button);
+  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+}
+.img-card:not(.has-cap) .img-save:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.img-thumb {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+.img-cap {
+  display: block;
+  box-sizing: border-box;
+  height: var(--img-cap-h);
+  /* One line, centred in the row by its line box (less the top border). */
+  line-height: calc(var(--img-cap-h) - 1px);
+  /* Room for the save button at the end of the row. */
+  padding: 0 34px 0 9px;
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Images inside a reply reuse the tool image card; wider, since a reply
+   image is usually the point of the message rather than a side preview. */
+.markdown .md-img {
+  display: inline-block;
+  vertical-align: top;
+  max-width: min(100%, 720px);
+  margin: var(--space-3) 0;
+}
+.markdown .md-img .img-thumb {
+  max-height: 480px;
+}
+.markdown .md-img-loading,
+.markdown .md-img-missing,
+.markdown .md-img-alt {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* ── Image generation placeholder (shimmering square while tool runs) ── */
+/* generate_image in flight (image-gen/ImageGenCard.tsx): the same card as the
+   finished image, holding a square stage with a dot board that fills in as the
+   estimate grows, the status phrase above it and the estimate in a pill. */
+.img-gen-card {
+  width: min(100%, 320px);
+}
+.img-gen-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  padding: 44px var(--space-6) var(--space-6);
+  color: var(--text-secondary);
+  background: var(--surface-1);
+}
+.img-gen-board {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+}
+.img-gen-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.img-gen-play {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.img-gen-play:focus {
+  outline: none;
+}
+.img-gen-play:active {
+  background: rgb(var(--ink-rgb) / 0.03);
+}
+.img-gen-play:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.img-gen-phrase {
+  position: absolute;
+  inset-inline: var(--space-8);
+  top: var(--space-8);
+  font-family: var(--sans);
+  font-size: var(--fs-md);
+  line-height: 1.3;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--dur-dissolve) var(--ease-in-out);
+}
+.img-gen-phrase[data-changing] {
+  opacity: 0;
+}
+.img-gen-score {
+  position: absolute;
+  inset-inline-end: var(--space-8);
+  top: var(--space-8);
+  font-family: var(--sans);
+  font-size: var(--fs-md);
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+/* The estimate: a frosted pill over the board's corner. */
+.img-gen-progress {
+  position: absolute;
+  inset-inline-end: var(--space-9);
+  bottom: var(--space-9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 24px;
+  padding: 0 var(--space-4);
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-md);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--secondary);
+  pointer-events: none;
+}
+.img-gen-over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  line-height: 1.3;
+  text-align: center;
+  color: var(--text);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-gen-phrase {
+    transition: none;
+  }
+}

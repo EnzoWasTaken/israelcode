@@ -1,0 +1,581 @@
+/* ── Popovers ──
+   One system for every floating panel and menu: the frosted surface (glass.css
+   swaps in the glass material), a grow-in from the trigger, a shrink-out back
+   toward it (see "Exits" below), and lists that scroll with no visible
+   scrollbar. Portaled panels (`.pop-panel`: health, background tasks,
+   schedules) get their position and `--pop-origin-x` inline from
+   `useAnchoredPopover` (popover.ts); in-tree menus set their origin here. */
+@property --pop-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --pop-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--pop-enter-y, -6px)) scale(0.94);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(var(--pop-exit-y, -4px)) scale(0.96);
+  }
+}
+/* Rows follow the surface in, one beat apart (capped so long lists don't drag). */
+@keyframes pop-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.pop-panel {
+  position: fixed;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  max-width: min(460px, calc(100vw - 16px));
+  max-height: min(60vh, 480px, var(--pop-room, 100vh));
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  font-family: var(--sans);
+  line-height: 1.35;
+  transform-origin: var(--pop-origin-x, 24px) top;
+  animation: pop-in var(--dur-pop-in) var(--ease-expo) backwards;
+}
+.pop-panel[data-side="above"] {
+  --pop-enter-y: 6px;
+  transform-origin: var(--pop-origin-x, 24px) bottom;
+}
+.pop-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-7) var(--space-8) var(--space-6);
+}
+.pop-title {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text);
+}
+.pop-count {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.pop-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.pop-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  border-top: 1px solid var(--border);
+}
+.pop-note {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pop-action {
+  flex: none;
+  padding: var(--space-3) var(--space-7);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.pop-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pop-row {
+  animation: pop-row-in var(--dur-row) var(--ease-out) backwards;
+  animation-delay: calc(60ms + min(var(--i, 0), 8) * 35ms);
+}
+
+/* Scrolling: native (compositor) scrolling with the bar hidden. The edges fade
+   wherever there is more to scroll (`data-more-*`, set by useScrollEdges), so
+   it still reads as scrollable; the fade eases in and out. `contain` stops a
+   flick at the end from rubber-banding the transcript behind. */
+.pop-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--pop-fade-top),
+    #000 calc(100% - var(--pop-fade-bottom)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--pop-fade-top),
+    #000 calc(100% - var(--pop-fade-bottom)),
+    transparent
+  );
+  transition:
+    --pop-fade-top var(--t-out),
+    --pop-fade-bottom var(--t-out);
+}
+.pop-scroll::-webkit-scrollbar {
+  display: none;
+}
+.pop-scroll[data-more-above] {
+  --pop-fade-top: 22px;
+}
+.pop-scroll[data-more-below] {
+  --pop-fade-bottom: 22px;
+}
+.pop-scroll:focus {
+  outline: none;
+}
+.pop-scroll:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+/* Panels scroll by wheel and Tab, so the smoothing only helps there; menus
+   driven by held arrow keys stay instant so the highlight never lags. */
+.pop-body.pop-scroll {
+  scroll-behavior: smooth;
+}
+
+/* A task or schedule row: status dot, two-line text, and a quiet action. */
+.pop-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  border-radius: var(--radius-button);
+  transition: background-color var(--t-out);
+}
+.pop-item:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+  transition-duration: var(--dur-press);
+}
+.pop-item + .pop-item {
+  margin-top: var(--space-1);
+}
+/* The pixel critter leading a row or header (PopCritter.tsx). Poses match the
+   transcript's CritterLine: hop while busy, stand when idle, doze (dimmed,
+   slow breathing) while waiting, tipped over when something is wrong. */
+.pop-critter {
+  display: inline-grid;
+  flex: none;
+  place-items: end center;
+  width: calc(var(--critter-size, 18px) + 4px);
+  height: calc(var(--critter-size, 18px) + 4px);
+}
+.pop-critter img {
+  display: block;
+  width: var(--critter-size, 18px);
+  height: var(--critter-size, 18px);
+  image-rendering: pixelated;
+  user-select: none;
+  transform-origin: 50% 100%;
+}
+.pop-critter[data-pose="busy"] img {
+  animation: subagents-critter-hop 0.9s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.pop-critter[data-pose="waiting"] img {
+  opacity: 0.8;
+  animation: pop-critter-doze 2.8s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.pop-critter[data-pose="down"] img {
+  transform-origin: 50% 50%;
+  transform: rotate(-90deg);
+}
+@keyframes pop-critter-doze {
+  50% {
+    transform: scale(1.06, 0.94);
+  }
+}
+.health-popover-head .pop-critter {
+  align-self: center;
+}
+.pop-item-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.pop-item-main {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  color: var(--text);
+}
+.pop-item-main.is-code {
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+}
+.pop-item-meta {
+  display: flex;
+  gap: var(--space-4);
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  /* --text-dim is 4.2:1 on the menu fill; muted clears AA at this size. */
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.pop-item-when {
+  margin-left: auto;
+  flex: none;
+}
+.pop-item-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 26px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    color var(--t-out),
+    border-color var(--t-out),
+    background-color var(--t-out);
+}
+.pop-item-action:hover {
+  border-color: var(--error);
+  color: var(--error);
+  transition-duration: var(--dur-press);
+}
+.pop-item-action:active {
+  background: rgb(var(--ink-rgb) / 0.06);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pop-panel {
+    animation-name: fade-in;
+  }
+  .pop-row,
+  .health-meter-fill,
+  .pop-critter img {
+    animation: none;
+  }
+  .pop-body.pop-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Project Health breakdown (on the shared popover) ── */
+.health-popover {
+  width: min(360px, calc(100vw - 16px));
+  min-width: 0;
+  max-height: min(72vh, 540px, var(--pop-room, 100vh));
+}
+@keyframes health-meter-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+/* Header follows the rank Scorecard's level block: a big plain number, then a
+   labelled meter whose bar sits flush with the number's baseline. The tier
+   colour lives in the bar and the tier word, not the number. */
+.health-popover-head {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-7);
+  padding: var(--space-8) var(--space-8) var(--space-7);
+}
+.health-score-num {
+  flex: none;
+  color: var(--text);
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  /* Digits have no descenders: trim the box so the bar lines up with them. */
+  line-height: 0.76;
+  font-variant-numeric: tabular-nums;
+}
+.health-score-meter {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.health-score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.health-score-tier {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.health-popover .pop-body {
+  padding: 0 var(--space-8);
+}
+.health-category {
+  padding: var(--space-6) 0;
+}
+.health-category + .health-category {
+  border-top: 1px solid var(--border);
+}
+/* Category rows follow the Scorecard's stat rows: label | bar | value. */
+.health-stat {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: var(--space-6);
+}
+.health-stat-label {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.health-stat-value {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* The scale the value sits on: present, never louder than the value. */
+.health-stat-goal {
+  margin-left: var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  font-weight: 500;
+}
+.health-stat-none {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  text-align: right;
+  white-space: nowrap;
+}
+/* Recessed track, as in the Scorecard. */
+.health-meter {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.health-meter.is-lead {
+  height: 7px;
+}
+/* Fill length is a scale, not a width: it animates on the compositor. */
+.health-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  box-shadow: 0 0 8px color-mix(in srgb, currentColor 45%, transparent);
+  transform: scaleX(var(--fill, 0));
+  transform-origin: left center;
+  animation: health-meter-in var(--dur-dissolve) var(--ease-expo) backwards;
+  animation-delay: calc(100ms + var(--i, 0) * 35ms);
+}
+.health-category-sub {
+  display: flex;
+  margin-top: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+/* Quiet until hovered: a text action, so a column of them doesn't shout. */
+.health-category-fix {
+  flex: none;
+  padding: var(--space-1) var(--space-3);
+  margin-right: calc(var(--space-3) * -1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    color var(--t-out),
+    background-color var(--t-out);
+}
+.health-category-fix:hover {
+  background: rgb(var(--ink-rgb) / 0.06);
+  color: var(--text);
+  transition-duration: var(--dur-press);
+}
+.health-capped {
+  margin: 0;
+  padding: var(--space-4) var(--space-8);
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.health-capped[data-tier="poor"] {
+  color: var(--error);
+}
+.health-capped[data-tier="fair"] {
+  color: var(--caution);
+}
+.health-category-summary {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.health-findings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0 0 0 var(--space-5);
+  border-left: 1px solid var(--border-strong);
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+.health-finding {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.health-finding-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.health-finding-main.is-path {
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+}
+.health-finding-meta {
+  flex: none;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.chat-head-ci {
+  display: inline-flex;
+  align-items: baseline;
+  flex: none;
+}
+.chat-head-ci-link {
+  min-height: 24px;
+  line-height: 1.25;
+}
+.chat-head-ci[data-status="failed"] .chat-head-ci-link {
+  color: var(--error);
+}
+.chat-head-ci[data-status="passed"] .chat-head-ci-link {
+  color: var(--success);
+}
+/* Hover matches the sibling chips (brighten, no underline) — the status color
+   itself wins on equal specificity, so red stays red and green stays green. */
+/* Chip metrics come from .chat-head-title; the shimmer span must not bold it
+   (.shimmer-text defaults to 600). */
+.chat-head-ci .shimmer-text {
+  font-weight: inherit;
+}
+.chat-head-ci-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-width: 24px;
+  min-height: 24px;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+.chat-head-ci button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+@media (max-width: 600px) {
+  /* Live CI takes precedence over static counts/quota so failure controls remain reachable. */
+  .chat-head-strip:has(.chat-head-ci) > .title-usage-meter,
+  .chat-head-title:has(.chat-head-ci) > .chat-head-github,
+  .chat-head-title:has(.chat-head-ci) > .chat-head-sep:has(+ .chat-head-github) {
+    display: none;
+  }
+}
+.picker-head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  /* Buttons keep their intrinsic size (never squish the action cluster), but
+     the cluster as a whole may wrap to its own line when the bar is too tight.
+     It must be allowed to SHRINK to the row (flex-shrink 1 + max-width) or its
+     max-content width wins and its own flex-wrap never engages: at the 480px
+     minimum window /commit hung off the right edge. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  row-gap: var(--space-4);
+  justify-content: flex-end;
+}
+/* Inline project filter, sits just right of the total-projects badge. Grows to
+   fill slack but shrinks down (min-width:0) and, once the row is full, wraps to
+   its own line via the head's flex-wrap rather than deforming. */
+.picker-search {
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 260px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  padding: var(--space-2) var(--space-5);
+  outline: none;
+  transition:
+    border-color var(--t-fast),
+    background-color var(--t-fast);
+}
+.picker-search::placeholder {
+  color: var(--text-dim);
+}
+.picker-search:focus {
+  border-color: var(--primary);
+  background: var(--surface-2);
+}

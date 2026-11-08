@@ -1,0 +1,610 @@
+/* ── The user's own commands (`!cmd`) ──
+   A command and its output, run with no agent turn. Built from the code-block
+   vocabulary (code background, mono, neutral keyline): it is terminal output,
+   not a reply, so it carries no assistant dot and no bubble. */
+.shell-run {
+  margin: var(--space-4) 0 var(--space-3);
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.shell-run-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  background: var(--user-bg);
+  color: var(--text);
+}
+.shell-run-cmd {
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.shell-run-prompt {
+  margin-inline-end: var(--space-3);
+  color: var(--primary);
+}
+.shell-run-cwd {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+.shell-run-out {
+  margin: 0;
+  padding: var(--space-5) var(--space-6);
+  max-height: 60vh;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--code-bg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Folded: the newest lines show; fade the first so it reads as "there is more above". */
+.shell-run-out.folded {
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0, #000 3em);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0, #000 3em);
+}
+.shell-run-more {
+  display: block;
+  margin: 0 var(--space-6) var(--space-4);
+  padding: 0;
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.shell-run-more:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.shell-run-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+.shell-run-status {
+  font-weight: 600;
+}
+.shell-run-status.is-ok {
+  color: var(--success);
+}
+.shell-run-status.is-bad {
+  color: var(--warning);
+}
+.shell-run-share {
+  margin-inline-start: auto;
+}
+.shell-run-copy {
+  display: inline-flex;
+  align-items: center;
+}
+.shell-declined {
+  margin: var(--space-3) 0;
+  font-size: var(--fs-base);
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.shell-declined code,
+.shell-confirm-where code {
+  font-family: var(--mono);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.shell-confirm-cmd {
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.shell-confirm-where {
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+.shell-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+.shell-confirm-keys {
+  margin-inline-start: auto;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+/* Composer in command mode: mono text, a quiet primary keyline and one line
+   saying where the command runs and whether it asks first. */
+.inputwrap.shell-mode,
+.inputwrap.shell-mode:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+}
+.input.input-shell {
+  font-family: var(--mono);
+}
+/* The `!` picker reuses the @ picker's chrome; commands read as code. */
+.shell-menu-command {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell-menu-note {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.shell-menu-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.shell-menu-revoke {
+  padding: 0;
+  font: inherit;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Error output (stderr): the warning ink plus italics, so it never relies on
+   colour alone; it stays inline, in the order it arrived. */
+.shell-run-err {
+  color: var(--warning);
+  font-style: italic;
+}
+
+/* ── Token budget meter (title bar) ─────────────────────────────────────── */
+.budget-pill {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.budget-pill[data-tone="warn"] {
+  color: var(--caution);
+}
+.budget-pill[data-tone="exceeded"] {
+  color: var(--error);
+}
+.budget-popover {
+  width: 320px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.budget-figures {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.budget-exceeded {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+}
+.budget-exceeded p {
+  margin: 0;
+}
+.budget-cap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.budget-cap-label {
+  font-size: var(--fs-sm);
+}
+.budget-cap-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.budget-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--fs-sm);
+}
+.budget-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Verify loop row: a block per round, a line per check ─────────────────── */
+.verify-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-dim);
+  border-radius: var(--radius-button);
+  background: var(--surface-1);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.verify-strip[data-state="pass"] {
+  border-left-color: var(--success);
+}
+.verify-strip[data-state="fail"] {
+  border-left-color: var(--error);
+}
+.verify-strip[data-state="stopped"] {
+  border-left-color: var(--warning);
+}
+.verify-round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.verify-round-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.verify-check-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.verify-mark {
+  width: var(--space-6);
+  flex: none;
+  text-align: center;
+  color: var(--text-dim);
+}
+.verify-check[data-status="pass"] .verify-mark {
+  color: var(--success);
+}
+.verify-check[data-status="fail"] .verify-mark {
+  color: var(--error);
+}
+.verify-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.verify-command {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.verify-detail {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-dim);
+}
+.verify-tail {
+  margin: var(--space-1) 0 0 var(--space-8);
+}
+.verify-tail summary {
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+.verify-tail pre {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-4);
+  max-height: 280px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.verify-final {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Compaction popover (the context gauge) ─────────────────────────────── */
+.compaction-popover {
+  width: 360px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.compaction-usage {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.compaction-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.compaction-field input {
+  width: 96px;
+}
+.compaction-presets {
+  display: flex;
+  gap: var(--space-2);
+}
+.compaction-presets .key[aria-pressed="true"] {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.compaction-pins {
+  width: 100%;
+  resize: vertical;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+}
+.compaction-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+/* ── Verify settings popover ──────────────────────────────────────────────── */
+.verify-popover {
+  width: 360px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.verify-help {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+.verify-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.verify-field input {
+  width: 64px;
+}
+.verify-commands {
+  width: 100%;
+  resize: vertical;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+}
+.verify-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+/* MCP marketplace (McpMarketModal, inside the MCP servers page) */
+.mcp-market {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.mcp-market-results {
+  list-style: none;
+}
+.mcp-market-row {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.mcp-market-desc {
+  flex-basis: 100%;
+  font-size: var(--fs-sm);
+}
+.mcp-market-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+.mcp-market-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.mcp-market-needs,
+.mcp-market-need {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mcp-market-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+.mcp-market-severity {
+  margin: 0;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mcp-market-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mcp-market-findings li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid;
+  font-size: var(--fs-sm);
+}
+.mcp-market-findings pre {
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.mcp-market-confirm {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+}
+
+/* Worktree workers merge review (WorktreeReview, header popover) */
+.wt-popover {
+  width: 520px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wt-review,
+.wt-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wt-policy,
+.wt-actions,
+.wt-confirm,
+.wt-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.wt-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.wt-list,
+.wt-files,
+.wt-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wt-meta,
+.wt-note,
+.wt-empty,
+.wt-reason,
+.wt-conflicts,
+.wt-checks,
+.wt-files {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.wt-patch {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-4);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: pre;
+}
+
+.sa-worktree-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-left: var(--space-8);
+}
+
+.sa-worktree-badge {
+  font-size: var(--fs-xs);
+}

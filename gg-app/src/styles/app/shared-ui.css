@@ -1,0 +1,699 @@
+/* ── Button system (shared) ───────────────────────────────────────────────
+   .btn is the base; pair with .btn-primary (cobalt key) or .btn-ghost (alloy
+   key). Alloy keys: a lit top edge and a dark lip below, so a control reads
+   as raised off the surface it sits on. Hover changes the fill only — no
+   movement. */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-button);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  /* The app body sets line-height 1.55; inheriting it here makes the label's
+     line box taller than its glyphs, which reads as "not vertically centred"
+     no matter how symmetric the padding is. */
+  line-height: 1;
+  /* Optically centred: the cap band measured 0.98px HIGH, so the top carries
+     half that correction. See the probe harness note in the repo history. */
+  padding: 8.5px var(--space-9) 9.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Colour-on-hover — no movement, no scale. `background-color` and `color`
+     must be listed: the flat fills changed the hover mechanism from `filter`
+     to a colour swap, which without this eases nothing at all. Slightly slower
+     on the way out than in, which is what reads as "smooth" rather than snappy
+     (see --t-in / --t-out). */
+  transition:
+    background-color var(--t-out),
+    border-color var(--t-out),
+    color var(--t-out),
+    filter var(--t-out),
+    box-shadow var(--t-out);
+}
+.btn:hover:not(:disabled),
+.btn:active:not(:disabled) {
+  transition:
+    background-color var(--t-in),
+    border-color var(--t-in),
+    color var(--t-in),
+    filter var(--t-in),
+    box-shadow var(--t-in);
+}
+/* ── Press feedback ──
+   Everything clickable dips slightly while held, so a click is felt even when
+   the result lands elsewhere (a modal opens, a row re-renders). Uses the
+   standalone `scale` property, not `transform`, so it composes with any
+   transform a control already has and never touches their transition lists.
+   Instant on purpose: press-down should feel physical, not animated. Wide
+   rows dip less than compact buttons, or their edges visibly lurch. */
+:is(
+    .btn,
+    .modal-btn,
+    .nav-toggle,
+    .modal-close,
+    .toast-close,
+    .attach-remove,
+    .mcp-delete,
+    .tasks-delete
+  ):active:not(:disabled) {
+  scale: 0.96;
+}
+:is(.picker-item, .slash-item, .dropdown-option:not([aria-disabled="true"])):active {
+  scale: 0.99;
+}
+.picker-item:active,
+.slash-item.active {
+  background: var(--surface-1);
+}
+.slash-item:active {
+  background: var(--surface-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .btn,
+    .modal-btn,
+    .nav-toggle,
+    .modal-close,
+    .toast-close,
+    .attach-remove,
+    .mcp-delete,
+    .tasks-delete,
+    .picker-item,
+    .slash-item,
+    .dropdown-option
+  ):active {
+    scale: none;
+  }
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Primary — a flat, luminous periwinkle pill carrying near-black text. The
+   fill is bright enough to hold a dark label, which is what makes it read as
+   the one thing on screen to act on. */
+.btn-primary {
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+  border-color: transparent;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-fill-hi);
+  filter: none;
+}
+
+/* Ghost — neutral surface, no border, no sheen. Separation is lightness. */
+.btn-ghost {
+  background: var(--key);
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+  filter: none;
+  color: var(--text);
+}
+
+/* Size modifiers. */
+.btn-sm {
+  font-size: var(--fs-sm);
+  /* Cap band measured 1.21px HIGH; half the correction goes on top. */
+  padding: 3.4px var(--space-6) 4.6px;
+  gap: var(--space-3);
+}
+.btn-lg {
+  font-size: var(--fs-lg);
+  padding: 13px var(--space-11);
+}
+/* Icon-only — a square key, fixed size, no rectangular padding. */
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-button);
+  flex: 0 0 auto;
+}
+/* Nav icon buttons (Radio, Windows, …) hold an icon SVG. Animating the
+   .btn-ghost `filter: brightness()` over a stroked icon re-rasterizes it on a
+   filter layer every frame → visible shimmer/jitter. Brighten the icon via
+   `color` instead (the icons paint with currentColor): same hover read as the
+   text buttons, zero re-raster, zero movement. */
+.btn-nav-icon:hover:not(:disabled) {
+  filter: none;
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* One keyboard-focus ring for every control, in the accent rather than the
+   webview's default blue. Outline (not box-shadow) so it never fights a
+   component's own shadow, and it follows border-radius in WebKit and
+   Chromium. :focus-visible keeps it off pointer clicks. Components with a
+   bespoke focus treatment override this with their own :focus-visible rule. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Toasts (bottom-right, slide up + fade) ──
+   `.app > .toaster` outranks the later `.app > *` rule (position: relative;
+   z-index: 1), which otherwise dropped the toaster into the flex column below
+   a full-height screen like Settings and pushed toasts off the window. */
+.toaster,
+.app > .toaster {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  align-items: flex-end;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: 360px;
+  padding: 11px var(--space-6) 11px 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--fs-base);
+  color: var(--text);
+  animation: toast-in var(--dur-toast-in) var(--ease-expo);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Exit: slide straight down and fade out. Duration must match EXIT_MS. */
+.toast.leaving {
+  animation: toast-out var(--dur-toast-out) var(--ease-expo) forwards;
+  pointer-events: none;
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+/* Reduced motion keeps the fade (so arrival and dismissal still read) but
+   drops the travel. Same durations, so EXIT_MS still lines up. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ── Dissolve: the shared "this just appeared / just changed" entrance ──
+   Same blur-to-sharp language as the streamed words and transcript rows.
+   `.dissolve-in` is for block-level things that mount (a bar's timer, the Stop
+   button, the tool panel). `.dissolve-swap` goes on text that is re-keyed when
+   its wording changes, so a status flip ("Sent a critter off…" to "The critter
+   is back") resolves into place instead of switching. `.fade-swap` is the
+   blur-free variant for inline text inside a single truncated line, where a
+   filter would need inline-block and break the ellipsis. All `backwards`: no
+   filter is left on anything at rest. */
+@keyframes dissolve-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+.dissolve-in,
+.dissolve-swap {
+  animation: dissolve-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+.fade-swap {
+  animation: fade-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dissolve-in,
+  .dissolve-swap {
+    animation-name: fade-in;
+  }
+}
+
+/* ── Workspace load: the window resolves top to bottom ──
+   When a workspace first paints, each region dissolves in a beat after the one
+   above it (title bar, nav, chat, status, input, footer) instead of the whole
+   UI snapping in at once. Opacity and blur only, on the region's own box, so
+   nothing shifts; `backwards`, so no filter is left on anything at rest.
+   Plays once per mount (window open or reload), never on re-renders. */
+.app > .chat-head > .chat-head-strip,
+.app > .transcript-frame,
+.app > .dock > .liveregion,
+.app > .dock > .deck {
+  animation: dissolve-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+.app > .picker > .picker-head,
+.app > .picker > .picker-list {
+  animation: dissolve-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+.app > .picker > .picker-list {
+  animation-delay: 40ms;
+}
+.app > .transcript-frame {
+  animation-delay: 80ms;
+}
+.app > .dock > .liveregion {
+  animation-delay: 120ms;
+}
+.app > .dock > .deck {
+  animation-delay: 150ms;
+}
+/* Title-bar segments that arrive after load (project name, health, branch,
+   counts, CI, usage meter) resolve in where they land instead of popping.
+   Keyed by presence, so a changing number doesn't replay it. Inline, so a
+   fade: a blur would need inline-block and break the strip's truncation. */
+.chat-head-title
+  > :is(
+    .project-colour-trigger,
+    .chat-head-cwd,
+    .chat-head-health,
+    .chat-head-github,
+    .chat-head-ci
+  ),
+.chat-head-strip > .title-usage-meter {
+  animation: fade-in var(--dur-dissolve) var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app > .chat-head > .chat-head-strip,
+  .app > .transcript-frame,
+  .app > .dock > .liveregion,
+  .app > .dock > .deck,
+  .app > .picker > .picker-head,
+  .app > .picker > .picker-list {
+    animation-name: fade-in;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation-name: fade-in;
+  }
+  .toast.leaving {
+    animation-name: fade-out;
+  }
+}
+/* ── Zoom level overlay ───────────────────────────────────────────────────
+   Centered flash shown on Cmd/Ctrl +/- / 0. Sits above everything; the wrapper
+   counter-scales the page zoom so the card is a constant on-screen size. */
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-system);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.zoom-overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 116px;
+  padding: var(--space-9) 26px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  animation:
+    zoom-overlay-in 0.16s var(--ease-expo),
+    zoom-overlay-out 0.3s ease 0.6s forwards;
+}
+@keyframes zoom-overlay-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes zoom-overlay-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-overlay-card {
+    animation:
+      fade-in 0.16s linear,
+      zoom-overlay-out 0.3s ease 0.6s forwards;
+  }
+}
+.zoom-overlay-pct {
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.zoom-overlay-label {
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.toast-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.toast-msg {
+  flex: 1 1 auto;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.toast-close {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  padding: var(--space-1);
+  transition: color var(--t-fast);
+}
+.toast-close:hover {
+  color: var(--text);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  overflow: hidden;
+  /* The app font lives at the ROOT, not on `.app`. Anything rendered outside
+     the shell — modals are portalled to <body> so their stacking context is
+     never trapped by an ancestor — would otherwise inherit the browser's
+     default serif. */
+  font-family: var(--sans);
+  color: var(--text);
+}
+
+/* Form controls do NOT inherit typography by default — the UA stylesheet gives
+   button/input/textarea/select their own font (Arial on Chromium). Several
+   controls never overrode it and rendered in Arial while everything around them
+   used the system font. Inheriting closes the hole permanently. */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  isolation: isolate;
+  /* 100% (not 100vh): vh resolves against the unzoomed layout viewport, so under
+     CSS `zoom` < 1 the shell came up short and the footer floated up. % chains
+     through #root/body/html (all 100%) and scales correctly with zoom. */
+  height: 100%;
+  font-family: var(--sans);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+/* Ambient glow. A wide, very soft wash of the accent behind everything, which
+   is where this palette's richness lives — the surfaces themselves are almost
+   colourless.
+
+   Position comes from window-glow.ts as custom properties, seeded off the
+   window label, so twelve tiled windows do not all glow in the same corner.
+   Defaults here keep the rule valid if the properties are ever absent.
+
+   LEGIBILITY IS THE CONSTRAINT. The wash is pinned to the edges, soft,
+   and capped at a low alpha — it must never sit behind the transcript and
+   fight body text. The intensity below is the ceiling, not a starting point.
+
+   NO `filter` HERE, EVER. This used to be `filter: blur(80px) hue-rotate()`.
+   WebKit runs a CSS filter on a non-composited element in SOFTWARE, over the
+   element's full bounds, on EVERY repaint that touches it — and this element
+   spans the whole window, so a blinking cursor re-blurred the entire window at
+   80px. A user's profile of the shared GPU process ("Israel Code Graphics and
+   Media", 7 windows, 468% CPU) was dominated by FEGaussianBlurSoftwareApplier.
+   The softness now comes from the gradients' own falloff, which is one cheap
+   shade pass. `will-change: opacity` (NOT filter — see .enh-diss-fade) lifts
+   the wash onto its own layer so the pulse and other repaints reuse it. */
+.app::before {
+  content: "";
+  position: absolute;
+  /* Kept inside the shell: `body { overflow: hidden }` clips anything beyond
+     it, so a negative inset simply disappeared. */
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  will-change: opacity;
+  opacity: var(--glow-alpha, 1);
+  background:
+    radial-gradient(
+      var(--glow-size, 46%) calc(var(--glow-size, 46%) * 0.86) at var(--glow-x1, 100%)
+        var(--glow-y1, 100%),
+      color-mix(in srgb, var(--glow-tint, var(--glow-live)) 34%, transparent),
+      transparent 78%
+    ),
+    radial-gradient(
+      50% 42% at var(--glow-x2, 0%) var(--glow-y2, 0%),
+      color-mix(in srgb, var(--glow-tint, var(--glow-live)) 15%, transparent),
+      transparent 80%
+    );
+  /* Long and eased: the glow is ambient, so a state change should register
+     peripherally rather than announce itself. */
+  transition:
+    --glow-live 1.6s var(--ease-glow),
+    opacity 1.2s var(--ease-glow);
+}
+.app::before {
+  --glow-live: var(--glow);
+}
+/* Per-window hue variation (was `hue-rotate()` in the filter chain). Relative
+   colour syntax needs Safari 16.4+; older WebKits simply skip the tint. */
+@supports (color: hsl(from red h s l)) {
+  .app::before {
+    --glow-tint: hsl(from var(--glow-live) calc(h + var(--glow-hue, 0)) s l);
+  }
+}
+
+/* Working: lifts to the brighter accent and breathes. Deliberately gentle — it
+   has to read from across the room without nagging while you are reading. */
+.app[data-glow="working"]::before {
+  --glow-live: var(--primary);
+  animation: glow-pulse 3.4s ease-in-out infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1.25;
+  }
+}
+
+/* Done: the window rests in the ship colour and STAYS there until the next run
+   starts. A timed revert undid itself while the result was still on screen. */
+.app[data-glow="done"]::before {
+  --glow-live: var(--success);
+  opacity: 1.15;
+}
+
+/* The wash is decorative. Anyone who has asked for less motion or less
+   transparency gets a flat canvas instead. */
+@media (prefers-reduced-motion: reduce) {
+  .app[data-glow="working"]::before {
+    animation: none;
+  }
+}
+
+/* ── Background windows freeze their looping decoration. ──
+   Every looping animation forces a repaint each frame, and every repaint is a
+   round trip through WebKit's single shared GPU process ("Israel Code Graphics and
+   Media"): allocate an IOSurface, rasterize, flush, wait. One window doing that
+   is fine; seven idle windows doing it all day pinned that process at 400%+ CPU
+   on a user's machine. Only the window the user is looking at animates.
+
+   `window-motion.ts` sets <html data-motion="full|still|off"> from focus and
+   visibility. Every `infinite` animation in our stylesheets declares
+   `animation-play-state: var(--loop-play-state, running)` for its looping
+   entries (enforced by css-loops.test.ts), so this one switch pauses them all,
+   portalled modals and the What's New window included. Paused (not `none`) so
+   focus resumes mid-cycle without a jump. One-shot reveals never read the
+   variable: paused at 0% with `both` they would hold new content invisible. */
+:root[data-motion="still"],
+:root[data-motion="off"] {
+  --loop-play-state: paused;
+}
+/* The logo's one-shot reveal is never paused: paused at 0% it held the banner
+   invisible whenever Home mounted while another window was focused. Its
+   shimmer and glitch loops (on .ascii-logo-glitch) pause instead. */
+/* Everything else in the shell paints above the glow. Modals are portalled to
+   <body> (see Modal.tsx), so they sit outside this stacking context entirely
+   rather than being trapped by it. */
+.app > * {
+  position: relative;
+  z-index: 1;
+}
+/* An in-webview menu (the Windows/Linux window-layout fallback) is trapped in
+   its section's stacking context, so the transcript and footer painted over it
+   and took its clicks. Lift the section holding an open menu to menu level;
+   .menu-backdrop only exists while a menu is open. */
+.app > :has(.menu-backdrop) {
+  z-index: var(--z-menu);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app::before {
+    display: none;
+  }
+}
+
+.app-restoring {
+  align-items: center;
+  justify-content: center;
+}
+
+.app-restoring-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-muted);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+}
+
+.app-restoring-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-fill);
+  box-shadow: 0 0 10px rgb(77 157 255 / 45%);
+  animation: appRestoringPulse 1.2s ease-in-out infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+
+@keyframes appRestoringPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-restoring-dot {
+    animation: none;
+  }
+}
+.app-file-dragover::before,
+.app-file-dragover::after {
+  position: absolute;
+  pointer-events: none;
+}
+.app-file-dragover::before {
+  content: "";
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgb(0 0 0 / 42%);
+}
+.app-file-dragover::after {
+  content: "Drop files to attach";
+  top: 50%;
+  left: 50%;
+  z-index: calc(var(--z-overlay) + 1);
+  transform: translate(-50%, -50%);
+  padding: var(--space-9) 26px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-2) 92%, var(--primary));
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 38%);
+}
+
+.titlebar {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Native chrome (Windows/Linux): no overlay title bar to clear. */
+  padding: var(--space-5) var(--rail);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+/* macOS overlay title bar: top padding clears the traffic-light buttons so the
+   action rows sit BELOW them (matching .picker-head), not crammed onto them. */
+.platform-macos .titlebar {
+  padding: 34px var(--rail) var(--space-5);
+}
+
+.titlebar .title {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+}
