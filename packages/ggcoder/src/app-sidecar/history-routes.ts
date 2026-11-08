@@ -22,6 +22,7 @@ import { ultracodeNoticeState } from "../core/ultracode.js";
 import { orchestrateNoticeState } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { animatedPreview, downscaleForPreview, IMAGE_MEDIA_TYPES } from "../utils/image.js";
+import { previewBase64, warmPreviews } from "./preview-cache.js";
 import { readFileBounded } from "../tools/operations.js";
 import { json } from "./http.js";
 import { type HistoryEntryForWire, detectHookKind } from "./history.js";
@@ -338,6 +339,18 @@ export function handleHistoryRoutes(
       let orchestrateOn = false;
       // Turns/markers recorded before any build message (anchor 0) render at
       // the top.
+      // Resize the stored tool images a few at a time ahead of the in-order
+      // walk below (a GIF from generate_image previews from its file instead).
+      const storedImages: string[] = [];
+      for (const msg of messages) {
+        if (msg.role !== "tool") continue;
+        for (const tr of msg.content) {
+          if (typeof tr.content === "string") continue;
+          if (toolNameById.get(tr.toolCallId) === "generate_image") continue;
+          for (const c of tr.content) if (c.type === "image") storedImages.push(c.data);
+        }
+      }
+      void warmPreviews(storedImages);
       flushKen(0);
       flushAutopilot(0);
       flushAppMarkers(0);
@@ -381,9 +394,9 @@ export function handleHistoryRoutes(
                   toolImages.push({ src: animated, path: imgPath });
                   continue;
                 }
-                const previewBuf = await downscaleForPreview(Buffer.from(block.data, "base64"));
+                const preview = await previewBase64(block.data);
                 toolImages.push({
-                  src: `data:${block.mediaType};base64,${previewBuf.toString("base64")}`,
+                  src: `data:${block.mediaType};base64,${preview}`,
                   path: imgPath,
                 });
               }

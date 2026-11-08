@@ -4,7 +4,12 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { chatAgentSessionsDir } from "./chat-agents/index.js";
-import { listSidecarSessions } from "./app-sidecar-sessions.js";
+import {
+  CHAT_SESSION_LIMIT,
+  CODING_SESSION_LIMIT,
+  MOTION_SESSION_LIMIT,
+  listSidecarSessions,
+} from "./app-sidecar-sessions.js";
 import { motionSessionsDir } from "./motion-agent/motion-agent.js";
 import { encodeCwd } from "./core/encode-cwd.js";
 import { archiveColdSession, archiveSessionPath } from "./core/session-storage.js";
@@ -109,25 +114,27 @@ describe("gg-app sidecar session listings", () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
-  it("returns up to 30 chat sessions while coding remains capped at 5", async () => {
-    await writeSessions(coderSessionsDir, cwd, "coding", 31);
-    await writeSessions(chatAgentSessionsDir(coderSessionsDir, "general"), cwd, "chat", 31);
+  it("returns up to 200 coding, chat and motion sessions, newest first", async () => {
+    await writeSessions(coderSessionsDir, cwd, "coding", 201);
+    await writeSessions(chatAgentSessionsDir(coderSessionsDir, "general"), cwd, "chat", 201);
+    await writeSessions(motionSessionsDir(coderSessionsDir), cwd, "motion", 201);
 
     const codingSessions = await listSidecarSessions(cwd, null, coderSessionsDir);
     const chatSessions = await listSidecarSessions(cwd, "all", coderSessionsDir);
+    const motionSessions = await listSidecarSessions(cwd, "motion", coderSessionsDir);
 
-    expect(codingSessions).toHaveLength(5);
-    expect(codingSessions.map((session) => session.id)).toEqual([
-      "coding-30",
-      "coding-29",
-      "coding-28",
-      "coding-27",
-      "coding-26",
-    ]);
-    expect(chatSessions).toHaveLength(30);
-    expect(chatSessions[0]).toMatchObject({ id: "chat-30", chatAgent: "general" });
+    expect(CODING_SESSION_LIMIT).toBe(200);
+    expect(codingSessions).toHaveLength(200);
+    expect(codingSessions[0]?.id).toBe("coding-200");
+    expect(codingSessions.at(-1)?.id).toBe("coding-1");
+    expect(chatSessions).toHaveLength(CHAT_SESSION_LIMIT);
+    expect(chatSessions[0]).toMatchObject({ id: "chat-200", chatAgent: "general" });
     expect(chatSessions.at(-1)).toMatchObject({ id: "chat-1", chatAgent: "general" });
-  });
+    expect(motionSessions).toHaveLength(MOTION_SESSION_LIMIT);
+    expect(motionSessions[0]?.id).toBe("motion-200");
+    // Every row carries its last activity so the app can group by date.
+    expect(codingSessions.every((session) => session.lastActiveMs > 0)).toBe(true);
+  }, 30_000);
 
   it("surfaces a Claude Code session for the project and opens it as a resumable Israel Code session", async () => {
     const home = path.join(tmp, "home");

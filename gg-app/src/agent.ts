@@ -507,6 +507,8 @@ export interface DiscoveredProject {
   name: string;
   path: string;
   lastActiveDisplay: string;
+  /** Last activity as epoch ms (absent from an older sidecar). */
+  lastActiveMs?: number;
   sources: string[];
 }
 
@@ -518,6 +520,8 @@ export interface RecentSession {
   path: string;
   preview: string;
   lastActiveDisplay: string;
+  /** Last activity as epoch ms (absent from an older sidecar). */
+  lastActiveMs?: number;
   messageCount: number;
   chatAgent?: ChatAgentId;
   /**
@@ -2715,10 +2719,14 @@ export async function setRemoteActive(active: boolean): Promise<void> {
   }
 }
 
-/** Open a single new project window (Cmd/Ctrl+N). Never re-tiles existing ones. */
-export async function newWindow(): Promise<void> {
+/**
+ * Open a single new project window (Cmd/Ctrl+N). Never re-tiles existing ones.
+ * With a `target`, the window opens straight into that workspace/session
+ * (the session browser's "New window") instead of Home.
+ */
+export async function newWindow(target?: RestoreTarget): Promise<void> {
   try {
-    await invoke("new_window");
+    await invoke("new_window", { target: target ?? null });
   } catch (e) {
     await logError(`new_window failed: ${String(e)}`);
     throw e;

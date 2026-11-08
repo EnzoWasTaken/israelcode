@@ -7,6 +7,10 @@ import type { AgentState } from "./agent";
 mockWindows("main");
 mockIPC(() => new Promise(() => {}));
 const { default: App } = await import("./App");
+// The markdown renderer and on-demand dialogs load lazily (the app warms them
+// on idle); load them up front so a loaded machine cannot outrun findBy*.
+await (await import("./LazyMarkdown")).preloadMarkdown();
+await (await import("./lazy-surfaces")).preloadLazySurfaces();
 
 const scrollToDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");
 beforeEach(() => {

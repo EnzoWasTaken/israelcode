@@ -1,10 +1,17 @@
 import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import { HomeLaunchpad, type HomeMode } from "./HomeLaunchpad";
+import {
+  ChatCircleIcon,
+  FilmStripIcon,
+  GlobeHemisphereWestIcon,
+  TargetIcon,
+  TerminalIcon,
+} from "./phosphor-icons";
 import { getVersion } from "@tauri-apps/api/app";
 import { error as logError } from "@tauri-apps/plugin-log";
 import { HomeTitle } from "./HomeTitle";
 import { PixelIconButton } from "./PixelIconButton";
 import { PixelTip } from "./PixelTip";
-import { PlateButton } from "./PlateButton";
 import { HomeScenery, withScenery } from "./HomeScenery";
 import { HomeCritters } from "./HomeCritters";
 import { HomeUpdateButton } from "./HomeUpdateButton";
@@ -23,9 +30,8 @@ import {
   getServeStatus,
 } from "./agent";
 import { useAppUpdate } from "./update";
-import { BackgroundSection } from "./BackgroundSessions";
 import { toast } from "./toast";
-import { fl, hourGreeting, useFlavorEnabled } from "./flavor";
+import { fl } from "./flavor";
 
 // A failed setup check leaves the workspace buttons dimmed, so leave a trace in
 // the app log instead of failing silently. The next focus retries.
@@ -53,6 +59,11 @@ interface Props {
    * folder). A counter, not a boolean, so repeats always re-fire.
    */
   refreshSignal?: number;
+  /**
+   * Quick start or a recent row pointed this window at a session of this kind:
+   * show the workspace. A typed first message is queued (first-prompt.ts).
+   */
+  onOpened?: (mode: "code" | "chat") => void;
   /** Reopen a background conversation in this window. */
   onOpenBackground?: (row: BackgroundSessionRow) => Promise<void> | void;
 }
@@ -73,6 +84,7 @@ export function HomeScreen({
   onSettings,
   refreshSignal = 0,
   onOpenBackground,
+  onOpened,
 }: Props): React.ReactElement {
   const [folderSet, setFolderSet] = useState(false);
   const [providerConnected, setProviderConnected] = useState(false);
@@ -154,14 +166,91 @@ export function HomeScreen({
   const [visitBiome] = useRandomBiome();
   const biome = backgroundOn ? withScenery(visitBiome) : visitBiome;
   const hour = useLocalHour();
-  const funCopy = useFlavorEnabled();
-  // Keyed on the hour so a long-open window keeps the greeting current.
-  const greeting = useMemo(() => hourGreeting(hour, new Date().getDay(), funCopy), [hour, funCopy]);
   const sceneStyle = useMemo(
     (): (CSSProperties & Record<"--scene-ground", string>) | undefined =>
       backgroundOn ? { "--scene-ground": groundFilter(lightAt(hour)) } : undefined,
     [backgroundOn, hour],
   );
+
+  const modes: HomeMode[] = [
+    {
+      id: "code",
+      label: "Code",
+      icon: TerminalIcon,
+      shortcut: "homeCode",
+      tip: fl(
+        "Code: open a project and build it with the agent.",
+        "Code: open a project and build it with the agent. Yalla.",
+      ),
+      dimmed: !ready,
+      onClick: () => handleWorkspace(onProjects),
+    },
+    {
+      id: "goals",
+      label: "Goals",
+      icon: TargetIcon,
+      shortcut: "homeGoals",
+      tip: fl(
+        "Goals: hand over a bigger goal and let a team of agents work on it.",
+        "Goals: hand over a bigger goal to a team of agents. They argue, then it gets done.",
+      ),
+      dimmed: !ready,
+      onClick: () => handleWorkspace(onGoals),
+    },
+    {
+      id: "chat",
+      label: "Chat",
+      icon: ChatCircleIcon,
+      shortcut: "homeChat",
+      tip: fl(
+        "Chat: talk things through, no project needed.",
+        "Chat: talk things through, no project needed. Like a café, minus the bill.",
+      ),
+      dimmed: !ready,
+      onClick: () => handleWorkspace(onChat),
+    },
+    {
+      id: "motion",
+      label: "Motion",
+      icon: FilmStripIcon,
+      shortcut: "homeMotion",
+      tip: fl(
+        "Motion: make videos and animations.",
+        "Motion: make videos and animations. Eurovision-grade optional.",
+      ),
+      dimmed: !ready,
+      onClick: () => handleWorkspace(onMotion),
+    },
+    {
+      // World: the local 3D game, full-window in this window; new, so it
+      // carries a New tag. While it loads (it takes a moment to build the
+      // scene) the tag shows three pulsing pixel dots, so Home never looks frozen.
+      id: "world",
+      label: worldOpening ? "Loading" : "World",
+      icon: GlobeHemisphereWestIcon,
+      shortcut: "homeWorld",
+      tip: "World: a cozy 3D hangout for coders, with your coding level and an optional online save.",
+      busy: worldOpening,
+      describedBy: worldNoteId,
+      onClick: () => {
+        setWorldOpening(true);
+        onWorld();
+      },
+      tag: (
+        <span id={worldNoteId} className={`home-action-beta${worldOpening ? " is-loading" : ""}`}>
+          {worldOpening ? (
+            <span className="home-loading-dots" aria-label="Loading World">
+              <i />
+              <i />
+              <i />
+            </span>
+          ) : (
+            "New"
+          )}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="home" data-tauri-drag-region style={sceneStyle}>
@@ -188,92 +277,13 @@ export function HomeScreen({
       </div>
       <HomeTitle />
       <div className="home-tagline">Cause the other coding agents piss me off</div>
-      <div className="home-greeting">{greeting}</div>
-      <div className="home-actions">
-        {/* GG Royale's plate buttons, its word in Alagard, each with a pixel tip. */}
-        <PixelTip
-          text={fl(
-            "Code: open a project and build it with the agent.",
-            "Code: open a project and build it with the agent. Yalla.",
-          )}
-        >
-          <PlateButton
-            className="home-action"
-            label="Code"
-            dimmed={!ready}
-            onClick={() => handleWorkspace(onProjects)}
-          />
-        </PixelTip>
-        <PixelTip
-          text={fl(
-            "Goals: hand over a bigger goal and let a team of agents work on it.",
-            "Goals: hand over a bigger goal to a team of agents. They argue, then it gets done.",
-          )}
-        >
-          <PlateButton
-            className="home-action"
-            label="Goals"
-            dimmed={!ready}
-            onClick={() => handleWorkspace(onGoals)}
-          />
-        </PixelTip>
-        <PixelTip
-          text={fl(
-            "Chat: talk things through, no project needed.",
-            "Chat: talk things through, no project needed. Like a café, minus the bill.",
-          )}
-        >
-          <PlateButton
-            className="home-action"
-            label="Chat"
-            dimmed={!ready}
-            onClick={() => handleWorkspace(onChat)}
-          />
-        </PixelTip>
-        <PixelTip
-          text={fl(
-            "Motion: make videos and animations.",
-            "Motion: make videos and animations. Eurovision-grade optional.",
-          )}
-        >
-          <PlateButton
-            className="home-action"
-            label="Motion"
-            dimmed={!ready}
-            onClick={() => handleWorkspace(onMotion)}
-          />
-        </PixelTip>
-        {/* World: the local 3D game, full-window in this window; new, so it
-            carries a New tag. */}
-        <div className="home-action-slot">
-          <PixelTip text="World: a cozy 3D hangout for coders, with your coding level and an optional online save.">
-            <PlateButton
-              className={`home-action${worldOpening ? " is-loading" : ""}`}
-              label={worldOpening ? "Loading" : "World"}
-              held={worldOpening}
-              aria-describedby={worldNoteId}
-              onClick={() => {
-                setWorldOpening(true);
-                onWorld();
-              }}
-            />
-          </PixelTip>
-          {/* While World loads (it takes a moment to build the scene), the tag shows three pulsing pixel dots, so
-              Home never looks frozen. */}
-          <span id={worldNoteId} className={`home-action-beta${worldOpening ? " is-loading" : ""}`}>
-            {worldOpening ? (
-              <span className="home-loading-dots" aria-label="Loading World">
-                <i />
-                <i />
-                <i />
-              </span>
-            ) : (
-              "New"
-            )}
-          </span>
-        </div>
-      </div>
-      {ready && onOpenBackground && <BackgroundSection onOpen={onOpenBackground} />}
+      <HomeLaunchpad
+        ready={ready}
+        onNeedsSetup={() => handleWorkspace(() => {})}
+        onOpened={(mode) => onOpened?.(mode)}
+        modes={modes}
+        onOpenBackground={onOpenBackground}
+      />
       {/* Settings: a GG Royale pixel gear. */}
       <PixelTip
         text={fl(

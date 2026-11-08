@@ -6,12 +6,14 @@
  * Never touches the real ~/.israelcode; the temp dir is removed afterwards.
  *
  *   node gg-app/scripts/perf-history.mjs [--turns 500] [--images 20] [--runs 5]
- *     [--sidecar packages/ggcoder/dist/app-sidecar.js] [--out results.json]
+ *     [--sidecar packages/ggcoder/dist/app-sidecar.js] [--out results.json] [--git]
  *
  * One turn = your message, a reply with a tool call, its result, and a final
  * markdown reply (~4 history rows). Every `--images`-th turn's tool result
  * carries a 1400×860 PNG screenshot (inside the model's image budget, as live
  * tools store them), which the history route downscales to a preview.
+ * `--git` makes the project a git repo (400 committed files, 10 uncommitted),
+ * as a real project is, so the git reads on open are timed too.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -21,7 +23,15 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const opts = { turns: 500, images: 20, runs: 5, sidecar: null, out: null, profile: false };
+const opts = {
+  turns: 500,
+  images: 20,
+  runs: 5,
+  sidecar: null,
+  out: null,
+  profile: false,
+  git: false,
+};
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -31,6 +41,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--sidecar") opts.sidecar = resolve(argv[++i]);
   else if (a === "--out") opts.out = resolve(argv[++i]);
   else if (a === "--profile") opts.profile = true;
+  else if (a === "--git") opts.git = true;
   else throw new Error(`unknown arg ${a}`);
 }
 const script = opts.sidecar ?? resolve(here, "../../packages/ggcoder/dist/app-sidecar.js");
@@ -134,6 +145,21 @@ function sessionLines(header, png) {
   return { text: lines.join("\n") + "\n", leafId: parentId };
 }
 
+function makeRepo(dir) {
+  const git = (...args) => {
+    const r = spawnSync("git", args, { cwd: dir, stdio: "ignore" });
+    if (r.status !== 0) throw new Error(`git ${args.join(" ")} failed`);
+  };
+  git("init", "-q");
+  for (let i = 0; i < 400; i++) {
+    mkdirSync(join(dir, "src", `m${i % 20}`), { recursive: true });
+    writeFileSync(join(dir, "src", `m${i % 20}`, `f${i}.ts`), `export const v${i} = ${i};\n`);
+  }
+  git("add", "-A");
+  git("-c", "user.name=bench", "-c", "user.email=bench@example.com", "commit", "-qm", "init");
+  for (let i = 0; i < 10; i++) writeFileSync(join(dir, "src", "m0", `f${i * 20}.ts`), "changed\n");
+}
+
 function killTree(child) {
   return new Promise((done) => {
     if (child.exitCode !== null || child.signalCode !== null) return done();
@@ -223,6 +249,7 @@ async function main() {
   const home = mkdtempSync(join(tmpdir(), "gg-perf-history-"));
   const project = join(home, "project");
   mkdirSync(project);
+  if (opts.git) makeRepo(project);
   // A fake login, so the reopened session's provider counts as connected.
   mkdirSync(join(home, ".israelcode"));
   writeFileSync(
@@ -238,7 +265,7 @@ async function main() {
   });
   let stderr = "";
   child.stderr.on("data", (d) => (stderr += d));
-  const results = { script, turns: opts.turns, images: opts.images, runs: [] };
+  const results = { script, turns: opts.turns, images: opts.images, git: opts.git, runs: [] };
   try {
     const { port, token } = await new Promise((ok, fail) => {
       let out = "";

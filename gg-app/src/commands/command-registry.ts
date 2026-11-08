@@ -74,6 +74,12 @@ export const SHORTCUTS = {
     keys: [{ mod: true, shift: true, key: "M" }],
   },
   shortcuts: { label: "Keyboard shortcuts", group: "General", keys: [{ mod: true, key: "/" }] },
+  // Home's mode row, while focus isn't in a text field.
+  homeCode: { label: "Home: Code", group: "General", keys: [{ key: "1" }] },
+  homeGoals: { label: "Home: Goals", group: "General", keys: [{ key: "2" }] },
+  homeChat: { label: "Home: Chat", group: "General", keys: [{ key: "3" }] },
+  homeMotion: { label: "Home: Motion", group: "General", keys: [{ key: "4" }] },
+  homeWorld: { label: "Home: World", group: "General", keys: [{ key: "5" }] },
   newWindow: { label: "New window", group: "Windows", keys: [{ mod: true, key: "N" }] },
   nextWindow: { label: "Next window", group: "Windows", keys: [{ mod: true, key: "`" }] },
   prevWindow: {

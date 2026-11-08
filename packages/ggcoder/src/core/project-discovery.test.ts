@@ -552,6 +552,23 @@ describe("discoverProjects (ggcoder store)", () => {
     expect(sessions[0]?.preview).toBe("Replace title generation with project context");
   });
 
+  it("reports each session's last activity as epoch ms for date grouping", async () => {
+    const projectPath = path.join(tmp, "projects", "dated-session");
+    await fs.mkdir(projectPath, { recursive: true });
+    const timestamp = "2026-03-04T05:06:07.000Z";
+    await writeSessionRecords(projectPath, "dated.jsonl", {
+      id: "dated-session",
+      timestamp,
+      records: [
+        { type: "message", timestamp, message: { role: "user", content: "Group me by date" } },
+      ],
+    });
+
+    const sessions = await listRecentSessions(projectPath);
+
+    expect(sessions[0]?.lastActiveMs).toBe(Date.parse(timestamp));
+  });
+
   // Windows regression: the cwd extractors used to accept only POSIX absolute
   // paths (`startsWith("/")`), so every `C:\…` header was rejected, discovery
   // fell through to the lossy directory-name decode, and the project vanished

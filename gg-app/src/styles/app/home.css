@@ -6,10 +6,18 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 28px;
-  padding: var(--space-12);
+  gap: var(--space-6);
+  /* The top row (version, update, gear) stands 16px down and 44px tall. */
+  padding: 64px var(--space-8) var(--space-8);
   text-align: center;
   overflow: hidden;
+}
+@media (max-height: 520px) {
+  .home {
+    gap: var(--space-3);
+    padding-top: 52px;
+    padding-bottom: var(--space-4);
+  }
 }
 /* The campfire scenery (HomeScenery.tsx): the critters' clearing in the
    pines, in GG Royale's pixel style at 2 screen px per art px. Pinned to the
@@ -35,17 +43,20 @@
    behind the text, so the text goes without a halo. */
 .home > .home-title,
 .home > .home-version-row,
-.home > .home-tagline,
-.home > .home-actions {
+.home > .home-tagline {
   position: relative;
   z-index: 1;
+  flex: none;
+}
+.home > .home-title {
+  flex: none;
 }
 /* Entry: each block fades + rises in sequence so the page assembles smoothly
    on load instead of snapping in all at once. The title is still after that:
    no looping motion. */
 .home > .home-version-row,
 .home > .home-tagline,
-.home > .home-actions,
+.home > .home-panel,
 .home > .home-settings,
 .home > .home-version-corner {
   animation: reveal-up 460ms var(--ease-out) both;
@@ -59,7 +70,7 @@
 .home > .home-tagline {
   animation-delay: 240ms;
 }
-.home > .home-actions {
+.home > .home-panel {
   animation-delay: 340ms;
 }
 .home > .home-settings,
@@ -69,7 +80,7 @@
 @media (prefers-reduced-motion: reduce) {
   .home > .home-version-row,
   .home > .home-tagline,
-  .home > .home-actions,
+  .home > .home-panel,
   .home > .home-settings,
   .home > .home-version-corner {
     animation: none;
@@ -615,4 +626,481 @@
   top: calc(16px - 3 * var(--icon-px));
   right: calc(20px - 3 * var(--icon-px));
   z-index: 1;
+}
+
+/* ── Home launchpad (HomeLaunchpad.tsx) ──
+   One frosted night-glass panel under the title: quick start, the latest
+   sessions, the mode row and a footer. .home carries the night palette in
+   both themes (deck/alloy.css), so plain tokens read on the forest. It
+   shrinks before anything else and scrolls inside in small windows, so it
+   never covers the title or clips a control. */
+.home > .home-version-row {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  left: 20px;
+  height: 44px;
+}
+.home-panel {
+  position: relative;
+  z-index: 2;
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(760px, 100%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-9);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-bubble);
+  background: color-mix(in srgb, var(--night-bg) 80%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  font-family: var(--sans);
+  text-align: left;
+}
+@media (max-height: 520px), (max-width: 599px) {
+  .home-panel {
+    padding: var(--space-6);
+    border-radius: var(--radius-card);
+  }
+}
+.home-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  box-shadow: inset 0 -1px 0 var(--border-strong);
+  color: var(--text-muted);
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+}
+.home-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+}
+
+/* Quick start: project chip, the prompt, Code | Chat, and the send key. */
+.home-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.home-prompt:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 70%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.home-chip-wrap {
+  position: relative;
+  flex: none;
+}
+.home-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 180px;
+  height: 28px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  font: 600 var(--fs-sm) / 1 var(--sans);
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.home-chip:hover,
+.home-chip[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--primary) 18%, var(--surface-3));
+  color: var(--text);
+}
+.home-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + var(--space-3));
+  left: 0;
+  min-width: 220px;
+  max-width: 300px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-md);
+  animation: reveal-up var(--dur-enter) var(--ease-out) both;
+}
+.home-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: var(--fs-base) var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+.home-menu-item:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.home-menu-item[aria-checked="true"] {
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
+  box-shadow: inset 3px 0 0 var(--gold-fill);
+  color: var(--text);
+}
+.home-menu-open {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  color: var(--primary);
+}
+.home-menu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-prompt-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: var(--fs-lg) var(--sans);
+}
+.home-prompt-input::placeholder {
+  color: var(--text-dim);
+}
+.home-seg {
+  display: flex;
+  flex: none;
+  padding: var(--space-1);
+  border-radius: var(--radius-button);
+  background: var(--surface-1);
+}
+.home-seg-btn {
+  height: 24px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: calc(var(--radius-button) - 2px);
+  background: none;
+  color: var(--text-muted);
+  font: 600 var(--fs-sm) / 1 var(--sans);
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.home-seg-btn:hover {
+  color: var(--text);
+}
+.home-seg-btn[aria-checked="true"] {
+  background: color-mix(in srgb, var(--primary) 22%, var(--surface-3));
+  color: var(--text);
+}
+.home-go {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.home-go:hover:not(:disabled) {
+  background: var(--primary-fill-hi);
+}
+.home-go:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.home-error {
+  margin: var(--space-4) var(--space-2) 0;
+  color: var(--error);
+  font-size: var(--fs-sm);
+}
+
+/* Jump back in. */
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--space-8) var(--space-2) var(--space-3);
+}
+.home-section-title {
+  margin: 0;
+  color: var(--text-dim);
+  font: 700 var(--fs-xs) / 1.2 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.home-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: 600 var(--fs-sm) / 1.4 var(--sans);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--t-fast);
+}
+.home-link-btn:hover {
+  text-decoration-color: currentColor;
+}
+.home-recents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-radius: var(--radius-button);
+  outline: 0;
+}
+.home-recents:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.home-recent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 36px;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-md);
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.home-recent.is-selected {
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
+  box-shadow: inset 3px 0 0 var(--gold-fill);
+}
+.home-recent.is-skeleton {
+  justify-content: space-between;
+  cursor: default;
+}
+.home-recent-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.home-recent-where {
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.home-recent-when {
+  flex: none;
+  min-width: 64px;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+.home-recent-enter {
+  flex: none;
+  width: 14px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.home-empty {
+  padding: var(--space-6) var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+}
+
+/* The mode row: Code, Goals, Chat, Motion, World, keys 1 to 5. */
+.home-modes {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+.home-modes > * {
+  flex: 1;
+  min-width: 0;
+}
+.home-mode {
+  /* World's pixel "New" tag at 1 art px. */
+  --tag-px: 1px;
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-4) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 600 var(--fs-md) / 1.2 var(--sans);
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast),
+    border-color var(--t-fast);
+}
+.home-mode:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.home-mode.is-dimmed {
+  color: var(--text-muted);
+}
+.home-mode.is-loading {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+.home-mode-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-button);
+  background: var(--surface-3);
+  color: var(--primary);
+}
+.home-mode-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-mode .home-kbd {
+  margin-left: auto;
+}
+.home-mode .home-action-beta {
+  top: 0;
+}
+@media (max-width: 680px) {
+  .home-mode .home-kbd,
+  .home-recent-where {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .home-mode {
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-2);
+    font-size: var(--fs-sm);
+  }
+  .home-chip {
+    max-width: 110px;
+  }
+  .home-recent-enter {
+    display: none;
+  }
+}
+
+/* Footer: background work and the palette. */
+.home-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-top: var(--space-7);
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.home-foot-bg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.home-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--gold-fill);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold-fill) 18%, transparent);
+}
+.home-foot-all {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+.home-panel > .bgs-section {
+  width: 100%;
+  margin-top: var(--space-6);
+}
+:is(
+  .home-chip,
+  .home-seg-btn,
+  .home-go,
+  .home-link-btn,
+  .home-mode,
+  .home-menu-item
+):focus-visible {
+  outline: 0;
+  box-shadow: var(--focus-ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-menu {
+    animation: none;
+  }
+  .home-prompt,
+  .home-chip,
+  .home-seg-btn,
+  .home-go,
+  .home-recent,
+  .home-mode,
+  .home-link-btn {
+    transition: none;
+  }
+}
+
+/* A short window (the default 660 x 400 and smaller): drop the tagline and
+   tighten the rows so the mode row stays on screen without scrolling. */
+@media (max-height: 520px) {
+  .home > .home-tagline {
+    display: none;
+  }
+  .home-recent {
+    min-height: 28px;
+    padding-block: var(--space-2);
+  }
+  .home-modes {
+    margin-top: var(--space-5);
+  }
 }

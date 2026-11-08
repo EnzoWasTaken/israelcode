@@ -90,6 +90,12 @@ export function EntryScreen({
           }
           refreshSignal={homeRefreshSignal}
           onOpenBackground={onOpenBackground}
+          // Quick start or a recent row already pointed this window at a
+          // session (as the pickers do): show it.
+          onOpened={(mode) => {
+            setWorkspaceMode(mode);
+            onChosen();
+          }}
         />
       ) : entryView === "settings" ? (
         <Suspense fallback={null}>

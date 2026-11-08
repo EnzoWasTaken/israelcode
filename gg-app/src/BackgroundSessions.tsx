@@ -1,3 +1,4 @@
+import { useNow } from "./useNow";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Badge } from "./Badge";
@@ -167,15 +168,6 @@ export function noteBackgroundHandoff(): void {
     // Storage unavailable: still tell them once per run.
   }
   toast("Still running in the background. Find it under Background.", "info");
-}
-
-function useNow(intervalMs = 30_000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }
 
 interface ListProps {

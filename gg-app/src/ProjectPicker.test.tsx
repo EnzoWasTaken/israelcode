@@ -4,8 +4,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import {
   getSettings,
   importTranscript,
+  listBackgroundSessions,
   listProjects,
   listSessions,
+  newWindow,
   selectProject,
   setProjectHidden,
   waitForReady,
@@ -17,6 +19,9 @@ import { ProjectPicker } from "./ProjectPicker";
 vi.mock("./agent", () => ({
   arrangeAllWindows: vi.fn(),
   focusWindowByOffset: vi.fn(),
+  listBackgroundSessions: vi.fn(() => Promise.resolve([])),
+  newWindow: vi.fn(() => Promise.resolve()),
+  onBackgroundSessions: vi.fn(() => () => undefined),
   getSettings: vi.fn(),
   importTranscript: vi.fn(),
   listProjects: vi.fn(),
@@ -168,16 +173,15 @@ describe("ProjectPicker session list", () => {
     await renderSessionList([NATIVE_SESSION, FOREIGN_SESSION]);
 
     // The foreign row is labelled; the native one carries no source tag.
-    const badge = screen.getByText("Claude Code");
-    expect(badge.className).toContain("picker-source-tag");
-
-    const foreignRow = screen.getByText(FOREIGN_SESSION.preview).closest("button");
-    expect(foreignRow?.textContent).toContain("Claude Code");
+    const foreignRow = screen.getByText(FOREIGN_SESSION.preview).closest("[role=option]");
+    const badge = foreignRow?.querySelector(".sb-row-source");
+    expect(badge?.textContent).toBe("Claude Code");
     expect(foreignRow?.getAttribute("title")).toContain("opens as an Israel Code session");
 
-    const nativeRow = screen.getByText(NATIVE_SESSION.preview).closest("button");
+    const nativeRow = screen.getByText(NATIVE_SESSION.preview).closest("[role=option]");
     expect(nativeRow?.textContent).not.toContain("Claude Code");
-    expect(nativeRow?.getAttribute("title")).toBeNull();
+    expect(nativeRow?.querySelector(".sb-row-source")).toBeNull();
+    expect(nativeRow?.getAttribute("title")).toBe(NATIVE_SESSION.preview);
   });
 
   it("imports then opens when a foreign session is clicked", async () => {
@@ -232,8 +236,8 @@ describe("ProjectPicker session list", () => {
     await screen.findByRole("alert");
 
     // `busy` must be released, or every later click is silently ignored.
-    const row = screen.getByText(FOREIGN_SESSION.preview).closest("button");
-    expect(row?.hasAttribute("disabled")).toBe(false);
+    const row = screen.getByText(FOREIGN_SESSION.preview).closest("[role=option]");
+    expect(row?.hasAttribute("aria-disabled")).toBe(false);
   });
 });
 
@@ -303,5 +307,125 @@ describe("ProjectPicker search keys and empty states", () => {
   it("fills a short list with a hint to open a missing project", async () => {
     await renderProjectList([PROJECT]);
     expect(screen.getByText(/Missing a project\?/)).toBeTruthy();
+  });
+});
+
+describe("ProjectPicker session browser", () => {
+  const HOUR = 3_600_000;
+  const rows: RecentSession[] = [
+    {
+      ...NATIVE_SESSION,
+      id: "a",
+      path: "/s/a.jsonl",
+      preview: "Fix the cart test",
+      lastActiveMs: Date.now() - 60_000,
+    },
+    {
+      ...NATIVE_SESSION,
+      id: "b",
+      path: "/s/b.jsonl",
+      preview: "Write API docs",
+      lastActiveMs: Date.now() - 30 * 24 * HOUR,
+    },
+    { ...FOREIGN_SESSION, lastActiveMs: Date.now() - 40 * 24 * HOUR },
+  ];
+  const selectedTitle = (): string | null | undefined =>
+    document.querySelector("[role=option][aria-selected=true] .sb-row-title")?.textContent;
+
+  it("groups rows by date and filters them by tool with counts", async () => {
+    await renderSessionList(rows);
+    expect(screen.getByText("Today")).toBeDefined();
+    expect(screen.getByText("Earlier")).toBeDefined();
+    expect(screen.getByText("3 sessions")).toBeDefined();
+
+    const chips = screen.getByRole("group", { name: "Filter sessions" });
+    expect(chips.textContent).toBe("All3Israel Code2Claude Code1");
+    fireEvent.click(screen.getByRole("button", { name: /^Claude Code/ }));
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.queryByText("Fix the cart test")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^All\d/ }));
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+  });
+
+  it("searches titles, opens the top match on Enter, and Esc clears then goes back", async () => {
+    await renderSessionList(rows);
+    fireEvent.keyDown(document.body, { key: "/" });
+    const search = screen.getByRole("combobox", { name: "Search sessions" });
+    expect(document.activeElement).toBe(search);
+
+    fireEvent.change(search, { target: { value: "API" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    // A second Esc goes back to all projects.
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(await screen.findByText("Choose a project")).toBeDefined();
+  });
+
+  it("opens the top search match on Enter", async () => {
+    await renderSessionList(rows);
+    const search = screen.getByRole("combobox", { name: "Search sessions" });
+    fireEvent.change(search, { target: { value: "docs" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    await waitFor(() => expect(selectProjectMock).toHaveBeenCalledWith(PROJECT.path, "/s/b.jsonl"));
+  });
+
+  it("moves the selection with the arrow keys, Home and End, and opens it", async () => {
+    await renderSessionList(rows);
+    expect(selectedTitle()).toBe("Fix the cart test");
+    fireEvent.keyDown(document.body, { key: "ArrowDown" });
+    expect(selectedTitle()).toBe("Write API docs");
+    const listbox = screen.getByRole("listbox");
+    expect(listbox.getAttribute("aria-activedescendant")).toBe(
+      document.querySelector("[aria-selected=true]")?.id,
+    );
+    fireEvent.keyDown(document.body, { key: "End" });
+    expect(selectedTitle()).toBe(FOREIGN_SESSION.preview);
+    fireEvent.keyDown(document.body, { key: "ArrowDown" });
+    expect(selectedTitle()).toBe(FOREIGN_SESSION.preview);
+    fireEvent.keyDown(document.body, { key: "Home" });
+    fireEvent.keyDown(document.body, { key: "ArrowDown" });
+    fireEvent.keyDown(document.body, { key: "Enter" });
+    await waitFor(() => expect(selectProjectMock).toHaveBeenCalledWith(PROJECT.path, "/s/b.jsonl"));
+  });
+
+  it("opens the selected session in a new window on Ctrl+Enter", async () => {
+    await renderSessionList(rows);
+    fireEvent.keyDown(document.body, { key: "Enter", ctrlKey: true });
+    await waitFor(() =>
+      expect(vi.mocked(newWindow)).toHaveBeenCalledWith({
+        mode: "code",
+        chatAgent: "general",
+        cwd: PROJECT.path,
+        sessionPath: "/s/a.jsonl",
+      }),
+    );
+    expect(selectProjectMock).not.toHaveBeenCalled();
+  });
+
+  it("marks running sessions and offers a Running filter", async () => {
+    vi.mocked(listBackgroundSessions).mockResolvedValueOnce([
+      {
+        id: "bg",
+        sessionPath: "/s/b.jsonl",
+        cwd: PROJECT.path,
+        mode: "code",
+        chatAgent: null,
+        title: "",
+        status: "running",
+        detail: null,
+        attached: false,
+        startedAt: null,
+        updatedAt: 0,
+      },
+    ]);
+    await renderSessionList(rows);
+    const running = await screen.findByRole("button", { name: /^Running/ });
+    fireEvent.click(running);
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(1);
+    expect(options[0]?.textContent).toContain("Write API docs");
+    expect(options[0]?.querySelector(".sb-row-running")?.textContent).toBe("Running");
   });
 });

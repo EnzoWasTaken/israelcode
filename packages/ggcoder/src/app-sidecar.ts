@@ -186,7 +186,7 @@ import { createHooksController, type HooksController } from "./app-sidecar/hooks
 import { loadHooksConfig } from "./core/hook-presets.js";
 import { readDayUsage } from "./core/budget-guard.js";
 import { resolveWorkerPick } from "./app-sidecar/orchestration.js";
-import { readGitState, resolveGitCwd } from "./app-sidecar/git-target.js";
+import { readGitState, resolveGitCwd, settleDeferredGit } from "./app-sidecar/git-target.js";
 import {
   goalPhase,
   goalsRoot,
@@ -1704,20 +1704,22 @@ async function createSession(
   // follows the active model. A Goal window reads git from its attached
   // project folder, not the goal folder (see resolveGitCwd), and re-targets
   // when the goal's folders change (`retargetGit`).
+  // Only the footer shows these (none feed the prompt or tools), so the slow
+  // parts, the uncommitted-file count (`git status` walks the tree) and the
+  // worktree's main folder, follow once the window is ready
+  // (`settleInitialGit`); reopening a chat doesn't wait for them.
   const initialTarget = await resolveGitCwd(cwd, goal?.record ?? null);
   let gitCwd = initialTarget.dir;
-  const initialGit = await readGitState(gitCwd);
+  const initialGit = await readGitState(gitCwd, {}, { dirtyCount: false });
   // Which repository this checkout belongs to when it is a linked worktree,
   // so Home opens on the project rather than the worktree folder.
-  const worktreeOf: string | null = initialGit.isRepo
-    ? await Promise.all([mainCheckoutOf(gitCwd), checkoutRoot(gitCwd)]).then(([main, own]) =>
-        main && own && main !== own ? main : null,
-      )
-    : null;
+  let worktreeOf: string | null = null;
   let gitBranch: string | null = initialGit.branch;
   /** The repository's main folder when this window works in a linked worktree. */
   let gitIsRepo: boolean = initialGit.isRepo;
   let gitDirtyFileCount = initialGit.dirtyFileCount;
+  /** Set once any read (poll, run end, retarget) has filled in gitDirtyFileCount. */
+  let gitDirtyCountKnown = false;
   // Open issue/PR counts for the origin repo's GitHub slug, via the `gh` CLI's
   // auth. null = unknown (gh missing/unauthed, non-GitHub origin) → chips hidden.
   let gitHubSlug: string | null = initialGit.gitHubSlug;
@@ -2501,6 +2503,7 @@ async function createSession(
         isGitRepo(gitCwd).catch(() => gitIsRepo),
         getGitDirtyFileCount(gitCwd).catch(() => gitDirtyFileCount),
       ]);
+      gitDirtyCountKnown = true;
       // A run may have opened/closed issues or PRs — refresh fire-and-forget so
       // teardown isn't delayed by the network. Broadcasts itself on change.
       repoWatch.gitHubCounts?.refresh();
@@ -2952,6 +2955,7 @@ async function createSession(
         .catch(() => {});
     });
     const dirtyFiles = repoPolls.dirtyFiles.subscribe(repoKey, (next) => {
+      gitDirtyCountKnown = true;
       if (next === gitDirtyFileCount) return;
       gitDirtyFileCount = next;
       broadcast("extras", footerExtras());
@@ -3019,6 +3023,7 @@ async function createSession(
     gitBranch = state.branch;
     gitIsRepo = state.isRepo;
     gitDirtyFileCount = state.dirtyFileCount;
+    gitDirtyCountKnown = true;
     gitHubSlug = state.gitHubSlug;
     if (moved) {
       // The old repo's numbers don't apply; the new watchers fill these in.
@@ -3034,13 +3039,51 @@ async function createSession(
   // Git missed its 2 s limit at startup (a busy machine): the titlebar would
   // show "not a repo" until the next run. Read again in the background with
   // more time; window creation doesn't wait for it.
-  if (!initialTarget.settled || !initialGit.settled) {
+  function slowGitReread(): void {
     retargetGit({ reread: true, timeoutMs: SLOW_GIT_READ_TIMEOUT_MS }).catch((err: unknown) => {
       log("WARN", "app-sidecar", "slow git re-read failed", {
         message: err instanceof Error ? err.message : String(err),
       });
     });
   }
+  if (!initialTarget.settled || !initialGit.settled) slowGitReread();
+  // The footer-only reads startup skipped, in the background; arrive as `extras`.
+  async function settleInitialGit(): Promise<void> {
+    if (!initialGit.isRepo) return;
+    const { update, dirtyFailed } = await settleDeferredGit(
+      gitCwd,
+      {
+        dirtyCount: (dir) => getGitDirtyFileCount(dir),
+        worktreeOf: (dir) =>
+          Promise.all([mainCheckoutOf(dir), checkoutRoot(dir)]).then(([main, own]) =>
+            main && own && main !== own ? main : null,
+          ),
+      },
+      () => ({
+        gitCwd,
+        stopped: repoWatchStopped,
+        dirtyCountKnown: gitDirtyCountKnown,
+        dirtyFileCount: gitDirtyFileCount,
+        worktreeOf,
+      }),
+    );
+    if (repoWatchStopped) return;
+    if (update) {
+      worktreeOf = update.worktreeOf;
+      if (update.dirtyFileCount !== undefined) {
+        gitDirtyFileCount = update.dirtyFileCount;
+        gitDirtyCountKnown = true;
+      }
+      broadcast("extras", footerExtras());
+    }
+    // Git missed its limit (a busy machine): same slow re-read as above.
+    if (dirtyFailed && initialGit.settled && initialTarget.settled) slowGitReread();
+  }
+  void settleInitialGit().catch((err: unknown) => {
+    log("WARN", "app-sidecar", "initial git read failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  });
 
   const shell = new ShellRunner({
     emit: (type, data) => broadcast(type, data),

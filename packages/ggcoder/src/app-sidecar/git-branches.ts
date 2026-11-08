@@ -271,15 +271,23 @@ export async function resolveResumeCheckout(
   worktreesRoot: string,
 ): Promise<ResumeCheckout> {
   const unchanged: ResumeCheckout = { cwd: requestedCwd, note: null };
-  const common = await commonGitDir(requestedCwd);
+  // Independent reads run together: this sits on the path to a reopened
+  // chat being ready. Results and their order of use are unchanged.
+  const recordedExists = existsSync(record.cwd);
+  const requestedRootRead = realRoot(requestedCwd);
+  requestedRootRead.catch(() => {}); // unused when requestedCwd is not a repo
+  const [common, recordedCommon, recordedBranch] = await Promise.all([
+    commonGitDir(requestedCwd),
+    recordedExists ? commonGitDir(record.cwd) : null,
+    recordedExists ? currentBranch(record.cwd) : null,
+  ]);
   if (!common) return unchanged;
-  const requestedRoot = await realRoot(requestedCwd);
+  const requestedRoot = await requestedRootRead;
 
-  const recordedCommon = existsSync(record.cwd) ? await commonGitDir(record.cwd) : null;
   // The conversation was in another repository: nothing here to restore.
   if (recordedCommon && recordedCommon !== common) return unchanged;
   // Still where it was, on its branch: go back there.
-  if (recordedCommon && (await currentBranch(record.cwd)) === record.branch) {
+  if (recordedCommon && recordedBranch === record.branch) {
     const recordedRoot = await realRoot(record.cwd);
     return recordedRoot === requestedRoot ? unchanged : { cwd: recordedRoot, note: null };
   }

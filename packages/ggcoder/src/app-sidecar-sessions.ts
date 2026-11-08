@@ -13,11 +13,16 @@ import {
 } from "./core/project-discovery.js";
 import { MOTION_SESSIONS_QUERY, motionSessionsDir } from "./motion-agent/motion-agent.js";
 
-const CODING_SESSION_LIMIT = 5;
-const CHAT_SESSION_LIMIT = 30;
-const MOTION_SESSION_LIMIT = 30;
-/** Foreign rows are additive, so keep them a short tail under the native list. */
-const FOREIGN_SESSION_LIMIT = 5;
+/**
+ * The app's session browser searches and date-groups real history, so each
+ * list carries up to 200 sessions (each file is read once; ~300 files list in
+ * well under 300 ms).
+ */
+export const CODING_SESSION_LIMIT = 200;
+export const CHAT_SESSION_LIMIT = 200;
+export const MOTION_SESSION_LIMIT = 200;
+/** Foreign rows are additive, so keep them a shorter tail under the native list. */
+export const FOREIGN_SESSION_LIMIT = 50;
 
 export type SidecarSession = RecentSession & { chatAgent?: ChatAgentId };
 
@@ -61,13 +66,17 @@ export async function listSidecarSessions(
       return sessions.map((session) => ({ ...session, chatAgent: agentId }));
     }),
   );
+  // Each row already carries its last activity; only stat a row without it.
   const dated = await Promise.all(
     groups.flat().map(async (session) => ({
       session,
-      mtime: await fs
-        .stat(session.path)
-        .then((stat) => stat.mtimeMs)
-        .catch(() => 0),
+      mtime:
+        session.lastActiveMs > 0
+          ? session.lastActiveMs
+          : await fs
+              .stat(session.path)
+              .then((stat) => stat.mtimeMs)
+              .catch(() => 0),
     })),
   );
   return dated

@@ -152,6 +152,7 @@ import { useTranscriptViewport } from "./useTranscriptViewport";
 import { useWindowShortcuts } from "./useWindowShortcuts";
 import { useWindowTitle } from "./useWindowTitle";
 import { EntryScreen } from "./EntryScreen";
+import { useFirstPrompt, type HydrateSettled } from "./first-prompt";
 import { TranscriptView } from "./TranscriptView";
 import { WorkspaceModalHost } from "./WorkspaceModalHost";
 import { CommandCenter, ShortcutHint } from "./commands/CommandCenter";
@@ -450,6 +451,7 @@ function App(): React.ReactElement {
   // reveal fully-formed in one pass instead of popping in piecemeal (cwd, git,
   // thinking, model each arriving separately would reflow the bar mid-load).
   const [hydrated, setHydrated] = useState(false);
+  const [hydrateSettled, setHydrateSettled] = useState<HydrateSettled | null>(null);
   // First transcript id that should animate in. Everything restored by a
   // hydrate gets a lower id, so reopening a session (or switching projects)
   // lands instantly and only rows that arrive live afterwards rise into place.
@@ -675,6 +677,7 @@ function App(): React.ReactElement {
   // sidecar (its port changes, so we re-wait for readiness).
   const hydrate = useCallback(async (): Promise<void> => {
     const generation = ++hydrateGenerationRef.current;
+    let sessionReady = false;
     readyRef.current = false;
     setHydrated(false);
     setLiveFromId(Number.POSITIVE_INFINITY);
@@ -695,6 +698,7 @@ function App(): React.ReactElement {
         }
         setRunning(st.running);
         setStatus(st.runState === "cancelling" ? "cancelling..." : "ready");
+        sessionReady = true;
       } else {
         setConnectError("Couldn't read this session from the agent.");
       }
@@ -779,6 +783,8 @@ function App(): React.ReactElement {
       // session is in hand — one fade-in, no staggered reflow.
       setLiveFromId(lastIssuedId() + 1);
       setHydrated(true);
+      // Home's quick start may be waiting on this session (first-prompt.ts).
+      if (hydrateGenerationRef.current === generation) setHydrateSettled({ ok: sessionReady });
     }
   }, [stickToBottomRef, refreshShellTrust, startWarmMount]);
 
@@ -1041,6 +1047,13 @@ function App(): React.ReactElement {
   // current one without re-creating the interval on every render.
   const submitTextRef = useRef(submitText);
   submitTextRef.current = submitText;
+  // Home's quick-start message: sent once, as a normal user message, after
+  // the session it opened is ready; back in the composer if it can't be.
+  useFirstPrompt(
+    hydrateSettled,
+    (text) => submitTextRef.current(text),
+    (text) => setInput(text),
+  );
 
   // Return to chat without consuming the draft. Agent setup runs the existing
   // /init workflow; audits require a recorded result, never an inferred pass.

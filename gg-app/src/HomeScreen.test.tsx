@@ -2,8 +2,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { error as logError } from "@tauri-apps/plugin-log";
-import { getSettings, hasModelSource } from "./agent";
+import {
+  getSettings,
+  hasModelSource,
+  importTranscript,
+  listProjects,
+  listSessions,
+  selectProject,
+  selectWorkspace,
+  type RecentSession,
+} from "./agent";
 import { HomeScreen } from "./HomeScreen";
+import { takeFirstPrompt } from "./first-prompt";
 
 vi.mock("@tauri-apps/plugin-log", () => ({ error: vi.fn(async () => undefined) }));
 
@@ -23,12 +33,79 @@ vi.mock("./agent", () => ({
   getProgress: vi.fn(async () => null),
   setRemoteActive: vi.fn(),
   getServeStatus: vi.fn(async () => ({ running: false })),
+  listProjects: vi.fn(async () => []),
+  listSessions: vi.fn(async () => []),
+  selectProject: vi.fn(async () => undefined),
+  selectWorkspace: vi.fn(async () => undefined),
+  importTranscript: vi.fn(),
+}));
+vi.mock("./BackgroundSessions", () => ({
+  BackgroundSection: () => null,
+  isActive: () => false,
+  listableRows: () => [],
+  projectName: (p: string) => p.split("/").pop() ?? p,
+  relativeTime: () => "4 min ago",
+  useBackgroundSessions: () => [],
 }));
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  sessionStorage.clear();
+  takeFirstPrompt();
 });
+
+const session = (
+  path: string,
+  ms: number | undefined,
+  extra: Partial<RecentSession> = {},
+): RecentSession => ({
+  id: path,
+  path,
+  preview: `Title ${path}`,
+  lastActiveDisplay: "earlier",
+  messageCount: 3,
+  ...(ms !== undefined ? { lastActiveMs: ms } : {}),
+  ...extra,
+});
+
+/** Home set up (folder + provider), with one project and a chat. */
+function setUp(): void {
+  vi.mocked(getSettings).mockResolvedValue({ projectsRoot: "/root", configured: true });
+  vi.mocked(hasModelSource).mockResolvedValue(true);
+  vi.mocked(listProjects).mockResolvedValue([
+    { name: "aurora", path: "/p/aurora", lastActiveDisplay: "", sources: [] },
+  ]);
+  vi.mocked(listSessions).mockImplementation(async (cwd) =>
+    cwd === "/root"
+      ? [session("/root/chat-1.jsonl", 200, { chatAgent: "research" })]
+      : [session("/p/aurora/s1.jsonl", 300), session("/p/aurora/s2.jsonl", 100)],
+  );
+}
+
+function renderHome(extra: Partial<React.ComponentProps<typeof HomeScreen>> = {}) {
+  const props = {
+    onProjects: vi.fn(),
+    onGoals: vi.fn(),
+    onChat: vi.fn(),
+    onMotion: vi.fn(),
+    onWorld: vi.fn(),
+    onSettings: vi.fn(),
+    onOpened: vi.fn(),
+    ...extra,
+  };
+  render(<HomeScreen {...props} />);
+  return props;
+}
+
+async function whenReady(): Promise<void> {
+  const code = screen.getByRole("button", { name: "Code" });
+  await waitFor(() => expect(code.getAttribute("aria-disabled")).toBeNull());
+}
+
+function prompt(): HTMLInputElement {
+  return screen.getByRole("textbox", { name: /What are we building/ });
+}
 
 describe("HomeScreen", () => {
   it("logs a failed setup check instead of swallowing it", async () => {
@@ -206,5 +283,119 @@ describe("HomeScreen", () => {
     expect(world.getAttribute("aria-busy")).toBe("true");
     rerender(<HomeScreen {...props} worldShown />);
     await waitFor(() => expect(world.getAttribute("aria-busy")).toBeNull());
+  });
+});
+
+describe("HomeScreen quick start", () => {
+  it("opens a new session in the chosen project and queues the text once", async () => {
+    setUp();
+    const props = renderHome();
+    await whenReady();
+    await screen.findByRole("button", { name: "Project: aurora" });
+    fireEvent.change(prompt(), { target: { value: "  add dark mode  " } });
+    fireEvent.submit(prompt().closest("form")!);
+    await waitFor(() => expect(props.onOpened).toHaveBeenCalledWith("code"));
+    expect(selectProject).toHaveBeenCalledWith("/p/aurora");
+    expect(takeFirstPrompt()).toBe("add dark mode");
+    expect(takeFirstPrompt()).toBeNull();
+  });
+
+  it("opens a new chat when Chat is switched on", async () => {
+    setUp();
+    const props = renderHome();
+    await whenReady();
+    fireEvent.click(screen.getByRole("radio", { name: "Chat" }));
+    fireEvent.change(prompt(), { target: { value: "hello" } });
+    fireEvent.submit(prompt().closest("form")!);
+    await waitFor(() => expect(props.onOpened).toHaveBeenCalledWith("chat"));
+    expect(selectWorkspace).toHaveBeenCalledWith("chat", "/root", undefined, "general");
+    expect(takeFirstPrompt()).toBe("hello");
+  });
+
+  it("an empty submit just opens a new session", async () => {
+    setUp();
+    const props = renderHome();
+    await whenReady();
+    await screen.findByRole("button", { name: "Project: aurora" });
+    fireEvent.click(screen.getByRole("button", { name: "Start a new session" }));
+    await waitFor(() => expect(props.onOpened).toHaveBeenCalledWith("code"));
+    expect(takeFirstPrompt()).toBeNull();
+  });
+
+  it("keeps the typed text and shows the error when opening fails", async () => {
+    setUp();
+    vi.mocked(selectProject).mockRejectedValueOnce(new Error("daemon is down"));
+    const props = renderHome();
+    await whenReady();
+    await screen.findByRole("button", { name: "Project: aurora" });
+    fireEvent.change(prompt(), { target: { value: "keep me" } });
+    fireEvent.submit(prompt().closest("form")!);
+    expect((await screen.findByRole("alert")).textContent).toContain("daemon is down");
+    expect(prompt().value).toBe("keep me");
+    expect(props.onOpened).not.toHaveBeenCalled();
+    expect(takeFirstPrompt()).toBeNull();
+  });
+});
+
+describe("HomeScreen jump back in", () => {
+  it("lists the newest sessions across projects and chats, the first selected", async () => {
+    setUp();
+    renderHome();
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual([
+      expect.stringContaining("Title /p/aurora/s1.jsonl"),
+      expect.stringContaining("Chat \u00b7 Research"),
+      expect.stringContaining("Title /p/aurora/s2.jsonl"),
+    ]);
+    expect(options[0]?.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("Enter resumes the selected row; Down moves the selection", async () => {
+    setUp();
+    const props = renderHome();
+    await whenReady();
+    const list = await screen.findByRole("listbox", { name: "Jump back in" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "Enter" });
+    await waitFor(() => expect(props.onOpened).toHaveBeenCalledWith("chat"));
+    expect(selectWorkspace).toHaveBeenCalledWith("chat", "/root", "/root/chat-1.jsonl", "research");
+  });
+
+  it("imports a Claude Code session before resuming it", async () => {
+    setUp();
+    vi.mocked(listSessions).mockImplementation(async (cwd) =>
+      cwd === "/root" ? [] : [session("/cc/x.jsonl", 5, { source: "claude-code" })],
+    );
+    vi.mocked(importTranscript).mockResolvedValue({
+      ok: true,
+      sessionPath: "/p/aurora/new.jsonl",
+    } as never);
+    const props = renderHome();
+    await whenReady();
+    fireEvent.click(await screen.findByRole("option"));
+    await waitFor(() => expect(props.onOpened).toHaveBeenCalledWith("code"));
+    expect(importTranscript).toHaveBeenCalledWith("/cc/x.jsonl", "/p/aurora");
+    expect(selectProject).toHaveBeenCalledWith("/p/aurora", "/p/aurora/new.jsonl");
+  });
+
+  it("says what belongs there on first run", async () => {
+    setUp();
+    vi.mocked(listSessions).mockResolvedValue([]);
+    renderHome();
+    expect(await screen.findByText(/press Enter to start your first session/)).toBeDefined();
+  });
+});
+
+describe("HomeScreen mode keys", () => {
+  it("1-5 open the modes, but not while typing", async () => {
+    setUp();
+    const props = renderHome();
+    await whenReady();
+    fireEvent.keyDown(prompt(), { key: "2" });
+    expect(props.onGoals).not.toHaveBeenCalled();
+    fireEvent.keyDown(document.body, { key: "2" });
+    expect(props.onGoals).toHaveBeenCalledOnce();
+    fireEvent.keyDown(document.body, { key: "5" });
+    await waitFor(() => expect(props.onWorld).toHaveBeenCalledOnce());
   });
 });

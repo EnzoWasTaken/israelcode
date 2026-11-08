@@ -18,7 +18,15 @@ vi.mock("./HomeCritters", () => ({ HomeCritters: () => null }));
 vi.mock("./ScorecardModal", () => ({ ScorecardModal: () => null }));
 vi.mock("./update", () => ({ useAppUpdate: () => ({ status: "idle" }) }));
 vi.mock("./toast", () => ({ toast: vi.fn() }));
-vi.mock("./BackgroundSessions", () => ({ BackgroundIndicator: () => null }));
+vi.mock("./BackgroundSessions", () => ({
+  BackgroundIndicator: () => null,
+  BackgroundSection: () => null,
+  isActive: () => false,
+  listableRows: () => [],
+  projectName: (p: string) => p,
+  relativeTime: () => "",
+  useBackgroundSessions: () => [],
+}));
 vi.mock("./BudgetMeter", () => ({ BudgetMeter: () => null }));
 vi.mock("./WorktreeReview", () => ({ WorktreeReviewControl: () => null }));
 vi.mock("./VerifyControl", () => ({ VerifyControl: () => null }));
@@ -38,6 +46,7 @@ vi.mock("./agent", () => ({
   listProjects: vi.fn(),
   listSessions: vi.fn(async () => []),
   selectProject: vi.fn(),
+  selectWorkspace: vi.fn(),
   setProjectHidden: vi.fn(),
   importTranscript: vi.fn(),
   getRadioState: vi.fn(async () => ({ stations: [], current: null, volume: 70 })),
