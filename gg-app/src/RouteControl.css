@@ -29,11 +29,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0 var(--deck-gutter) var(--space-3);
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--fs-xs);
 }
 .route-line > span {
-  color: var(--primary);
+  color: var(--text);
   font-weight: 600;
 }
 .route-line[data-fallback] {

@@ -111,7 +111,10 @@
 }
 
 /* Title-bar indicator. */
-.bgs-indicator {
+.key.bgs-indicator {
+  /* Flat at rest: Commit is the title bar's one raised key. */
+  background: transparent;
+  box-shadow: none;
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
@@ -123,6 +126,7 @@
   border-radius: var(--radius-pill);
   background: var(--primary);
   animation: bgs-pulse 2s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
 }
 .bgs-indicator[data-attention] .bgs-dot {
   background: var(--warning);

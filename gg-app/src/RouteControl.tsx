@@ -1,5 +1,5 @@
 import type { AgentState, ModelOption } from "./agent";
-import { effectiveStrategy, MODE_LABELS, strategyAccessibleName } from "./route-display";
+import { effectiveStrategy, strategyAccessibleName } from "./route-display";
 import { ThinkingDots, thinkingLabel } from "./thinking-display";
 import "./RouteControl.css";
 
@@ -31,9 +31,9 @@ export function RouteControlLabel({
           · {thinkingLabel(s.effort).toLowerCase()}
         </span>
       )}
-      {s.mode !== "standard" && (
+      {s.modeLabel !== "Standard" && (
         <span className="route-mode" aria-hidden="true">
-          {MODE_LABELS[s.mode]}
+          {s.modeLabel}
         </span>
       )}
     </>

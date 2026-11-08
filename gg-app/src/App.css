@@ -6606,7 +6606,7 @@ select {
   padding: var(--space-5) var(--space-7);
   /* Each message starts a new turn: a clear gap above it (margins collapse
      with the reply before), a smaller one before Israel Code's answer. */
-  margin: calc(var(--space-12) + var(--space-5)) 0 var(--space-8) auto;
+  margin: var(--space-12) 0 var(--space-7) auto;
   font-size: var(--fs-read);
   line-height: 1.55;
   white-space: pre-wrap;
@@ -6717,7 +6717,9 @@ select {
 .permission-pill {
   align-self: center;
   padding: var(--space-1) var(--space-4);
-  border: 1px solid var(--border);
+  /* The default mode rests borderless; only a mode that changes what the
+     agent may do wears a coloured edge (rules below). */
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: none;
   color: var(--text-secondary);
@@ -6734,6 +6736,9 @@ select {
 .permission-pill[data-mode="plan"] {
   border-color: var(--success);
   color: var(--text);
+}
+.permission-pill:hover:not([data-mode="ask"], [data-mode="accept-edits"], [data-mode="plan"]) {
+  border-color: var(--border);
 }
 .permission-pill:focus-visible {
   outline: none;
@@ -9034,10 +9039,7 @@ select {
   padding: 0 var(--space-6);
   border-radius: var(--radius-button);
   background: var(--surface-1);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
   font-size: var(--fs-sm);
   pointer-events: auto;
   animation: fade-in var(--dur-pop-in) var(--ease-out) backwards;

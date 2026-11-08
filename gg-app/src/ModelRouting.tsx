@@ -50,25 +50,47 @@ export function ModelRouting({
     send({ pins });
   }
   function chooseMode(mode: RouteExecutionMode | "auto"): void {
-    if (mode === "auto") return reset("executionMode");
-    onOrchestrateChange?.(mode === "orchestrate");
-    onUltracodeChange?.(mode === "ultracode");
+    if (!auto) {
+      onOrchestrateChange?.(mode === "orchestrate");
+      onUltracodeChange?.(mode === "ultracode");
+      return;
+    }
+    // Auto: a saved toggle acts as a pin in the router, so "Auto" must switch it off too.
+    // Explicit choices pin via the router (applied per run, then restored) and leave the
+    // saved default untouched, except a both-on legacy state, which is normalised off.
+    if (mode === "auto") {
+      reset("executionMode");
+      if (state?.ultracode) onUltracodeChange?.(false);
+      if (state?.orchestration?.orchestrate) onOrchestrateChange?.(false);
+      return;
+    }
+    send({ pins: { ...route?.pins, executionMode: mode } });
+    if (state?.ultracode && state.orchestration?.orchestrate) {
+      onUltracodeChange?.(false);
+      onOrchestrateChange?.(false);
+    }
   }
 
   if (!route && !modesAvailable) return null;
 
-  const row = (name: string, dim: keyof RoutePins, value: string, pinned: boolean) => (
+  const row = (
+    name: string,
+    value: string,
+    pinned: boolean,
+    resetRow: () => void,
+    source = "pinned",
+  ) => (
     <div className="route-row" key={name}>
       <span className="route-row-name">{name}</span>
       <span className="route-row-value" data-pinned={pinned || undefined}>
-        {pinned ? `${value} (pinned)` : "Auto"}
+        {pinned ? `${value} (${source})` : "Auto"}
       </span>
       {pinned && (
         <button
           type="button"
           className="key key-sm"
           aria-label={`Reset ${name.toLowerCase()} to Auto`}
-          onClick={() => reset(dim)}
+          onClick={resetRow}
         >
           Reset to Auto
         </button>
@@ -118,12 +140,21 @@ export function ModelRouting({
           <div className="route-rows">
             {row(
               "Model",
-              "model",
               route?.pins.model ? modelDisplayName(models, route.pins.model.model) : "",
               s.pinned.model,
+              () => reset("model"),
             )}
-            {row("Effort", "effort", thinkingLabel(route?.pins.effort), s.pinned.effort)}
-            {modesAvailable && row("Mode", "executionMode", MODE_LABELS[s.mode], s.pinned.mode)}
+            {row("Effort", thinkingLabel(route?.pins.effort), s.pinned.effort, () =>
+              reset("effort"),
+            )}
+            {modesAvailable &&
+              row(
+                "Mode",
+                s.modeLabel,
+                s.pinned.mode,
+                () => chooseMode("auto"),
+                s.modeSource === "toggle" ? "your setting" : "pinned",
+              )}
           </div>
         </>
       )}
@@ -136,7 +167,9 @@ export function ModelRouting({
               className="key key-sm"
               role="radio"
               aria-checked={
-                mode === "auto" ? !s.pinned.mode : s.mode === mode && (!auto || s.pinned.mode)
+                mode === "auto"
+                  ? !s.pinned.mode
+                  : s.modeLabel === MODE_LABELS[mode] && (!auto || s.pinned.mode)
               }
               onClick={() => chooseMode(mode)}
             >
