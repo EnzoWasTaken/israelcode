@@ -6,6 +6,7 @@ import {
   type RouteExecutionMode,
   type RoutePins,
 } from "./agent";
+import { RadioKeys } from "./RadioKeys";
 import { modelDisplayName } from "./model-name";
 import { effectiveStrategy, MODE_LABELS } from "./route-display";
 import { thinkingLabel } from "./thinking-display";
@@ -106,20 +107,17 @@ export function ModelRouting({
         </p>
       )}
       {available && (
-        <div className="key-group" role="radiogroup" aria-label="Model selection">
-          {[true, false].map((on) => (
-            <button
-              key={String(on)}
-              type="button"
-              className="key key-sm"
-              role="radio"
-              aria-checked={route?.enabled === on}
-              onClick={() => route?.enabled !== on && send({ enabled: on })}
-            >
-              {on ? "Auto" : "Manual"}
-            </button>
-          ))}
-        </div>
+        <RadioKeys
+          label="Model selection"
+          items={[
+            { value: "auto", label: "Auto", checked: route?.enabled === true },
+            { value: "manual", label: "Manual", checked: route?.enabled !== true },
+          ]}
+          onSelect={(v) => {
+            const on = v === "auto";
+            if (route?.enabled !== on) send({ enabled: on });
+          }}
+        />
       )}
       {error && (
         <p className="route-why" data-fallback role="alert">
@@ -159,24 +157,18 @@ export function ModelRouting({
         </>
       )}
       {modesAvailable && (
-        <div className="key-group" role="radiogroup" aria-label="Execution mode">
-          {(auto ? (["auto", ...MODES] as const) : MODES).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className="key key-sm"
-              role="radio"
-              aria-checked={
-                mode === "auto"
-                  ? !s.pinned.mode
-                  : s.modeLabel === MODE_LABELS[mode] && (!auto || s.pinned.mode)
-              }
-              onClick={() => chooseMode(mode)}
-            >
-              {mode === "auto" ? "Auto" : MODE_LABELS[mode]}
-            </button>
-          ))}
-        </div>
+        <RadioKeys
+          label="Execution mode"
+          items={(auto ? (["auto", ...MODES] as const) : MODES).map((mode) => ({
+            value: mode,
+            label: mode === "auto" ? "Auto" : MODE_LABELS[mode],
+            checked:
+              mode === "auto"
+                ? !s.pinned.mode
+                : s.modeLabel === MODE_LABELS[mode] && (!auto || s.pinned.mode),
+          }))}
+          onSelect={(v) => chooseMode(v as RouteExecutionMode | "auto")}
+        />
       )}
     </div>
   );
