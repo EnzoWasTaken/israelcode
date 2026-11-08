@@ -5,113 +5,118 @@
 ## Context
 
 Users pick a model and reasoning level by hand; most prompts do not need the
-strongest (and slowest, dearest) one. Auto routing picks per prompt: model,
-effort and execution mode (standard, Ultracode, Orchestrate). The engine lives
-in `ggcoder/src/core/routing/` (pure, tested); this ADR covers how it is wired
-into the sidecar, Rust shell and webview API.
+strongest (and slowest, dearest) one. Auto routing picks, per prompt: model,
+effort and execution mode (standard, Ultracode, Orchestrate). It is off by
+default and never blocks a prompt.
 
-## Decision
+## Architecture and separation
 
-### Decision models
+| Layer             | Where                                                                                                                                                   | Responsibility                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engine            | `ggcoder/src/core/routing/` (`router`, `signals`, `constraints`, `fallback`, `escalation`, `cache`, `capabilities`, `config`, `explain`, `diagnostics`) | Pure and UI-free: signals → constraints → decision → validation → deterministic fallback. No I/O, no auth, no `fetch` except through an adapter.                                      |
+| Decision adapters | `decision-adapter.ts`, `llm-adapter.ts`, `decisions-api-adapter.ts`                                                                                     | Turn a `DecisionInput` into a `RawRouteChoice`. They throw `DecisionError(reason)` and swallow provider error text.                                                                   |
+| Runtime           | `app-sidecar/routing-runtime.ts`, `routing-routes.ts`                                                                                                   | Daemon-wide: config + persistence, credentials (masked), registry from real availability, adapter construction, cache, diagnostics, `/routing/*` routes.                              |
+| Session hook      | `app-sidecar/session-routing.ts`, called from `prompt-routes.ts` (`runPromptWithRouting`) and `run-control-routes.ts` (manual picks)                    | Per-window: builds the `RouteRequest`, applies the decision for one run, escalates, restores user settings.                                                                           |
+| Rust proxy        | `gg-app/src-tauri/src/commands/routing.rs`                                                                                                              | `routing_config_get/set`, `routing_credential_set/clear`, `routing_test`, `routing_diagnostics`, `agent_routing_session`; attaches the session. Preserves unknown `gg-app.json` keys. |
+| UI                | `gg-app/src/ModelRouting.tsx` (model picker), `RouteControl.tsx` (per-chat control), `SettingsAutoRouting.tsx` (Settings)                               | Display and input only; reaches the engine solely through `agent.ts` → Tauri → HTTP.                                                                                                  |
 
-`config.decider` is one of:
+The engine does not know about sessions, auth or the webview; the runtime does
+not know routing rules; the UI knows neither.
 
-- `model` — a connected low/medium-cost chat model called with one stateless
-  tool-call (`createLlmDecisionAdapter`). Only models whose provider is connected
-  with a **static API key** are offered. Sign-in (OAuth) connections
-  (Anthropic, OpenAI, Gemini, Kimi OAuth) are listed as _unavailable_ with a
-  note: a stateless side call there needs provider-specific transports/headers
-  that we have not verified, so we do not guess.
-- `decisions-api` — the Decisions API, one request returning choice/score
-  answers:
-  - OpenRouter: `POST https://openrouter.ai/api/alpha/decisions`, OpenRouter key,
-    model `typesafe/jev-1.14`; `openai/gpt-6-luna-decisions` uses the same API.
-  - TypeSafe direct: `POST https://api.typesafe.ai/v1/systemone`, TypeSafe key,
-    model `jev-latest`.
-  - Both use `Authorization: Bearer`. Encoded in `DECISION_SERVICE_DEFAULTS`.
+## Decision flow per prompt
 
-**Not verified live:** no call to either service was made while building this
-(no keys in the build environment). Request/response shapes are from the
-documented contract and the adapter tests with mocked `fetch`; the Settings
-"Test" button (`POST /routing/test`) is how a user verifies them. Likewise the
-real `session.prompt` failure shape that drives escalation is unverified live.
+1. `runPromptWithRouting` (`session-routing.ts`) runs for a **user** prompt in a
+   Code window without a Goal. Scheduled and plan-revision prompts are not
+   routed. Mid-run **queued** prompts never reach it (see Scope).
+2. `buildRouteRequest` collects: text, attachment kinds, workspace, Goal flag,
+   `spawn_agent` availability, recent user texts (300 chars each), context
+   tokens, current model/effort/mode and the pins.
+3. `routeTask` (`router.ts`):
+   1. Feature off → current configuration (`disabled`).
+   2. All three dimensions pinned → pins, still checked for warnings.
+   3. Hard constraints (`resolveConstraints`): available, not paid, within
+      `maxCostTier`, on the allow-list, vision/video if attached, enough
+      context. No candidate → current model, `constraint_violation`.
+   4. Cache lookup (and follow-up reuse of the session's last decision).
+   5. Decision adapter with a timeout (default 4 s); the answer is validated
+      (model in candidates, mode allowed, effort clamped to the model and
+      `maxEffort`). Any failure or confidence below `confidenceThreshold` →
+      deterministic rules.
+   6. Pins override per dimension; a short content-free explanation is attached.
+4. `applyDecision` switches model / effort / Ultracode / Orchestrate for this
+   run and broadcasts `route_decision` **before** the run starts; a
+   `route_decision` app marker is persisted. A thrown error runs the prompt on
+   the current configuration and shows "Auto routing unavailable — using your
+   current model".
+5. The prompt is sent, with bounded escalation (below). In `finally`,
+   `restoreRunModes` returns Ultracode/Orchestrate to the user's saved setting.
 
-### Registry, validation, fallback, confidence
+## Capability registry
 
 `buildCapabilityRegistry` over the model registry with real availability (the
-same connected-provider logic as `/models`, local models excluded, paid tiers
-never). The router validates every answer (model in candidates, mode allowed,
-effort clamped to what the model supports and `maxEffort`), and below
-`confidenceThreshold` or on any error/timeout it uses deterministic rules and
-reports a `fallbackReason`. Images/video are never routed to non-capable models.
-Routing never blocks a prompt: a thrown error runs the prompt on the current
-configuration and shows "Auto routing unavailable — using your current model".
+same connected-provider logic as `/models`). Each `ModelCapability` has: vision,
+video, tools, context window, cost tier, thinking levels, strengths, unitless
+relative cost/latency, `available` and `paid`. Family profiles (`FAMILY_PROFILES`)
+supply strengths and relative cost/latency; vision/video come from the model
+catalog. Local models are excluded. Paid tiers are never available to Auto.
+The registry fingerprint is part of the cache key, so connecting or
+disconnecting a provider invalidates cached decisions.
 
-### Pins and precedence
+## Pin precedence
 
-Per dimension, highest first: session pins (`POST /routing/session`), a manual
-`/model` pick while Auto is on (sets `pins.model`), a manual thinking change
-(sets `pins.effort`; turning thinking off clears the pin), the typed
-`ultracode`/`orchestrate` keyword and the user's own Ultracode/Orchestrate
-toggles (pin `executionMode` for the run), then the router. Auto never calls
-`persistModelSelection`/`saveProjectModelPrefs`; the chosen model, effort, and
-mode apply to the run, and Ultracode/Orchestrate go back to the user's saved
-setting afterwards. The session model stays on the last Auto choice until the
-next prompt or a manual pick.
+Per dimension (model / effort / mode), highest first:
 
-### Scope
+1. Session pins (`POST /routing/session`).
+2. A manual `/model` pick while Auto is on (sets `pins.model`; also becomes the
+   new baseline), a manual thinking change (sets `pins.effort`; turning thinking
+   off clears the pin).
+3. A typed `ultracode` / `orchestrate` keyword (when that feature is enabled for
+   the prompt) and the user's own saved Ultracode/Orchestrate toggles pin
+   `executionMode` for the run.
+4. The router.
 
-Code and chat windows only. Motion and Goal windows report
-`available: false` with a reason. Only user prompts route; scheduled prompts,
-plan revisions, queued (mid-run steering) prompts and autopilot/Ken injected
-runs do not.
+Pins are never overridden; an impossible pin (image to a non-vision model,
+unavailable mode) is kept and reported as `pinned_invalid` with a warning. Auto
+never calls `persistModelSelection`/`saveProjectModelPrefs`; choices apply to
+the run only. The session model stays on the last Auto choice until the next
+prompt or a manual pick.
 
-### Caching
+**Auto off** restores the user's baseline: the first manual model/effort before
+Auto first changed anything, or the latest explicit pick (`ensureBaseline`,
+`adoptBaseline`, `restoreBaseline`). If Auto is turned off mid-run, the restore
+is deferred until the run ends (`finishPendingRestore`).
 
-`RouteCache` is daemon-wide (keyed by hashes of request shape, config and
-registry; never raw text), TTL `cacheTtlMs`, cleared when the config changes.
-Follow-ups reuse the session's last decision.
+## Scope
 
-### Escalation bounds and cost controls
+Code and chat windows only for the toggle; the engine only offers Ultracode /
+Orchestrate in Code windows with `spawn_agent`. Motion windows report
+`available: false` with a reason; Goal windows use standard mode only.
+Scheduled prompts, plan revisions, autopilot/Ken injected runs and
+**queued mid-run prompts are not routed**: in `prompt-routes.ts` a prompt that
+arrives while a run (or run claim, or autopilot cycle) is active returns
+`queued` before `runPromptWithRouting`, and steers the run already going on its
+existing route. Covered by `prompt-routes-queue.test.ts`.
 
-After a classified provider failure (rate limit, model unavailable, provider
-transient, context overflow; not auth/billing) and only if the run produced **no
-assistant output or tool calls**, `nextEscalation` picks an alternative
-(bounded by `escalation.maxAttempts`, default 1, max 2; never replaces a pinned
-model). The prompt is retried via a hidden runtime note (the user message is
-already in the transcript) — no duplicate tool calls by construction. Costs:
-paid tiers are never chosen, `maxCostTier`/`maxEffort` cap choices, the decision
-call is a single short request with a timeout (default 4 s, test 10 s) and
-decisions are cached.
+## Cache key and invalidation
 
-### Diagnostics
+`RouteCache` is daemon-wide, a bounded LRU (100) with TTL `cacheTtlMs`
+(default 10 min; 0 disables). Only decisions made by a decider (`source:
+router`) are stored. The key (`routeCacheKey`) is a hash of: session key,
+normalized-text hash, attachment modalities, needs-image/video, pins, config
+fingerprint, registry fingerprint, workspace, Goal flag, `spawn_agent`, and the
+current provider/model — never raw text. Any config change clears the cache
+(`routing-runtime.ts`); registry, pin, model or workspace changes change the
+key. Follow-ups ("yes, go ahead") reuse the session's last decision if it is
+still a valid candidate and mode.
 
-Every decision is logged as `toDiagnostic` output only: hashes and lengths, no
-task text, no secrets. In-memory ring of 50 plus
-`<agentDir>/routing-diagnostics.jsonl` trimmed to ~500 lines
-(`GET /routing/diagnostics`). The transcript keeps a `route_decision` app marker
-(content-free summary) so a restored session can show it.
+## Escalation bounds and retry semantics
 
-### Credentials
+After a classified provider failure (`classifyEscalation`: rate limit, model
+unavailable, provider transient, context overflow; **not** auth, billing,
+aborts or bugs), `nextEscalation` may pick another model if:
 
-OpenRouter uses the existing `openrouter` provider entry in `auth.json` — one
-credential; `POST /routing/credential` refuses to overwrite it unless
-`replace: true`. The TypeSafe key is stored under `typesafe` through
-`AuthStorage` (file mode 0600) and is **not** in the AI provider list.
-Responses carry only `••••` + last four characters; keys are never logged or
-echoed, test errors are plain-language ("The key was rejected (401)").
-
-### Surface
-
-Daemon-level (no session): `GET|POST /routing/config`, `POST /routing/credential`,
-`DELETE /routing/credential/typesafe`, `POST /routing/test`,
-`GET /routing/diagnostics`. Session-level: `POST /routing/session`, events
-`route_state` and `route_decision`, and `autoRoute` in `/state` and the ready
-frame. Config is stored as `autoRoute` in `gg-app.json` (missing/invalid → Auto
-off); the Rust writer preserves unknown keys.
-
-## Consequences
-
-Existing installs migrate silently with Auto off. OAuth-only users cannot use a
-model decider until a safe stateless path is verified; Decisions API options
-still work with a key.
+- escalation is enabled and `attempt <= escalation.maxAttempts` (default 1,
+  hard max 2);
+- the model was not pinned;
+- the run produced **no assistant output or tool calls**
+  (`runProducedOutput`); othe
