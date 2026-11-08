@@ -18,7 +18,7 @@ import {
 } from "./app-settings.js";
 import type { CancelResult } from "../core/run-lifecycle.js";
 import type { SessionRouteContext } from "./route-context.js";
-import { autoRoutePayload } from "./session-routing.js";
+import { adoptBaseline, autoRoutePayload, ensureBaseline, userModelOf } from "./session-routing.js";
 
 /**
  * What a POST /thinking asks for. An empty body cycles to the next level (the
@@ -172,14 +172,6 @@ export function handleRunControlRoutes(
         }
       }
       await ctx.session.switchModel(target.provider, target.id, { confirmPaid });
-      // An explicit pick while Auto is on is a pin: the router stops overriding the model.
-      if (ctx.autoRoute.enabled) {
-        ctx.autoRoute.pins = {
-          ...ctx.autoRoute.pins,
-          model: { provider: target.provider, model: target.id },
-        };
-        ctx.broadcast("route_state", autoRoutePayload(ctx));
-      }
       // Picking an Ollama model loads it, so the footer shows the context Ollama
       // really serves instead of the 4K guess. Never delays the switch.
       if (target.provider === "local") void ctx.learnServedContext(target.id, true).catch(() => {});
@@ -208,6 +200,16 @@ export function handleRunControlRoutes(
       });
       await persistModelSelection(ctx.paths.settingsFile, target.provider, target.id);
       await persistThinkingLevel(ctx.paths.settingsFile, ctx.session.getThinkingLevel());
+      // An explicit pick while Auto is on is the user's own model from now on (the baseline
+      // Auto restores) and pins only the model: effort and mode stay up to the router.
+      if (ctx.autoRoute.enabled) {
+        adoptBaseline(ctx);
+        ctx.autoRoute.pins = {
+          ...ctx.autoRoute.pins,
+          model: { provider: target.provider, model: target.id },
+        };
+        ctx.broadcast("route_state", autoRoutePayload(ctx));
+      }
       const payload = {
         thinkingLevel: ctx.session.getThinkingLevel() ?? null,
         supportedThinkingLevels: getSupportedThinkingLevels(target.provider, target.id),
@@ -405,8 +407,12 @@ export function handleRunControlRoutes(
       }
       const next = resolved.level;
       ctx.session.setThinkingLevel(next);
-      // Same for the reasoning level (turning it off clears the pin; the router may set it again).
+      // Same for the reasoning level: it becomes the baseline and pins only effort (turning
+      // it off clears the pin; the router may set it again).
+      const userModel = userModelOf(ctx);
       if (ctx.autoRoute.enabled) {
+        ensureBaseline(ctx);
+        if (ctx.autoRoute.baseline) ctx.autoRoute.baseline.thinkingLevel = next;
         const { effort: _drop, ...rest } = ctx.autoRoute.pins;
         void _drop;
         ctx.autoRoute.pins = next ? { ...rest, effort: next } : rest;
@@ -414,9 +420,10 @@ export function handleRunControlRoutes(
       }
       // Persist per-project so THIS window restores its thinking state on
       // restart; keep the global write as a fallback (mirrors the CLI).
+      // Saved against the user's own model, never one Auto routed to for this prompt.
       void saveProjectModelPrefs(ctx.cwd, {
-        provider: st.provider,
-        model: st.model,
+        provider: userModel.provider,
+        model: userModel.model,
         thinkingEnabled: !!next,
         thinkingLevel: next ?? undefined,
       }).then(() => persistThinkingLevel(ctx.paths.settingsFile, next));

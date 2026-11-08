@@ -3,6 +3,8 @@ import path from "node:path";
 import type { AuthStorage } from "@kenkaiiii/gg-core";
 import { getAllModels, getModel } from "../core/model-registry.js";
 import { log } from "../core/logger.js";
+import { getClaudeCliUserAgent } from "../core/claude-code-version.js";
+import { isKimiCodingEndpoint, kimiCodingHeaders } from "../core/oauth/kimi.js";
 import {
   DECISION_SERVICE_DEFAULTS,
   RouteCache,
@@ -41,10 +43,6 @@ export interface BuiltAdapter {
   /** HTTP status of the most recent decisions-api response (for plain-language test errors). */
   lastStatus: () => number | null;
 }
-
-/** A sign-in (OAuth) connection can't safely serve a stateless side call, so it is never guessed at. */
-const OAUTH_NOTE =
-  "Connected through sign-in. Routing calls need an API key for this provider, so it can't be used as the decision model yet.";
 
 /** `••••` plus the last four characters, and nothing else of the key. */
 export function maskKey(key: string): string {
@@ -165,6 +163,15 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
     return { openrouter: await read("openrouter"), typesafe: await read("typesafe") };
   }
 
+  async function buildRegistry(config = current): Promise<ModelCapability[]> {
+    const connected = await connectedProviders();
+    return buildCapabilityRegistry({
+      models: getAllModels().filter((m) => m.provider !== "local"),
+      isAvailable: (provider) => connected.has(provider),
+      candidateAllowList: config.candidateModels,
+    });
+  }
+
   return {
     cache,
     diagnostics,
@@ -185,14 +192,7 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    async buildRegistry(config = current) {
-      const connected = await connectedProviders();
-      return buildCapabilityRegistry({
-        models: getAllModels().filter((m) => m.provider !== "local"),
-        isAvailable: (provider) => connected.has(provider),
-        candidateAllowList: config.candidateModels,
-      });
-    },
+    buildRegistry,
     async buildAdapter(config = current) {
       let status: number | null = null;
       const lastStatus = () => status;
@@ -223,10 +223,9 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
       if (!(await auth.hasProviderAuth(d.provider))) {
         return { adapter: null, reason: "missing_credentials", lastStatus };
       }
-      if (!(await auth.isStaticApiKey(d.provider))) {
-        return { adapter: null, reason: "no_decision_provider", lastStatus };
-      }
       try {
+        // The same resolver the agent loop uses: API key or a refreshed subscription (OAuth)
+        // token, plus the account/project ids and endpoint that login needs.
         const creds = await auth.resolveCredentials(d.provider);
         return {
           adapter: createLlmDecisionAdapter({
@@ -237,6 +236,10 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
               baseUrl: creds.baseUrl,
               accountId: creds.accountId,
               projectId: creds.projectId,
+              ...(d.provider === "anthropic" ? { userAgent: await getClaudeCliUserAgent() } : {}),
+              ...(d.provider === "moonshot" && isKimiCodingEndpoint(creds.baseUrl)
+                ? { defaultHeaders: kimiCodingHeaders() }
+                : {}),
             },
           }),
           lastStatus,
@@ -253,15 +256,13 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
       for (const m of getAllModels()) {
         if (m.provider === "local" || !connected.has(m.provider)) continue;
         if (m.billing?.paid || (m.costTier !== "low" && m.costTier !== "medium")) continue;
-        const staticKey = await auth.isStaticApiKey(m.provider);
         out.push({
           id: `model:${m.provider}:${m.id}`,
           label: m.name,
           kind: "model",
           provider: m.provider,
           model: m.id,
-          available: staticKey,
-          ...(staticKey ? {} : { note: OAUTH_NOTE }),
+          available: true,
         });
       }
       const api = (service: DecisionService, model: string, label: string): DeciderOption => {
@@ -290,11 +291,17 @@ export async function createRoutingRuntime(deps: RoutingRuntimeDeps): Promise<Ro
     async validate(config) {
       const connected = await connectedProviders();
       const cred = await credentialStatus();
-      return validateDecider(config, {
+      const problems = validateDecider(config, {
         isAvailable: (provider, modelId) =>
           connected.has(provider) && getModel(modelId) !== undefined,
         hasCredential: (key) => (key === "typesafe" ? cred.typesafe.set : cred.openrouter.set),
       });
+      if (config.enabled && (await buildRegistry(config)).length === 0) {
+        problems.push(
+          "No models are connected to route between. Sign in to a provider or loosen the allow-list.",
+        );
+      }
+      return problems;
     },
   };
 }

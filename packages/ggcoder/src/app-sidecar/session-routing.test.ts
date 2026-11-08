@@ -1,4 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const defaults = vi.hoisted(() => ({ ultracode: false, orchestrate: false }));
+vi.mock("./app-settings.js", () => ({
+  loadUltracodeDefault: async () => defaults.ultracode,
+  loadOrchestrateDefault: async () => defaults.orchestrate,
+}));
 import type { Message } from "@kenkaiiii/gg-ai";
 import { getAllModels } from "../core/model-registry.js";
 import {
@@ -12,8 +18,11 @@ import {
   AUTO_UNAVAILABLE_EXPLANATION,
   autoRoutePayload,
   classifyEscalation,
+  restoreRunModes,
   routeUserPrompt,
   runProducedOutput,
+  runPromptWithRouting,
+  setAutoEnabled,
   runWithEscalation,
 } from "./session-routing.js";
 
@@ -46,7 +55,9 @@ function makeCtx(opts: {
   throwing?: boolean;
   pins?: SessionRouteContext["autoRoute"]["pins"];
   mode?: "code" | "chat" | "motion";
+  thinking?: "low" | "high";
 }) {
+  const flags = { ultracode: false, orchestrate: false, thinking: opts.thinking };
   const state = { provider: "openai", model: "gpt-6-luna" };
   const messages: Message[] = [];
   const events: Array<[string, unknown]> = [];
@@ -58,6 +69,9 @@ function makeCtx(opts: {
   const ctx = {
     mode: opts.mode ?? "code",
     goal: null,
+    running: false,
+    runClaim: { active: false },
+    kenStatePayload: () => ({}),
     sessionId: "s1",
     kenModelOverride: null,
     syncKenModel: vi.fn(async () => {}),
@@ -81,14 +95,20 @@ function makeCtx(opts: {
     session: {
       getMessages: () => messages,
       getState: () => state,
-      getThinkingLevel: () => undefined,
+      getThinkingLevel: () => flags.thinking,
       getContextUsage: () => ({ used: 100, size: 200000 }),
       switchModel,
-      setThinkingLevel: vi.fn(),
-      isUltracode: () => false,
-      isOrchestrate: () => false,
-      setUltracode: vi.fn(),
-      setOrchestrate: vi.fn(),
+      setThinkingLevel: vi.fn((l: "low" | "high" | undefined) => {
+        flags.thinking = l;
+      }),
+      isUltracode: () => flags.ultracode,
+      isOrchestrate: () => flags.orchestrate,
+      setUltracode: vi.fn((v: boolean) => {
+        flags.ultracode = v;
+      }),
+      setOrchestrate: vi.fn((v: boolean) => {
+        flags.orchestrate = v;
+      }),
       persistAppMarker: vi.fn(async (k: string, d: unknown) => {
         markers.push([k, d]);
       }),
@@ -100,6 +120,7 @@ function makeCtx(opts: {
     events,
     markers,
     messages,
+    flags,
     raw: ctx,
   };
 }
@@ -186,6 +207,7 @@ describe("escalation guard", () => {
       t.ctx,
       routed,
       async () => {
+        t.messages.push({ role: "user", content: "rename a variable" });
         throw new Error("model_not_found");
       },
       retry,
@@ -226,5 +248,197 @@ describe("escalation guard", () => {
       ),
     ).rejects.toThrow();
     expect(retry).not.toHaveBeenCalled();
+  });
+});
+
+describe("escalation retry shape", () => {
+  const down = () => new Error("model_not_found");
+
+  it("re-sends the original prompt when the failure came before the message was recorded", async () => {
+    const t = makeCtx({});
+    const routed = await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    const retry = vi.fn(async () => {});
+    let calls = 0;
+    const attempt = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw down(); // nothing recorded in the transcript
+      t.messages.push({ role: "user", content: "rename a variable" });
+    });
+    await runWithEscalation(t.ctx, routed, attempt, retry);
+    expect(attempt).toHaveBeenCalledTimes(2);
+    expect(retry).not.toHaveBeenCalled();
+  });
+
+  it("bounds the number of escalation attempts", async () => {
+    const t = makeCtx({});
+    const routed = await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    const max = routed!.config.escalation.maxAttempts;
+    const retry = vi.fn(async () => {
+      throw down();
+    });
+    await expect(
+      runWithEscalation(
+        t.ctx,
+        routed,
+        async () => {
+          t.messages.push({ role: "user", content: "rename a variable" });
+          throw down();
+        },
+        retry,
+      ),
+    ).rejects.toThrow("model_not_found");
+    expect(retry.mock.calls.length).toBeLessThanOrEqual(max);
+  });
+
+  it("never retries an auth failure", async () => {
+    const t = makeCtx({});
+    const routed = await routeUserPrompt(t.ctx, { text: "x", attachments: [] });
+    const retry = vi.fn(async () => {});
+    await expect(
+      runWithEscalation(
+        t.ctx,
+        routed,
+        async () => {
+          throw new Error("invalid api key");
+        },
+        retry,
+      ),
+    ).rejects.toThrow();
+    expect(retry).not.toHaveBeenCalled();
+  });
+});
+
+describe("runPromptWithRouting (the prompt hook)", () => {
+  beforeEach(() => {
+    defaults.ultracode = false;
+    defaults.orchestrate = false;
+  });
+  const flagsOf = () => ({ ultracode: false, orchestrate: false });
+  const run = (
+    t: ReturnType<typeof makeCtx>,
+    text: string,
+    meta: Parameters<typeof runPromptWithRouting>[1]["meta"],
+    send = vi.fn(async () => {}),
+  ) => {
+    const flags = flagsOf();
+    return {
+      send,
+      flags,
+      done: runPromptWithRouting(
+        t.ctx,
+        { text, attachments: [], meta, send, retry: async () => {} },
+        flags,
+      ),
+    };
+  };
+
+  it("runs the prompt on the current model and broadcasts a fallback when routing fails", async () => {
+    const t = makeCtx({ throwing: true });
+    const r = run(t, "hello", undefined);
+    await r.done;
+    expect(r.send).toHaveBeenCalledTimes(1);
+    expect(t.switchModel).not.toHaveBeenCalled();
+    const ev = t.events.find(([type]) => type === "route_decision");
+    expect(ev?.[1]).toMatchObject({ source: "fallback", fallbackReason: "provider_error" });
+  });
+
+  it("does not route scheduled or plan-revision prompts", async () => {
+    for (const meta of [{ scheduled: true }, { planRevision: true }]) {
+      const t = makeCtx({});
+      const r = run(t, "tick", meta);
+      await r.done;
+      expect(r.send).toHaveBeenCalledTimes(1);
+      expect(t.switchModel).not.toHaveBeenCalled();
+      expect(t.events.some(([type]) => type === "route_decision")).toBe(false);
+    }
+  });
+
+  it("a typed ultracode keyword pins the mode and is undone after the run", async () => {
+    const t = makeCtx({});
+    const r = run(t, "ultracode fix the bug", { ultracode: true });
+    await r.done;
+    expect(t.flags.ultracode).toBe(true);
+    expect(r.flags.ultracode).toBe(true);
+    await restoreRunModes(t.ctx, r.flags);
+    expect(t.flags.ultracode).toBe(false);
+  });
+
+  it("a typed orchestrate keyword pins orchestrate mode", async () => {
+    const t = makeCtx({});
+    const r = run(t, "orchestrate the migration", { orchestrate: true });
+    await r.done;
+    expect(t.flags.orchestrate).toBe(true);
+    await restoreRunModes(t.ctx, r.flags);
+    expect(t.flags.orchestrate).toBe(false);
+  });
+
+  it("restores to the user's own saved toggle, not blindly off", async () => {
+    const t = makeCtx({});
+    const r = run(t, "ultracode go", { ultracode: true });
+    await r.done;
+    defaults.ultracode = true; // the user switched Ultracode on while it ran
+    await restoreRunModes(t.ctx, r.flags);
+    expect(t.flags.ultracode).toBe(true);
+  });
+
+  it("leaves a user's own already-on Ultracode untouched", async () => {
+    const t = makeCtx({});
+    t.flags.ultracode = true;
+    const r = run(t, "ultracode go", { ultracode: true });
+    await r.done;
+    expect(r.flags.ultracode).toBe(false);
+    await restoreRunModes(t.ctx, r.flags);
+    expect(t.raw.session.setUltracode).not.toHaveBeenCalledWith(false);
+  });
+});
+
+describe("baseline restore when Auto is turned off", () => {
+  it("switches back to the user's model and thinking and broadcasts both", async () => {
+    const t = makeCtx({ thinking: "high" });
+    await setAutoEnabled(t.ctx, true);
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    expect(t.switchModel.mock.calls[0]![1]).toContain("haiku");
+    t.events.length = 0;
+    await setAutoEnabled(t.ctx, false);
+    expect(t.switchModel).toHaveBeenLastCalledWith("openai", "gpt-6-luna", { confirmPaid: true });
+    expect(t.flags.thinking).toBe("high");
+    expect(t.events.map(([k]) => k)).toEqual(
+      expect.arrayContaining(["thinking_change", "extras", "ken_model_change"]),
+    );
+    expect(t.ctx.autoRoute.baseline).toBeUndefined();
+  });
+
+  it("restores the latest explicit pick, not the first model", async () => {
+    const t = makeCtx({});
+    await setAutoEnabled(t.ctx, true);
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    t.ctx.autoRoute.baseline = {
+      provider: "anthropic",
+      model: "claude-opus-4-8",
+      thinkingLevel: undefined,
+    };
+    await setAutoEnabled(t.ctx, false);
+    expect(t.switchModel).toHaveBeenLastCalledWith("anthropic", "claude-opus-4-8", {
+      confirmPaid: true,
+    });
+  });
+
+  it("defers the restore until the run ends when Auto is turned off mid-run", async () => {
+    const t = makeCtx({});
+    await setAutoEnabled(t.ctx, true);
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    const calls = t.switchModel.mock.calls.length;
+    t.raw.running = true;
+    await setAutoEnabled(t.ctx, false);
+    expect(t.switchModel.mock.calls.length).toBe(calls);
+    t.raw.running = false;
+    await restoreRunModes(t.ctx, { ultracode: false, orchestrate: false });
+    expect(t.switchModel).toHaveBeenLastCalledWith("openai", "gpt-6-luna", { confirmPaid: true });
+  });
+
+  it("routing code never touches the preference stores", async () => {
+    const fs = await import("node:fs");
+    const src = fs.readFileSync(new URL("./session-routing.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/saveProjectModelPrefs|persistModelSelection|persistThinkingLevel/);
   });
 });

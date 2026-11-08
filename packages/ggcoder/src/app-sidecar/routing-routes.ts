@@ -15,7 +15,7 @@ import { isThinkingLevel } from "../core/routing/capabilities.js";
 import type { RoutingRuntime } from "./routing-runtime.js";
 import { maskKey } from "./routing-runtime.js";
 import type { SessionRouteContext } from "./route-context.js";
-import { autoRouteAvailability, autoRoutePayload } from "./session-routing.js";
+import { autoRouteAvailability, autoRoutePayload, setAutoEnabled } from "./session-routing.js";
 
 export interface RoutingRouteDeps {
   runtime: RoutingRuntime;
@@ -48,7 +48,9 @@ export function describeTestFailure(reason: RouteFallbackReason, status: number 
     return `The service had a problem (${status}), try again shortly`;
   switch (reason) {
     case "missing_credentials":
-      return "No usable key or sign-in for the decision model";
+      return status === null
+        ? "No API key or sign-in is saved for the decision model. Add one first"
+        : "The key was rejected";
     case "timeout":
       return "The decision model took too long to answer";
     case "invalid_output":
@@ -56,7 +58,7 @@ export function describeTestFailure(reason: RouteFallbackReason, status: number 
     case "no_decision_provider":
       return "No decision model is selected or it can't be used";
     case "constraint_violation":
-      return "No connected model is available to route to";
+      return "No connected model is available to route to. Sign in to a provider first";
     default:
       return "The decision model couldn't be reached";
   }
@@ -183,11 +185,13 @@ async function runTest(deps: RoutingRouteDeps) {
   const reason = decision.fallbackReason;
   // A low-confidence answer still proves the service works.
   if (reason && reason !== "low_confidence") {
+    // A model decider reports a rejected login as missing_credentials with no HTTP status.
+    const status = built.lastStatus() ?? (reason === "missing_credentials" ? 401 : null);
     return {
       ok: false,
       latencyMs,
       decider,
-      error: { reason, message: describeTestFailure(reason, built.lastStatus()) },
+      error: { reason, message: describeTestFailure(reason, status) },
     };
   }
   return {
@@ -338,7 +342,7 @@ export function handleRoutingSessionRoute(
   json: RoutingRouteDeps["json"],
 ): boolean {
   if (!(method === "POST" && url === "/routing/session")) return false;
-  void readBody(req, res).then((raw) => {
+  void readBody(req, res).then(async (raw) => {
     if (raw === null) return;
     let body: { enabled?: unknown; pins?: unknown };
     try {
@@ -374,8 +378,16 @@ export function handleRoutingSessionRoute(
         };
       }
     }
-    if (typeof body.enabled === "boolean") ctx.autoRoute.enabled = body.enabled;
     if (pins) ctx.autoRoute.pins = pins;
+    if (typeof body.enabled === "boolean") {
+      try {
+        // Turning Auto off returns the window to the user's own model and reasoning level.
+        await setAutoEnabled(ctx, body.enabled);
+      } catch (err) {
+        json(res, 500, { error: err instanceof Error ? err.message : String(err) });
+        return;
+      }
+    }
     const payload = autoRoutePayload(ctx);
     ctx.broadcast("route_state", payload);
     json(res, 200, payload);

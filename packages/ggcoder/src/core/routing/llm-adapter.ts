@@ -11,7 +11,10 @@ import {
 } from "./decision-adapter.js";
 import type { RouteFallbackReason } from "./types.js";
 
-export type LlmCredentials = Pick<StreamOptions, "apiKey" | "baseUrl" | "accountId" | "projectId">;
+export type LlmCredentials = Pick<
+  StreamOptions,
+  "apiKey" | "baseUrl" | "accountId" | "projectId" | "userAgent" | "defaultHeaders"
+>;
 
 /** Minimal stream surface so tests can stub it. */
 export type DecisionStreamFn = (options: StreamOptions) => { response: Promise<StreamResponse> };
