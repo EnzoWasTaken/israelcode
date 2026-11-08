@@ -169,6 +169,8 @@ function clickTool(name: string): void {
 // preloads it on idle in the app); load it up front so timing stays the app's.
 beforeAll(async () => {
   await (await import("./LazyMarkdown")).preloadMarkdown();
+  // Deck tool bodies load on demand too (warmed on idle in the app).
+  await (await import("./lazy-surfaces")).preloadLazySurfaces();
 }, 30_000);
 
 describe("checklist workspace navigation", () => {

@@ -11,10 +11,17 @@ let pending: ReturnType<typeof load> | null = null;
 let loaded: MarkdownComponent | null = null;
 
 export function preloadMarkdown(): ReturnType<typeof load> {
-  pending ??= load().then((module) => {
-    loaded = module.Markdown;
-    return module;
-  });
+  pending ??= load().then(
+    (module) => {
+      loaded = module.Markdown;
+      return module;
+    },
+    (error: unknown) => {
+      // Let the next caller retry instead of caching a failed chunk load.
+      pending = null;
+      throw error;
+    },
+  );
   return pending;
 }
 
@@ -28,9 +35,13 @@ export function useMarkdownReady(): boolean {
   useEffect(() => {
     if (ready) return;
     let live = true;
-    void preloadMarkdown().then(() => {
-      if (live) setReady(true);
-    });
+    preloadMarkdown().then(
+      () => {
+        if (live) setReady(true);
+      },
+      // A failed load keeps the skeleton; the next mount retries.
+      () => undefined,
+    );
     return () => {
       live = false;
     };

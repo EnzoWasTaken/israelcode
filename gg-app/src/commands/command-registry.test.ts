@@ -65,6 +65,27 @@ describe("filterCommands", () => {
     // Keywords find a command without highlighting.
     expect(filterCommands(commands, "changelog")[0]).toMatchObject({ indices: [] });
   });
+  it("matches a project's path only as a contiguous substring", () => {
+    const projects = [
+      {
+        id: "l",
+        title: "landing-page",
+        section: "Projects" as const,
+        keywords: "/Users/demo/projects/landing-page",
+        run: vi.fn(),
+      },
+      {
+        id: "m",
+        title: "api",
+        section: "Projects" as const,
+        keywords: "/Users/demo/modules/api",
+        run: vi.fn(),
+      },
+    ];
+    expect(filterCommands(projects, "mod").map((m) => m.command.id)).toEqual(["m"]);
+    expect(filterCommands(projects, "lndpg").map((m) => m.command.id)).toEqual(["l"]);
+    expect(filterCommands(projects, "demo/proj").map((m) => m.command.id)).toEqual(["l"]);
+  });
 });
 
 describe("shortcut labels", () => {

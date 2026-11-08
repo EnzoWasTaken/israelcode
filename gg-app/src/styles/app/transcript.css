@@ -245,8 +245,8 @@
   font-weight: 400;
 }
 .spinner {
-  /* Brand-blue glow ties the working indicator to the wake-screen aesthetic. */
-  text-shadow: 0 0 8px rgba(77, 157, 255, 0.55);
+  /* Working reads as sun gold: a soft glow in the progress colour. */
+  text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 45%, transparent);
 }
 
 @keyframes ggblink {

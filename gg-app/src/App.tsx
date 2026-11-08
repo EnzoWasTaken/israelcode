@@ -80,12 +80,7 @@ const GoalWorld = lazy(() =>
 );
 import { loadModelsInto } from "./ModelSelect";
 import { useSchedules } from "./useSchedules";
-import { TasksModal } from "./TasksModal";
-import { ChecklistScreen } from "./ChecklistScreen";
 import { parseProjectHealth } from "./project-health";
-import { NotesModal } from "./NotesModal";
-import { MemoryModal } from "./MemoryModal";
-import { GoalSettingsModal } from "./GoalSettingsModal";
 import { MotionStarters } from "./MotionStarters";
 import { ProjectPicker } from "./ProjectPicker";
 import { type DraftEnhancement, followDraftEdit } from "./PromptEnhancement";
@@ -93,8 +88,19 @@ import { ChatPicker } from "./ChatPicker";
 import { GoalPicker } from "./LazyGoalPicker";
 import { BackButton } from "./BackButton";
 import { noteBackgroundHandoff } from "./BackgroundSessions";
-import { WorldScreen } from "./WorldScreen";
-import { SettingsModal } from "./SettingsModal";
+import {
+  LazyGoalSettingsModal,
+  LazyMemoryModal,
+  LazyNotesModal,
+  LazySettingsModal,
+  LazyTasksModal,
+  LazyChecklistScreen,
+  LazyWorldScreen,
+  deckSurfacesReady,
+  preloadDeckSurfaces,
+  preloadLazySurfaces,
+} from "./lazy-surfaces";
+import { whenIdle } from "./idle-preload";
 import { initialEntryView, type EntryView } from "./app-entry-view";
 import {
   showsQueuedBubble,
@@ -371,17 +377,27 @@ function App(): React.ReactElement {
   // Updated live via the `tasks_list` SSE event while a run-all sweep advances.
   const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   // What has taken the message box's place in the deck, if anything.
-  const [deckPanel, setDeckPanel] = useState<DeckPanelId | null>(null);
+  const [deckPanel, setDeckPanelNow] = useState<DeckPanelId | null>(null);
+  // Deck tool bodies load on demand: every change waits (in order) until
+  // they're in, so a panel never opens around a suspended body.
+  const setDeckPanel = useCallback((next: SetStateAction<DeckPanelId | null>) => {
+    if (deckSurfacesReady()) setDeckPanelNow(next);
+    else void preloadDeckSurfaces().then(() => setDeckPanelNow(next));
+  }, []);
+  useEffect(() => whenIdle(() => void preloadLazySurfaces()), []);
   // The checklist is a deck tool like Notes: open while the deck shows it.
   const showChecklist = deckPanel === "checklist";
-  const setShowChecklist = useCallback((next: SetStateAction<boolean>) => {
-    setDeckPanel((open) => {
-      const isOpen = open === "checklist";
-      const want = typeof next === "function" ? next(isOpen) : next;
-      if (want) return "checklist";
-      return isOpen ? null : open;
-    });
-  }, []);
+  const setShowChecklist = useCallback(
+    (next: SetStateAction<boolean>) => {
+      setDeckPanel((open) => {
+        const isOpen = open === "checklist";
+        const want = typeof next === "function" ? next(isOpen) : next;
+        if (want) return "checklist";
+        return isOpen ? null : open;
+      });
+    },
+    [setDeckPanel],
+  );
   // The chat never leaves the screen for the checklist any more.
   const chatView = useMemo(() => ({ visible: true }), []);
   // Every window chooses a code or chat workspace before connecting. Mode stays
@@ -809,10 +825,10 @@ function App(): React.ReactElement {
   const openTasks = useCallback(() => {
     setDeckPanel("todo");
     void listTasks().then(setProjectTasks);
-  }, []);
+  }, [setDeckPanel]);
   const closeDeckPanel = useCallback(
     (id: DeckPanelId) => setDeckPanel((open) => (open === id ? null : open)),
-    [],
+    [setDeckPanel],
   );
 
   const {
@@ -1580,13 +1596,15 @@ function App(): React.ReactElement {
   const inMonitor = monitorOpen ? " app-in-monitor" : "";
   const worldLayer = showWorld ? (
     <div className="world-overlay">
-      <WorldScreen
-        player={progress}
-        onShown={() => setWorldShown(true)}
-        onClose={closeWorld}
-        computer={worldComputer}
-        onComputer={onWorldComputer}
-      />
+      <Suspense fallback={null}>
+        <LazyWorldScreen.Component
+          player={progress}
+          onShown={() => setWorldShown(true)}
+          onClose={closeWorld}
+          computer={worldComputer}
+          onComputer={onWorldComputer}
+        />
+      </Suspense>
     </div>
   ) : null;
 
@@ -1615,7 +1633,11 @@ function App(): React.ReactElement {
             onOpenBackground={openBackgroundSession}
             onChosen={onProjectChosen}
           />
-          {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {showTraySettings && (
+            <Suspense fallback={null}>
+              <LazySettingsModal.Component onClose={closeTraySettings} />
+            </Suspense>
+          )}
           {commandCenter}
           <Toaster />
         </div>
@@ -1660,7 +1682,11 @@ function App(): React.ReactElement {
               {...pickerProps}
             />
           )}
-          {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {showTraySettings && (
+            <Suspense fallback={null}>
+              <LazySettingsModal.Component onClose={closeTraySettings} />
+            </Suspense>
+          )}
           {commandCenter}
           {/* Tray Settings can toast a save failure over the picker. */}
           <Toaster />
@@ -1907,7 +1933,7 @@ function App(): React.ReactElement {
                   title: "Notes",
                   meta: "Saved on this Mac",
                   body: (
-                    <NotesModal
+                    <LazyNotesModal.Component
                       value={notes}
                       onChange={handleNotesChange}
                       onClose={() => closeDeckPanel("notes")}
@@ -1920,7 +1946,7 @@ function App(): React.ReactElement {
                         title: "Tasks",
                         meta: `${projectTasks.filter((t) => t.status !== "done").length} pending`,
                         body: (
-                          <TasksModal
+                          <LazyTasksModal.Component
                             tasks={projectTasks}
                             running={running}
                             onRun={handleRunTask}
@@ -1940,7 +1966,7 @@ function App(): React.ReactElement {
                             ? `${checklistLoad.snapshot.items.filter((i) => i.status === "passed").length} of ${checklistLoad.snapshot.items.length} passing`
                             : undefined,
                         body: (
-                          <ChecklistScreen
+                          <LazyChecklistScreen.Component
                             load={checklistLoad}
                             running={running || checklistRunId !== null}
                             activeId={checklistRunId}
@@ -1973,7 +1999,7 @@ function App(): React.ReactElement {
                   ? {
                       title: "Goal settings",
                       body: (
-                        <GoalSettingsModal
+                        <LazyGoalSettingsModal.Component
                           context={state.goal.context ?? []}
                           instructions={state.goal.instructions ?? ""}
                           busy={running}
@@ -1994,13 +2020,15 @@ function App(): React.ReactElement {
                   workspaceMode === "chat"
                     ? {
                         title: "Brain",
-                        body: <MemoryModal onClose={() => closeDeckPanel("brain")} />,
+                        body: <LazyMemoryModal.Component onClose={() => closeDeckPanel("brain")} />,
                       }
                     : undefined,
               }}
               progress={progress}
               trophies={trophies.snapshot}
-              onOpenWorld={() => showScreen(() => setShowWorld(true))}
+              onOpenWorld={() =>
+                void LazyWorldScreen.preload().then(() => showScreen(() => setShowWorld(true)))
+              }
               usageExtras={
                 windowTotal > 1 &&
                 windowIndex !== null && (

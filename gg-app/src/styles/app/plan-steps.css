@@ -150,12 +150,13 @@
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-input);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sm);
   position: relative;
   transition: border-color var(--t-fast);
 }
 .inputwrap:focus-within {
-  border-color: var(--border-strong);
+  /* Writing: the box takes the Tekhelet edge, the app's one focus colour. */
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
 }
 /* Sibling overlays avoid nesting Beam's generated descendant selectors. They
    cannot intercept clicks, clip menus, or change the composer's layout. */
@@ -552,9 +553,9 @@
   }
 }
 /* The bright resolving "lead" glyph at the active edge (decode front / dissolve
-   tail) — brand periwinkle, mirroring the Matrix decode head. */
+   tail) — the bright Tekhelet, mirroring the Matrix decode head. */
 .enh-diss-lead {
-  color: #c4b5fd;
+  color: var(--primary-hi);
 }
 
 /* A corrected technical term — highlighted, with a teaching tooltip on hover.

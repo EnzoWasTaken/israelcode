@@ -51,20 +51,27 @@
     color var(--dur-press) var(--ease-out);
 }
 .settings-nav-item:hover {
-  background: var(--surface-1);
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface-1));
   color: var(--text);
 }
+/* Where you are: a Tekhelet-tinted row with the sun-gold marker. */
 .settings-nav-item.is-active {
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
   color: var(--text);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--gold-fill);
 }
 .settings-nav-item.is-active .settings-nav-icon {
   color: var(--primary);
 }
 .settings-nav-item:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.settings-nav-item.is-active:focus-visible {
+  box-shadow:
+    inset 3px 0 0 var(--gold-fill),
+    var(--focus-ring);
 }
 .settings-nav-icon {
   position: relative;

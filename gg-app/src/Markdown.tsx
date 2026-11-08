@@ -436,6 +436,23 @@ function CodeBlock({ children }: { children?: React.ReactNode }): React.ReactEle
  * This is the technique used by Vercel Streamdown, Cline, and the Vercel AI
  * SDK cookbook. It reduces per-token cost from O(message_length) to O(block_length).
  */
+/**
+ * A per-row lexer that re-lexes only from the last block on while text grows
+ * at its tail, so the finished blocks above keep their strings and memo holds.
+ */
+function createBlockLexer(): (markdown: string) => string[] {
+  let stable: string[] = [];
+  let stableText = "";
+  return (markdown) => {
+    const next = markdown.startsWith(stableText)
+      ? [...stable, ...parseMarkdownIntoBlocks(markdown.slice(stableText.length))]
+      : parseMarkdownIntoBlocks(markdown);
+    stable = next.slice(0, -1);
+    stableText = stable.join("");
+    return next;
+  };
+}
+
 function parseMarkdownIntoBlocks(markdown: string): string[] {
   try {
     const tokens = marked.lexer(markdown);
@@ -461,7 +478,25 @@ function isPromptBlockComplete(raw: string): boolean {
   return /`{3,}\s*$/.test(body);
 }
 
+/**
+ * Whether a block is a fenced code block whose closing fence hasn't arrived
+ * yet. Highlighting it on every delta was the top streaming cost; it shows as
+ * plain code until it closes, then highlights once.
+ */
+function isOpenFence(raw: string): boolean {
+  const t = raw.trim();
+  const open = /^(`{3,}|~{3,})/.exec(t);
+  if (!open) return false;
+  const lines = t.split(/\r?\n/);
+  if (lines.length < 2) return true;
+  const last = lines[lines.length - 1].trim();
+  const mark = open[1][0];
+  return !(last.length >= 3 && [...last].every((c) => c === mark));
+}
+
 const ANIMATED_PLUGINS = [rehypeHighlight, rehypeArrows, rehypeAnimateWords];
+const ANIMATED_PLAIN_PLUGINS = [rehypeArrows, rehypeAnimateWords];
+const PLAIN_PLUGINS = [rehypeArrows];
 /**
  * How long a block keeps its word spans after a newer block starts below it.
  * Covers the reveal catching up plus the word fade (`--dur-row`, 220ms), so the
@@ -483,17 +518,27 @@ const MemoizedMarkdownBlock = memo(
     content,
     promptReady,
     animate,
+    highlight,
   }: {
     content: string;
     promptReady: boolean;
     animate: boolean;
+    highlight: boolean;
   }): React.ReactElement {
     const normalized = content.replace(/\\n/g, "\n").replace(/^\n+|\n+$/g, "");
     return (
       <PromptReadyContext.Provider value={promptReady}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={animate ? ANIMATED_PLUGINS : PLUGINS}
+          rehypePlugins={
+            highlight
+              ? animate
+                ? ANIMATED_PLUGINS
+                : PLUGINS
+              : animate
+                ? ANIMATED_PLAIN_PLUGINS
+                : PLAIN_PLUGINS
+          }
           components={COMPONENTS}
           urlTransform={urlTransform}
         >
@@ -505,7 +550,8 @@ const MemoizedMarkdownBlock = memo(
   (prev, next) =>
     prev.content === next.content &&
     prev.promptReady === next.promptReady &&
-    prev.animate === next.animate,
+    prev.animate === next.animate &&
+    prev.highlight === next.highlight,
 );
 
 /**
@@ -522,7 +568,10 @@ export const Markdown = memo(function Markdown({
   animate = false,
   contentRef,
 }: Props): React.ReactElement {
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(children), [children]);
+  // Re-lex only from the last block on while text grows at its tail; the
+  // finished blocks above keep their strings, so their memo holds.
+  const [lexer] = useState(createBlockLexer);
+  const blocks = useMemo(() => lexer(children), [lexer, children]);
   const [rowExpanded, setRowExpanded] = useState(false);
   const ownRootRef = useRef<HTMLDivElement>(null);
   const rootRef = contentRef ?? ownRootRef;
@@ -571,6 +620,8 @@ export const Markdown = memo(function Markdown({
           // keep their spans briefly so their last words finish fading. Older
           // blocks stay memoized and span-free.
           animate={animate && index >= spanFrom}
+          // The still-open fence at a streaming tail shows as plain code.
+          highlight={!(animate && index === lastIndex && isOpenFence(block))}
         />
       ))}
       {rowFolded && (

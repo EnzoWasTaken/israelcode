@@ -18,6 +18,18 @@
   background: var(--surface-1);
   /* One quiet edge: the border. No raised highlight, no cast shadow. */
   container: deck / inline-size;
+  transition:
+    border-color var(--t-out),
+    box-shadow var(--t-out);
+}
+/* Writing in the message box: the deck's edge turns Tekhelet with a faint
+   halo, so the composer reads as the place your words go. */
+.deck:has(.inputwrap:focus-within) {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  transition:
+    border-color var(--t-in),
+    box-shadow var(--t-in);
 }
 .deck[data-plan-mode] {
   border-style: dashed;
@@ -143,6 +155,10 @@
   background: var(--primary-fill);
   transition: width var(--t-out);
 }
+/* A plan's progress fills in sun gold. */
+.plan-steps-bar::before {
+  background: var(--gold-fill);
+}
 .plan-steps-count {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
@@ -186,8 +202,18 @@
   background: var(--primary-fill);
   color: var(--on-primary-fill);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 1px 0 color-mix(in srgb, var(--on-primary-fill) 25%, transparent),
     0 1px 0 var(--key-edge);
+}
+/* Mid-run the send key is Stop: it keeps its red in the deck too, so the
+   one way to halt the agent never reads as "send". */
+.deck .icon-circle-stop,
+.deck .icon-circle-stop:hover:not(:disabled) {
+  background: var(--stop-fill);
+  color: #ffffff;
+}
+.deck .icon-circle-stop:hover:not(:disabled) {
+  background: var(--stop-fill-hi);
 }
 .deck .icon-circle-primary:disabled {
   background: var(--key);

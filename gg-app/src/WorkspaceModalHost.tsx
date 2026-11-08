@@ -1,13 +1,22 @@
-import type { ComponentProps, Dispatch, ReactElement, SetStateAction } from "react";
+import {
+  Suspense,
+  type ComponentProps,
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+} from "react";
 import type { WorkspaceMode } from "./agent";
 import { ConfirmModal } from "./ConfirmModal";
 import type { DeckPanelId } from "./Deck";
-import { InitGitModal } from "./InitGitModal";
 import { McpElicitModal } from "./McpElicitModal";
 import type { createPlanReviewActions } from "./plan-review-actions";
-import { PlanReviewModal } from "./PlanReviewModal";
-import { RewindModal } from "./RewindModal";
-import { SettingsModal } from "./SettingsModal";
+import type { RewindModal } from "./RewindModal";
+import {
+  LazyInitGitModal,
+  LazyPlanReviewModal,
+  LazyRewindModal,
+  LazySettingsModal,
+} from "./lazy-surfaces";
 import { Toaster } from "./Toaster";
 import { TrophyUnlock } from "./TrophyUnlock";
 import type { useTrophies } from "./useTrophies";
@@ -65,22 +74,26 @@ export function WorkspaceModalHost({
   return (
     <>
       {rewindAt !== null && rewindAvailable && (
-        <RewindModal
-          initialPrompt={rewindAt || undefined}
-          onClose={() => setRewindAt(null)}
-          onRewound={onRewound}
-        />
+        <Suspense fallback={null}>
+          <LazyRewindModal.Component
+            initialPrompt={rewindAt || undefined}
+            onClose={() => setRewindAt(null)}
+            onRewound={onRewound}
+          />
+        </Suspense>
       )}
 
       {workspaceMode === "code" && showInitGit && (
-        <InitGitModal
-          defaultName={defaultRepoName}
-          onClose={() => setShowInitGit(false)}
-          onInitialize={(prompt) => {
-            setShowInitGit(false);
-            submitText(prompt, "Initializing Git\u2026");
-          }}
-        />
+        <Suspense fallback={null}>
+          <LazyInitGitModal.Component
+            defaultName={defaultRepoName}
+            onClose={() => setShowInitGit(false)}
+            onInitialize={(prompt) => {
+              setShowInitGit(false);
+              submitText(prompt, "Initializing Git\u2026");
+            }}
+          />
+        </Suspense>
       )}
 
       {confirmNewSession && (
@@ -102,22 +115,28 @@ export function WorkspaceModalHost({
       <McpElicitModal />
 
       {workspaceMode === "code" && planReview !== null && (
-        <PlanReviewModal
-          key={planReviewAttempt}
-          content={planReview}
-          // Autopilot Ken reviews submitted plans himself; the indicator tells
-          // the user, but manual Accept/Reject stays live and always wins.
-          kenReviewing={autopilotReviewing}
-          onAccept={planActions.acceptPlan}
-          onFeedback={planActions.sendPlanFeedback}
-          onReject={planActions.rejectPlan}
-        />
+        <Suspense fallback={null}>
+          <LazyPlanReviewModal.Component
+            key={planReviewAttempt}
+            content={planReview}
+            // Autopilot Ken reviews submitted plans himself; the indicator tells
+            // the user, but manual Accept/Reject stays live and always wins.
+            kenReviewing={autopilotReviewing}
+            onAccept={planActions.acceptPlan}
+            onFeedback={planActions.sendPlanFeedback}
+            onReject={planActions.rejectPlan}
+          />
+        </Suspense>
       )}
 
       {/* Settings reached from the menu-bar tray. Rendered in every view branch
           (Home, picker, workspace) because the tray targets a WINDOW and can't
           know which of the three it is showing. */}
-      {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+      {showTraySettings && (
+        <Suspense fallback={null}>
+          <LazySettingsModal.Component onClose={closeTraySettings} />
+        </Suspense>
+      )}
 
       {/* Workspace toasts (saved transcript, Remote on/off, rank-up) need their
           own host: the one in the Home/Settings branch isn't mounted here. */}

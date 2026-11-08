@@ -7,6 +7,7 @@ import { ProjectPicker } from "./ProjectPicker";
 import type { SettingsTabId } from "./settings-sections";
 import { SettingsScreen, preloadSettingsScreen } from "./LazySettingsScreen";
 import { whenIdle } from "./idle-preload";
+import { LazyWorldScreen } from "./lazy-surfaces";
 import { GoalPicker } from "./LazyGoalPicker";
 import { showScreen } from "./view-transition";
 
@@ -76,7 +77,9 @@ export function EntryScreen({
           }
           // On the in-game computer World is already open behind it: World just stands the player up.
           onWorld={() =>
-            worldComputer ? setWorldComputer(false) : showScreen(() => setShowWorld(true))
+            worldComputer
+              ? setWorldComputer(false)
+              : void LazyWorldScreen.preload().then(() => showScreen(() => setShowWorld(true)))
           }
           worldShown={worldShown}
           onSettings={(tab) =>

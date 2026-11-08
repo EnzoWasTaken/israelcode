@@ -14,7 +14,7 @@ const isBoundary = (text: string, i: number): boolean =>
  * start), then an in-order subsequence that favours runs and word starts.
  * Null when the query's characters aren't all there in order.
  */
-export function fuzzyMatch(query: string, text: string): FuzzyMatch | null {
+export function fuzzyMatch(query: string, text: string, contiguousOnly = false): FuzzyMatch | null {
   const q = query.trim().toLowerCase();
   if (!q) return { score: 0, indices: [] };
   const t = text.toLowerCase();
@@ -23,6 +23,7 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch | null {
     const indices = Array.from({ length: q.length }, (_, i) => at + i);
     return { score: 1000 + (isBoundary(t, at) ? 200 : 0) - at - t.length / 100, indices };
   }
+  if (contiguousOnly) return null;
   const needle = q.replace(/\s+/g, "");
   const indices: number[] = [];
   let score = 0;
@@ -48,6 +49,9 @@ export interface CommandMatch {
 /**
  * The commands that match, best first within each section, sections in
  * order. `sections` narrows the list (the quick switcher: Projects, Sessions).
+ * Projects and sessions match their name first; their folder path and other
+ * extras only as a contiguous substring, so scattered letters in a long path
+ * ("mod" in "/Users/demo/projects/landing-page") never match.
  */
 export function filterCommands(
   commands: readonly Command[],
@@ -64,7 +68,8 @@ export function filterCommands(
       return;
     }
     const hay = [command.keywords, command.detail].filter(Boolean).join(" ");
-    const extra = hay ? fuzzyMatch(query, hay) : null;
+    const strict = command.section === "Projects" || command.section === "Sessions";
+    const extra = hay ? fuzzyMatch(query, hay, strict) : null;
     if (extra) scored.push({ command, indices: [], score: extra.score - 500, order });
   });
   scored.sort((a, b) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
 import { XIcon } from "@phosphor-icons/react";
 import { theme } from "./theme";
@@ -23,7 +23,7 @@ import { useCachedList } from "./useCachedList";
 import { BackButton } from "./BackButton";
 import { WindowLayoutButton } from "./WindowLayoutButton";
 import { RadioButton } from "./RadioButton";
-import { NewProjectModal } from "./NewProjectModal";
+import { LazyNewProjectModal } from "./lazy-surfaces";
 import { toast } from "./toast";
 import { EmptyState } from "./EmptyState";
 
@@ -484,14 +484,16 @@ export function ProjectPicker({
       )}
 
       {showNew && (
-        <NewProjectModal
-          projectsRoot={projectsRoot}
-          onClose={() => setShowNew(false)}
-          onCreated={(cwd) => {
-            setShowNew(false);
-            onChosen(cwd);
-          }}
-        />
+        <Suspense fallback={null}>
+          <LazyNewProjectModal.Component
+            projectsRoot={projectsRoot}
+            onClose={() => setShowNew(false)}
+            onCreated={(cwd) => {
+              setShowNew(false);
+              onChosen(cwd);
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

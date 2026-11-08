@@ -38,11 +38,15 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+/* Card titles: the display face (Frank Ruhl Libre); descriptions stay Sora. */
 .settings-section-title {
   margin: 0;
   color: var(--text);
-  font-size: var(--fs-lg);
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
 }
 .settings-desc {
   margin: 0;
@@ -362,4 +366,21 @@
   color: var(--text-dim);
   line-height: 1.5;
   margin-top: var(--space-6);
+}
+/* ── Tekhelet & Stone: segmented choices inside Settings ──
+   The chosen key of a radio group (Appearance's Light / Dark / Auto and its
+   kin) carries a Tekhelet tint and Tekhelet ink instead of a plain well, so
+   "current" reads at a glance in both themes. */
+.settings-page .key-group > .key[aria-checked="true"],
+.settings-page .key-group > .key[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--primary) 18%, var(--well));
+  color: var(--primary);
+  font-weight: 600;
+}
+/* The floating tab bar: the travelling pill takes the same tint. */
+:root .settings-tabs-pill {
+  background: color-mix(in srgb, var(--primary) 16%, var(--key));
+}
+.settings-tab.is-active .settings-tab-icon {
+  color: var(--primary);
 }

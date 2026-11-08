@@ -1,3 +1,52 @@
+# Visual identity: Tekhelet & Stone
+
+Israel Code's look since 0.109.0. Every colour, type face and signature detail below lives as a token in `src/styles/app/tokens.css` (fonts in `src/styles/app/fonts.css`); component sheets name tokens, never raw colours (`scripts/design-tokens-css.test.mjs`). Each colour has a dark and a light twin; `theme.ts` mirrors the roles as `var(--x)` strings for inline styles.
+
+## Themes
+
+- **Dark, "Night over Jaffa"** (the default): ink-navy surfaces lifted by lightness, warm-white ink.
+- **Light, "Jerusalem stone"**: warm limestone whites, ink-navy text, the flag's own blue.
+- Night scenes (Home's forest, a Goal's farm) stay dark in both themes through the `--night-*` copies of the dark palette.
+
+## Palette
+
+| Role          | Token                                            | Dark                                       | Light                                      | Use                                                           |
+| ------------- | ------------------------------------------------ | ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------- |
+| Canvas        | `--bg`                                           | `#0a1020`                                  | `#ebe5d9`                                  | Window background                                             |
+| Surfaces      | `--surface-1/2/3`                                | `#101a2f` / `#16223b` / `#1d2b48`          | `#f3eee4` / `#faf7f0` / `#ffffff`          | Panels, cards, raised controls                                |
+| Ink           | `--text` … `--text-dim`                          | `#f3efe6` … `#9aa5bb`                      | `#0e1a38` … `#586180`                      | Four text levels; `--text-dim` is the floor                   |
+| Tekhelet      | `--primary`                                      | `#7fa6ff`                                  | `#0038b8`                                  | Actions, links, focus, selection tint                         |
+| Tekhelet fill | `--primary-fill` / `--on-primary-fill`           | `#2a5bd7` / `#fbf8f1`                      | `#0038b8` / `#fbf8f1`                      | Filled primary buttons, send key                              |
+| Sun gold      | `--gold`, `--gold-fill` / `--on-gold-fill`       | `#f4c25b`, `#f4c25b` / `#1f1503`           | `#7f5300`, `#f2b84b` / `#241703`           | Israel's voice (`--ken`), progress, the "you are here" marker |
+| States        | `--success`, `--warning`, `--caution`, `--error` | `#6fd6a0`, `#ffae57`, `#ff8a50`, `#ff7070` | `#17663a`, `#9a4a00`, `#a8380f`, `#b42318` | Meaning only, never decoration                                |
+| Your messages | `--user-bg`                                      | 13% Tekhelet over `--surface-2`            | same mix                                   | The user bubble and the composer's "you" colour               |
+
+Contrast: every text token clears 4.5:1 on every surface in its theme (dark `--text-dim` 5.7:1 on `--surface-3`; light `--text-dim` 4.9:1 on `--bg`); filled buttons clear 5.5:1. Re-check with a contrast script before changing a value.
+
+## Type
+
+- **Sora** (`--sans`) for all UI and reading text, at the existing `--fs-*` scale; conversation text uses `--fs-read`.
+- **Frank Ruhl Libre 700** (`--display`) for card, dialog and page titles only: never body text, labels or small uppercase headings. Latin subset, 15 KB, `font-display: swap`, falls back to Young Serif.
+- Young Serif stays the About page's storybook face; m5x7 and Alagard stay the pixel faces of Home, the farm and critter bubbles.
+- Code, paths and commands are set in Sora; monospace only where characters must line up (ASCII art, multi-line code blocks).
+
+## Signature details
+
+- **The flag rule** (`--rule-flag`): a double Tekhelet hairline that closes page headers, echoing the flag's two stripes. Use it once per page, at the header; never as a general divider.
+- **You are here**: the current place (Settings page, active tab, selected row) gets a Tekhelet-tinted fill plus a gold marker.
+- **Israel speaks in gold**: Israel's replies, status and chips use `--ken` / `--ken-fill` (sun gold), apart from the Tekhelet of actions.
+- **Calm depth**: separation comes from surface lightness and soft navy shadows (`--shadow-*`), not hard borders or gloss.
+
+## Israel's portrait
+
+Israel's face (`src/ken-face.ts`, 18×18) and dialogue portrait (`src/goal-ken-portrait.ts`, 36×44) are a stylized pixel caricature of Benjamin Netanyahu, drawn as parody and tribute in the critters' pixel style: swept-back silver hair, strong brows, a confident half-smile, navy suit and blue tie. The About page says so (`PORTRAIT_NOTE` in `src/about-content.ts`): it is not affiliated with or endorsed by him or any government. Keep it clearly illustrated and good-natured; any new expression must keep the grid sizes and frame names so the face animations line up.
+
+## Discoverability
+
+- One action registry (`src/commands/command-registry.ts`) drives the command palette (Ctrl/⌘+K, Ctrl/⌘+P for projects and sessions, Ctrl/⌘+Shift+M for models) and the keyboard shortcuts sheet (Ctrl/⌘+/). A new global action or shortcut goes in the registry so both stay in step.
+- Empty lists and empty searches say what belongs there and offer the next step (`src/EmptyState.tsx`).
+- Every control has an accessible name (`src/accessible-names.test.tsx`).
+
 # App motion
 
 ## Purpose
