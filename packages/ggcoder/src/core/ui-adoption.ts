@@ -1,9 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import ts from "typescript";
+import { createRequire } from "node:module";
+import type ts from "typescript";
 import { compatibilityPatch } from "./ui-compatibility.js";
 import { localOperations, readFileBounded, type ToolOperations } from "../tools/operations.js";
 import { registryPath, type UiRegistry, payloadHash } from "./ui-registry.js";
+
+// TypeScript is ~9 MB of JS; load it on first adoption, not at sidecar startup.
+let typescriptModule: typeof ts | undefined;
+function typescript(): typeof ts {
+  return (typescriptModule ??= createRequire(import.meta.url)("typescript") as typeof ts);
+}
 
 export interface AdoptionFile {
   sourceId: string;
@@ -70,6 +77,7 @@ async function readOptional(root: string, target: string): Promise<string | unde
 export function moduleSpecifiers(
   content: string,
 ): Array<{ start: number; end: number; value: string }> {
+  const ts = typescript();
   const source = ts.createSourceFile(
     "component.tsx",
     content,
@@ -136,7 +144,7 @@ export async function planAdoption(
     (await readOptional(root, "tsconfig.json")) ??
     (await readOptional(root, "jsconfig.json")) ??
     "{}";
-  const parsed = ts.parseConfigFileTextToJson("tsconfig.json", configText);
+  const parsed = typescript().parseConfigFileTextToJson("tsconfig.json", configText);
   if (parsed.error) throw new Error("Cannot parse project aliases");
   const config = parsed.config;
   const paths: Record<string, string[]> = config.compilerOptions?.paths ?? {};
