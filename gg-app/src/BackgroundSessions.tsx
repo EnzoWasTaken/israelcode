@@ -337,15 +337,17 @@ export function BackgroundSessionList({
                     Remove from list
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="bgs-btn bgs-delete"
-                  disabled={disabled}
-                  aria-label={`Delete conversation: ${title}`}
-                  onClick={() => setConfirming(row)}
-                >
-                  Delete
-                </button>
+                {!row.attached && (
+                  <button
+                    type="button"
+                    className="bgs-btn bgs-delete"
+                    disabled={disabled}
+                    aria-label={`Delete conversation: ${title}`}
+                    onClick={() => setConfirming(row)}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </li>
           );

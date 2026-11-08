@@ -38,6 +38,12 @@ function deciderFromOption(o: RoutingDeciderOption): AutoRouteConfig["decider"] 
     : { kind: "decisions-api", service: o.service ?? "openrouter", model: o.model };
 }
 
+const FIELD_NAMES: Record<keyof Fields, string> = {
+  threshold: "Confidence threshold",
+  attempts: "Escalation attempts",
+  timeoutSec: "Decision timeout",
+};
+
 /** Editable numeric fields are kept as text so half-typed values aren't clobbered. */
 interface Fields {
   threshold: string;
@@ -53,7 +59,10 @@ function toFields(c: AutoRouteConfig): Fields {
   };
 }
 
-function parseFields(f: Fields): {
+function parseFields(
+  f: Fields,
+  escalation: AutoRouteConfig["escalation"],
+): {
   values: { threshold: number; attempts: number; timeoutMs: number } | null;
   errors: Partial<Record<keyof Fields, string>>;
 } {
@@ -62,13 +71,17 @@ function parseFields(f: Fields): {
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1)
     errors.threshold = "Enter a number from 0 to 1.";
   const attempts = f.attempts.trim() === "" ? NaN : Number(f.attempts);
-  if (!Number.isInteger(attempts) || attempts < 0 || attempts > 2)
+  if (escalation.enabled && (!Number.isInteger(attempts) || attempts < 0 || attempts > 2))
     errors.attempts = "Enter 0, 1 or 2.";
   const sec = f.timeoutSec.trim() === "" ? NaN : Number(f.timeoutSec);
   if (!Number.isFinite(sec) || sec < 1 || sec > 15) errors.timeoutSec = "Enter 1 to 15 seconds.";
   if (Object.keys(errors).length > 0) return { values: null, errors };
   return {
-    values: { threshold, attempts, timeoutMs: Math.round(sec * 1000) },
+    values: {
+      threshold,
+      attempts: escalation.enabled ? attempts : escalation.maxAttempts,
+      timeoutMs: Math.round(sec * 1000),
+    },
     errors,
   };
 }
@@ -85,6 +98,7 @@ export function SettingsAutoRouting(): React.ReactElement {
   >(null);
   const [test, setTest] = useState<RoutingTestResult | { pending: true } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   useSettingsPageReady(loaded);
 
   const adopt = useCallback((r: RoutingConfigResponse) => {
@@ -116,7 +130,10 @@ export function SettingsAutoRouting(): React.ReactElement {
     setResp(r);
   }, []);
 
-  const parsed = useMemo(() => (fields ? parseFields(fields) : null), [fields]);
+  const parsed = useMemo(
+    () => (fields && draft ? parseFields(fields, draft.escalation) : null),
+    [fields, draft],
+  );
   const candidate: AutoRouteConfig | null = useMemo(() => {
     if (!draft || !parsed?.values) return null;
     return {
@@ -243,7 +260,14 @@ export function SettingsAutoRouting(): React.ReactElement {
           </button>
           <span className="sp-status" role="status" aria-live="polite">
             {saveStatus?.kind === "saved" && !dirty && <span className="sp-ok">Saved</span>}
-            {!valid && <span className="sp-error">Fix the highlighted fields to save.</span>}
+            {!valid && (
+              <span className="sp-error">
+                Fix to save:{" "}
+                {Object.entries(parsed.errors)
+                  .map(([k, msg]) => `${FIELD_NAMES[k as keyof Fields]}: ${msg}`)
+                  .join(" ")}
+              </span>
+            )}
           </span>
         </div>
         {saveStatus?.kind === "error" && (
@@ -305,7 +329,11 @@ export function SettingsAutoRouting(): React.ReactElement {
         title="Limits"
         description="Limits Auto stays within. The defaults suit most people."
       >
-        <details className="sp-disclosure">
+        <details
+          className="sp-disclosure"
+          open={advancedOpen || Object.keys(parsed.errors).length > 0}
+          onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+        >
           <summary>Advanced options</summary>
           <div className="sp-disclosure-body">
             <FieldRow
@@ -388,7 +416,7 @@ export function SettingsAutoRouting(): React.ReactElement {
             />
             <CheckRow
               label="Escalate when a run struggles"
-              help="Retry on a different model if the first attempt fails."
+              help="If the first attempt fails, try another suitable model."
               checked={draft.escalation.enabled}
               onChange={(enabled) =>
                 setDraft({ ...draft, escalation: { ...draft.escalation, enabled } })

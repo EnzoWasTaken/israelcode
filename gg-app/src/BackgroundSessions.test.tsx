@@ -140,6 +140,36 @@ describe("BackgroundSessionList", () => {
     expect(container.querySelector(".bgs-row")).toBeNull();
   });
 
+  it("offers no Delete for rows attached to a window", () => {
+    render(
+      <BackgroundSessionList
+        rows={[row({ attached: true }), row({ id: "s2", sessionPath: "/b.jsonl", attached: true })]}
+        ownSessionPath="/a.jsonl"
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Delete conversation/ })).toBeNull();
+  });
+
+  it("offers no Delete in Settings (no own path) for attached rows", () => {
+    render(
+      <BackgroundSessionList rows={[row({ attached: true })]} onOpen={vi.fn()} canOpen={false} />,
+    );
+    expect(screen.queryByRole("button", { name: /Delete conversation/ })).toBeNull();
+  });
+
+  it("toasts the daemon's refusal to delete", async () => {
+    vi.mocked(agent.deleteBackgroundSession).mockRejectedValueOnce(
+      new Error("409: in use by a window"),
+    );
+    render(<BackgroundSessionList rows={[row()]} onOpen={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Delete conversation/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith("Couldn't delete it: 409: in use by a window", "error"),
+    );
+  });
+
   it("reports a failed action", async () => {
     vi.mocked(agent.stopBackgroundSession).mockRejectedValueOnce(new Error("nope"));
     render(<BackgroundSessionList rows={[row()]} onOpen={vi.fn()} />);

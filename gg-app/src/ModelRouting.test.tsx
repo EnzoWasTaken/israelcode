@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { ModelPanel } from "./ModelPanel";
 import { RouteControlLabel, RouteLine, routeControlName } from "./RouteControl";
 import { setSessionRouting, type AgentState, type ModelOption } from "./agent";
@@ -224,5 +224,30 @@ describe("execution mode semantics in Auto", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Orchestrate" }));
     expect(onOrchestrateChange).toHaveBeenCalledWith(true);
     expect(setSessionRouting).not.toHaveBeenCalled();
+  });
+
+  it("moves and selects with arrow keys in the Auto/Manual group (roving tabindex)", () => {
+    panel(mk({ enabled: true, pins: {}, lastDecision: DECISION, available: true }));
+    const g = within(screen.getByRole("radiogroup", { name: "Model selection" }));
+    const auto = g.getByRole("radio", { name: "Auto" });
+    const manual = g.getByRole("radio", { name: "Manual" });
+    expect(auto.getAttribute("tabindex")).toBe("0");
+    expect(manual.getAttribute("tabindex")).toBe("-1");
+    fireEvent.keyDown(auto, { key: "ArrowRight" });
+    expect(setSessionRouting).toHaveBeenCalledWith({ enabled: false });
+    expect(document.activeElement).toBe(manual);
+  });
+
+  it("supports Home and End in the Mode group", () => {
+    const { onUltracodeChange, onOrchestrateChange } = panel(
+      mk({ enabled: false, pins: {}, lastDecision: null, available: true }),
+    );
+    const group = screen.getByRole("radiogroup", { name: "Execution mode" });
+    const radios = Array.from(group.querySelectorAll<HTMLElement>('[role="radio"]'));
+    fireEvent.keyDown(radios[0], { key: "End" });
+    expect(onOrchestrateChange).toHaveBeenCalledWith(true);
+    expect(document.activeElement).toBe(radios[radios.length - 1]);
+    fireEvent.keyDown(radios[radios.length - 1], { key: "Home" });
+    expect(onUltracodeChange).toHaveBeenCalled();
   });
 });
