@@ -447,6 +447,64 @@ pub(crate) async fn active_background_count(app: &tauri::AppHandle, port: u16) -
     Some(count_active_background(&value))
 }
 
+/// What the windowless background poller should do after one observation.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum PollStep {
+    /// Keep polling; tray count becomes `count`.
+    Continue { count: usize, finished: bool },
+    /// Stop the poller (a workspace window is back).
+    Stop,
+}
+
+/// Pure transition: `prev` is the last known count, `observed` the new poll
+/// (`None` = daemon unreachable, keep the previous count).
+pub(crate) fn poll_step(prev: usize, observed: Option<usize>, windows: usize) -> PollStep {
+    if windows > 0 {
+        return PollStep::Stop;
+    }
+    let count = observed.unwrap_or(prev);
+    PollStep::Continue {
+        count,
+        finished: prev > 0 && count == 0,
+    }
+}
+
+#[cfg(any(target_os = "macos", windows))]
+static BG_POLLER_RUNNING: AtomicBool = AtomicBool::new(false);
+
+/// Keep the tray's background-task line fresh while the app lives windowless.
+/// At most one poller runs. The app has no notification mechanism, so
+/// completion is only logged and shown by the tray line disappearing.
+#[cfg(any(target_os = "macos", windows))]
+pub(crate) fn start_background_poller(app: tauri::AppHandle, port: u16, initial: usize) {
+    if BG_POLLER_RUNNING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    tauri::async_runtime::spawn(async move {
+        let mut prev = initial;
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            if app.state::<AppExiting>().0.load(Ordering::SeqCst) {
+                break;
+            }
+            let observed = active_background_count(&app, port).await;
+            match poll_step(prev, observed, workspace_window_count(&app)) {
+                PollStep::Stop => break,
+                PollStep::Continue { count, finished } => {
+                    if count != prev {
+                        update_tray_status(&app, |s| s.background_tasks = count);
+                    }
+                    if finished {
+                        log::info!("background tasks finished");
+                    }
+                    prev = count;
+                }
+            }
+        }
+        BG_POLLER_RUNNING.store(false, Ordering::SeqCst);
+    });
+}
+
 pub(crate) fn publish_window_session(
     map: &mut HashMap<String, WindowSession>,
     label: &str,
@@ -1073,6 +1131,40 @@ mod tests {
 #[cfg(test)]
 mod background_tests {
     use super::count_active_background;
+    use super::{poll_step, PollStep::*};
+
+    #[test]
+    fn poll_step_transitions() {
+        assert_eq!(
+            poll_step(2, Some(0), 0),
+            Continue {
+                count: 0,
+                finished: true
+            }
+        );
+        assert_eq!(
+            poll_step(2, Some(1), 0),
+            Continue {
+                count: 1,
+                finished: false
+            }
+        );
+        assert_eq!(
+            poll_step(2, None, 0),
+            Continue {
+                count: 2,
+                finished: false
+            }
+        );
+        assert_eq!(
+            poll_step(0, Some(0), 0),
+            Continue {
+                count: 0,
+                finished: false
+            }
+        );
+        assert_eq!(poll_step(2, Some(2), 1), Stop);
+    }
 
     #[test]
     fn counts_only_running_and_awaiting_input() {

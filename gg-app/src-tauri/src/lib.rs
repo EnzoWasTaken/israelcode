@@ -460,6 +460,7 @@ pub fn run() {
                         if let Some(n) = active.filter(|n| *n > 0) {
                             api.prevent_exit();
                             update_tray_status(app, |s| s.background_tasks = n);
+                            start_background_poller(app.clone(), port, n);
                             log::info!(
                                 "last window closed; staying in tray for {n} background task(s)"
                             );
