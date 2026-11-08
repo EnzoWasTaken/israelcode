@@ -182,7 +182,7 @@ describe("SettingsScreen", () => {
   it("groups the sections in a labelled nav with the open page marked current", async () => {
     await renderScreen({ initialTab: "mcp" });
     const nav = screen.getByRole("navigation", { name: "Settings sections" });
-    expect(nav.querySelectorAll("[role=group]").length).toBe(4);
+    expect(nav.querySelectorAll("[role=group]").length).toBe(5);
     expect(
       screen.getByRole("group", { name: "Integrations" }).querySelectorAll("button").length,
     ).toBe(5);
@@ -196,7 +196,7 @@ describe("SettingsScreen", () => {
     const general = screen.getByRole("button", { name: "General" });
     general.focus();
     fireEvent.keyDown(general, { key: "ArrowDown" });
-    const providers = screen.getByRole("button", { name: "AI Providers" });
+    const providers = screen.getByRole("button", { name: "Sessions & background" });
     expect(document.activeElement).toBe(providers);
     fireEvent.keyDown(providers, { key: "End" });
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "About" }));

@@ -189,6 +189,8 @@ interface ListProps {
   /** Called after a row action so a popover can close. */
   onActed?: () => void;
   className?: string;
+  /** False where reopening a conversation isn't possible (Settings): no Open button. */
+  canOpen?: boolean;
 }
 
 /** The compact list. Pure of layout: Home and the workspace popover each wrap it. */
@@ -199,6 +201,7 @@ export function BackgroundSessionList({
   hideOwn = false,
   onActed,
   className,
+  canOpen = true,
 }: ListProps): React.ReactElement | null {
   const now = useNow();
   const [busy, setBusy] = useState<string | null>(null);
@@ -284,7 +287,7 @@ export function BackgroundSessionList({
                 </span>
               </div>
               <div className="bgs-actions">
-                {elsewhere ? (
+                {!canOpen ? null : elsewhere ? (
                   <span className="bgs-elsewhere">Open in another window</span>
                 ) : (
                   row.sessionPath && (
