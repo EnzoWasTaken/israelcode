@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { fl } from "./flavor";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
-import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "./phosphor-icons";
 import { ShellCommandMenu } from "./ShellCommandMenu";
 import type { ShellSuggestion } from "./agent";
 import {

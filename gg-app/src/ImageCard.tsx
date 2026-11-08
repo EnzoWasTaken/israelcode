@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DownloadSimpleIcon } from "@phosphor-icons/react";
+import { DownloadSimpleIcon } from "./phosphor-icons";
 import { saveChatImage } from "./agent";
 import { toast } from "./toast";
 

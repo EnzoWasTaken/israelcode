@@ -3,7 +3,7 @@
 // with no accessible name is a mystery to screen readers and to tooltips.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { GearSixIcon, KeyIcon } from "@phosphor-icons/react";
+import { GearSixIcon, KeyIcon } from "./phosphor-icons";
 import { DeckMenu, TitleBarActions } from "./WorkspaceHeaderActions";
 import { ProjectPicker } from "./ProjectPicker";
 import { HomeScreen } from "./HomeScreen";

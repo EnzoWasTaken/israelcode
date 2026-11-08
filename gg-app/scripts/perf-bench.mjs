@@ -10,6 +10,7 @@
  *   node gg-app/scripts/perf-bench.mjs [--dist gg-app/dist] [--runs 7]
  *     [--out results.json] [--only bundle|startup|transcript|streaming|sidecar]
  *     [--profile]   also record one CDP CPU profile for transcript + streaming
+ *     [--messages 300]  transcript history size (default 300, comparable with earlier runs)
  *     [--sidecar <app-sidecar.js>]   time this sidecar build instead of packages/ggcoder/dist
  *     [--node <exe>]                 run the sidecar with this Node (e.g. the staged ggnode-*
  *                                    binary with --sidecar gg-app/src-tauri/sidecar/app-sidecar.mjs)
@@ -36,7 +37,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SECTIONS = ["bundle", "startup", "transcript", "streaming", "sidecar"];
 
 function parseArgs(argv) {
-  const opts = { dist: resolve(here, "../dist"), runs: 7, out: null, only: null, profile: false };
+  const opts = {
+    dist: resolve(here, "../dist"),
+    runs: 7,
+    out: null,
+    only: null,
+    profile: false,
+    messages: 300,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--dist") opts.dist = resolve(argv[++i]);
@@ -44,11 +52,13 @@ function parseArgs(argv) {
     else if (a === "--out") opts.out = resolve(argv[++i]);
     else if (a === "--only") opts.only = argv[++i];
     else if (a === "--profile") opts.profile = true;
+    else if (a === "--messages") opts.messages = Number(argv[++i]);
     else if (a === "--sidecar") opts.sidecar = resolve(argv[++i]);
     else if (a === "--node") opts.node = resolve(argv[++i]);
     else throw new Error(`unknown argument: ${a}`);
   }
   if (opts.only && !SECTIONS.includes(opts.only)) throw new Error(`--only must be ${SECTIONS}`);
+  if (!(opts.messages >= 2)) throw new Error("--messages must be >= 2");
   if (!(opts.runs >= 1)) throw new Error("--runs must be >= 1");
   return opts;
 }
@@ -578,8 +588,28 @@ async function transcriptRun(browser, url, throttle, history, profile = false) {
     [SESSION_PREVIEW, END_MARKER],
   );
   const m1 = await metrics();
+  // Until the transcript's row list stops changing (older rows mounting above
+  // the fold after the first paint): quiet for 300 ms counts as settled.
+  const settledAt = await page.evaluate(
+    (t1) =>
+      new Promise((done) => {
+        const box = document.querySelector(".transcript");
+        let last = t1;
+        let timer = setTimeout(finish, 300);
+        function finish() {
+          mo.disconnect();
+          done(last);
+        }
+        const mo = new MutationObserver(() => {
+          last = performance.now();
+          clearTimeout(timer);
+          timer = setTimeout(finish, 300);
+        });
+        if (box) mo.observe(box, { childList: true });
+      }),
+    t.t1,
+  );
   const hot = profile ? (await cdp.send("Profiler.stop")).profile : null;
-  await page.waitForTimeout(300);
   const lt = await longTasksIn(page, t.t0, t.t1);
   const nodes = await page.evaluate(() => ({
     rows: document.querySelectorAll(".transcript > *").length,
@@ -590,6 +620,7 @@ async function transcriptRun(browser, url, throttle, history, profile = false) {
   return {
     run: {
       renderMs: t.t1 - t.t0,
+      settledMs: settledAt - t.t0,
       scriptMs: (m1.ScriptDuration - m0.ScriptDuration) * 1000,
       taskMs: (m1.TaskDuration - m0.TaskDuration) * 1000,
       longTaskMs: lt.total,
@@ -728,7 +759,30 @@ function hotspots(profile, dist) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 15)
       .map(([name, ms]) => ({ name, selfMs: round(ms) }));
-  return { busySelfMs: round(total), topFunctions: top(byFn), topFiles: top(byFile) };
+  // Inclusive time of the app's own functions (each sample counted once per frame).
+  const parent = new Map();
+  for (const n of profile.nodes) for (const c of n.children ?? []) parent.set(c, n.id);
+  const keyOf = new Map();
+  const inclusive = new Map();
+  profile.samples.forEach((id, i) => {
+    const seen = new Set();
+    for (let n = id; n != null; n = parent.get(n)) {
+      if (!keyOf.has(n)) {
+        const { file, fn } = where(byId.get(n).callFrame);
+        keyOf.set(n, file.startsWith("src/") ? `${fn} — ${file}` : null);
+      }
+      const k = keyOf.get(n);
+      if (k) seen.add(k);
+    }
+    for (const k of seen)
+      inclusive.set(k, (inclusive.get(k) ?? 0) + (profile.timeDeltas[i] ?? 0) / 1000);
+  });
+  return {
+    busySelfMs: round(total),
+    topFunctions: top(byFn),
+    topFiles: top(byFile),
+    topAppInclusive: top(inclusive).map(({ name, selfMs }) => ({ name, totalMs: selfMs })),
+  };
 }
 
 // ── Sidecar ──────────────────────────────────────────────────────────────────
@@ -852,7 +906,7 @@ async function main() {
     const browser = await chromium.launch();
     results.meta.browser = `Chromium ${browser.version()} (headless)`;
     const server = await serve(opts.dist);
-    const history = makeHistory(300);
+    const history = makeHistory(opts.messages);
     try {
       for (const section of browserSections) {
         results[section] = {};

@@ -12,7 +12,7 @@ import { PromptSendContext } from "./prompt-send";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { CheckIcon, CopyIcon, ArrowElbowDownLeftIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon, ArrowElbowDownLeftIcon } from "./phosphor-icons";
 import { openProjectPath, openUrl, readChatImage, sendPrompt } from "./agent";
 import { toast } from "./toast";
 import { ImageCard } from "./ImageCard";
@@ -494,7 +494,20 @@ function isOpenFence(raw: string): boolean {
   return !(last.length >= 3 && [...last].every((c) => c === mark));
 }
 
-const ANIMATED_PLUGINS = [rehypeHighlight, rehypeArrows, rehypeAnimateWords];
+/**
+ * rehype-highlight builds a fresh lowlight (37 grammars registered, each
+ * compiled again on first use) every time its attacher runs, and
+ * react-markdown runs attachers on every render of every block. Its transform
+ * only reads that instance, so one shared transform gives the same output
+ * without re-registering and recompiling the grammars per block.
+ */
+let highlightTransform: ReturnType<typeof rehypeHighlight> | null = null;
+function rehypeHighlightShared(): ReturnType<typeof rehypeHighlight> {
+  highlightTransform ??= rehypeHighlight();
+  return highlightTransform;
+}
+
+const ANIMATED_PLUGINS = [rehypeHighlightShared, rehypeArrows, rehypeAnimateWords];
 const ANIMATED_PLAIN_PLUGINS = [rehypeArrows, rehypeAnimateWords];
 const PLAIN_PLUGINS = [rehypeArrows];
 /**
@@ -503,7 +516,7 @@ const PLAIN_PLUGINS = [rehypeArrows];
  * last words of a finished paragraph finish fading instead of snapping solid.
  */
 const WORD_FADE_HOLD_MS = 450;
-const PLUGINS = [rehypeHighlight, rehypeArrows];
+const PLUGINS = [rehypeHighlightShared, rehypeArrows];
 const COMPONENTS = {
   a: ExternalLink,
   img: MarkdownImage,

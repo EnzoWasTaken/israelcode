@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { ProjectWorktrees } from "./ProjectWorktrees";
 import {

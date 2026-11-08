@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon } from "./phosphor-icons";
 import { useDialogFocus } from "./dialog-focus";
 import { theme } from "./theme";
 import { Markdown } from "./LazyMarkdown";

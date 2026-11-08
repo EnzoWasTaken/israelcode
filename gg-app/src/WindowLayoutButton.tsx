@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { AppWindowIcon } from "@phosphor-icons/react";
+import { AppWindowIcon } from "./phosphor-icons";
 import { setupWindows, arrangeAllWindows } from "./agent";
 import { supportsNativeSelectPopup } from "./platform";
 import { playSound } from "./sounds";

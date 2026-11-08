@@ -489,6 +489,7 @@ function App(): React.ReactElement {
     maybeScrollToBottom,
     windowStart,
     windowRef,
+    startWarmMount,
   } = transcriptScroll;
 
   const setDragOverActive = useDragOverlay({ isFileDragOver, setIsFileDragOver });
@@ -712,13 +713,20 @@ function App(): React.ReactElement {
       ).then((ok) => {
         if (!ok && hydrateGenerationRef.current === generation) setModelsFailed(true);
       });
-      const cmds = await listCommands();
+      // Ask for the commands, tasks and history together: each is a sidecar
+      // round trip, and a long chat's history is the slow one. Awaited in the
+      // same order as before, so state lands the same way.
+      const commandsCall = listCommands();
+      const tasksCall = listTasks();
+      const historyCall = listHistory();
+      for (const call of [commandsCall, tasksCall]) call.catch(() => undefined);
+      const cmds = await commandsCall;
       if (cmds.length > 0) setCommands(cmds);
       // Project task list for the Tasks modal + nav button.
-      setProjectTasks(await listTasks());
+      setProjectTasks(await tasksCall);
       // Hydrate the transcript when resuming an existing session — the webview
       // only sees live SSE events, so past messages must be fetched explicitly.
-      const history = await listHistory();
+      const history = await historyCall;
       const pendingShellRuns = Array.isArray(st?.pendingShellRuns) ? st.pendingShellRuns : [];
       void refreshShellTrust();
       if (history.length > 0) {
@@ -732,6 +740,8 @@ function App(): React.ReactElement {
         // A reloaded transcript gives every worker a new row key; the goal
         // header's tally starts again from it (see tallySource).
         setTranscriptEpoch((epoch) => epoch + 1);
+        // Newest turns first; older rows of the page mount over the next frames.
+        startWarmMount();
         setItems(itemsFromHistory(history, pendingShellRuns));
       }
       // History keeps a question's tool call but not its card: put back the
@@ -770,7 +780,7 @@ function App(): React.ReactElement {
       setLiveFromId(lastIssuedId() + 1);
       setHydrated(true);
     }
-  }, [stickToBottomRef, refreshShellTrust]);
+  }, [stickToBottomRef, refreshShellTrust, startWarmMount]);
 
   useEffect(() => {
     const unsub = subscribe(handleEvent);

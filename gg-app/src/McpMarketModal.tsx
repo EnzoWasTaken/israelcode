@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircleIcon, WarningCircleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningCircleIcon, XCircleIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Badge } from "./Badge";
 import { ListSkeleton } from "./Skeleton";

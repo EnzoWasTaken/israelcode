@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon } from "./phosphor-icons";
 import { formatElapsed } from "./ActivityBar";
 import {
   SHELL_PREVIEW_LINES,

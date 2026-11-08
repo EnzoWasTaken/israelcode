@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClockCounterClockwiseIcon, TerminalIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, TerminalIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import type { ShellSuggestion } from "./agent";
 import { useScrollEdges } from "./popover";

@@ -1,10 +1,5 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import {
-  AtIcon,
-  FileTextIcon,
-  FilmStripIcon,
-  ArrowCounterClockwiseIcon,
-} from "@phosphor-icons/react";
+import { AtIcon, FileTextIcon, FilmStripIcon, ArrowCounterClockwiseIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { ChatErrorNotice } from "./ChatErrorNotice";
 import { openImageDataUrl, openProjectPath } from "./agent";

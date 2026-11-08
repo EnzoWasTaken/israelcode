@@ -4,7 +4,13 @@ import { flushSync } from "react-dom";
 import type { createChatLayoutMotion } from "./chat-layout-motion";
 import { firstOpenAskId } from "./ask-user";
 import { isHiddenScroller, pinAfterScroll, pinAfterWheel } from "./transcript-pin";
-import { earlierStartId, windowStartIndex } from "./transcript-window";
+import {
+  earlierStartId,
+  TURN_PAGE,
+  WARM_FIRST_TURNS,
+  WARM_STEP_TURNS,
+  windowStartIndex,
+} from "./transcript-window";
 import { dissolveInAbove, teleport } from "./transcript-motion";
 import type { Item } from "./transcript-item";
 
@@ -71,7 +77,14 @@ export function useTranscriptScroll({
   // Newest row id the reader had when they scrolled up; anything newer shows
   // the "new chats" pill. Null while following.
   const [seenUpToId, setSeenUpToId] = useState<number | null>(null);
-  const windowStart = useMemo(() => windowStartIndex(items, windowStartId), [items, windowStartId]);
+  // Turns the newest window holds; below TURN_PAGE only while a just-opened
+  // chat is still mounting its older rows (transcript-window.ts).
+  const [warmTurns, setWarmTurns] = useState(TURN_PAGE);
+  const startWarmMount = useCallback(() => setWarmTurns(WARM_FIRST_TURNS), []);
+  const windowStart = useMemo(
+    () => windowStartIndex(items, windowStartId, warmTurns),
+    [items, windowStartId, warmTurns],
+  );
   const visibleItems = useMemo(
     () => (windowStart === 0 ? items : items.slice(windowStart)),
     [items, windowStart],
@@ -182,6 +195,22 @@ export function useTranscriptScroll({
     setWindowStartId(null);
   }, [items]);
 
+  // Grow a warm window one step per painted frame while following. A reader
+  // who scrolled up holds the window by id; growth resumes back at the bottom.
+  useEffect(() => {
+    if (warmTurns >= TURN_PAGE || !following) return;
+    let timer = 0;
+    const raf = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => {
+        if (stickToBottomRef.current) setWarmTurns((t) => Math.min(TURN_PAGE, t + WARM_STEP_TURNS));
+      }, 0);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [warmTurns, following]);
+
   useEffect(() => () => cancelTeleportRef.current?.(), []);
   const jumpTo = useCallback(
     (land: (el: HTMLDivElement) => void) => {
@@ -282,6 +311,7 @@ export function useTranscriptScroll({
     seenUpToId,
     setSeenUpToId,
     windowStart,
+    startWarmMount,
     visibleItems,
     firstNewId,
     windowRef,

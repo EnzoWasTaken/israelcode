@@ -14,7 +14,7 @@ import {
   CoinsIcon,
   BugBeetleIcon,
   type Icon,
-} from "@phosphor-icons/react";
+} from "./phosphor-icons";
 import { Badge } from "./Badge";
 import { EmbeddedModal } from "./modal-embed";
 import { SettingsModal } from "./SettingsModal";

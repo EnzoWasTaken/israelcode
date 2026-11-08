@@ -14,6 +14,15 @@
 /** Turns shown on open, and added by each load of older history. */
 export const TURN_PAGE = 20;
 
+/**
+ * Opening a long chat mounts only its newest {@link WARM_FIRST_TURNS} turns
+ * for the first paint (what is on screen at the bottom), then grows the window
+ * by {@link WARM_STEP_TURNS} a frame until it holds {@link TURN_PAGE}. The
+ * older rows land above the fold while the view stays pinned to the bottom.
+ */
+export const WARM_FIRST_TURNS = 4;
+export const WARM_STEP_TURNS = 4;
+
 /** The item fields the window rules read. */
 export interface WindowItem {
   readonly id: number;
@@ -48,8 +57,12 @@ export function turnStartIndex(
  * the reader is looking at never shift when new turns arrive below. An id that
  * is no longer in the list (a new session hydrated) falls back to the default.
  */
-export function windowStartIndex(items: readonly WindowItem[], startId: number | null): number {
-  const latest = turnStartIndex(items, TURN_PAGE);
+export function windowStartIndex(
+  items: readonly WindowItem[],
+  startId: number | null,
+  turns: number = TURN_PAGE,
+): number {
+  const latest = turnStartIndex(items, turns);
   if (startId === null) return latest;
   const index = items.findIndex((item) => item.id === startId);
   return index < 0 ? latest : Math.min(index, latest);

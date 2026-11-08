@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PauseIcon, PlayIcon, RadioIcon, SpeakerHighIcon } from "@phosphor-icons/react";
+import { PauseIcon, PlayIcon, RadioIcon, SpeakerHighIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
 import { Dropdown } from "./Dropdown";

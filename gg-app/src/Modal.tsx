@@ -1,6 +1,6 @@
 import { useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { useDialogFocus } from "./dialog-focus";
 import { withViewTransition } from "./view-transition";

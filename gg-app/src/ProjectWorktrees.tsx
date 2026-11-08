@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Badge } from "./Badge";
 import { ConfirmModal } from "./ConfirmModal";

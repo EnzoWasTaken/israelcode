@@ -1,4 +1,4 @@
-import { SmileyWinkIcon } from "@phosphor-icons/react";
+import { SmileyWinkIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { setFlavorEnabled, useFlavorEnabled } from "./flavor";
 

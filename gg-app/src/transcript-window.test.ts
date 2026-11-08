@@ -3,6 +3,8 @@ import {
   earlierStartId,
   TURN_PAGE,
   turnStartIndex,
+  WARM_FIRST_TURNS,
+  WARM_STEP_TURNS,
   windowStartIndex,
   type WindowItem,
 } from "./transcript-window";
@@ -75,5 +77,33 @@ describe("earlierStartId", () => {
 
   it("has nothing earlier once the whole chat is shown", () => {
     expect(earlierStartId(chat(5), 0)).toBeNull();
+  });
+});
+
+describe("warm window on open", () => {
+  it("mounts only the newest turns first, then grows to the full page", () => {
+    const items = chat(60);
+    const first = windowStartIndex(items, null, WARM_FIRST_TURNS);
+    expect(items.slice(first).filter((i) => i.kind === "user")).toHaveLength(WARM_FIRST_TURNS);
+    const shown = items.slice(first);
+    expect(items[items.length - 1]).toBe(shown[shown.length - 1]);
+    let turns = WARM_FIRST_TURNS;
+    let prev = first;
+    while (turns < TURN_PAGE) {
+      turns = Math.min(TURN_PAGE, turns + WARM_STEP_TURNS);
+      const next = windowStartIndex(items, null, turns);
+      // Growth only ever adds older rows above; rows already shown stay.
+      expect(next).toBeLessThan(prev);
+      prev = next;
+    }
+    expect(prev).toBe(windowStartIndex(items, null));
+  });
+
+  it("a reader's held warm window stays put as replies arrive below", () => {
+    const items = chat(60);
+    const start = windowStartIndex(items, null, WARM_FIRST_TURNS);
+    const held = items[start]!.id;
+    const more = [...items, { id: 9999, kind: "user" }, { id: 10000, kind: "assistant" }];
+    expect(windowStartIndex(more, held, WARM_FIRST_TURNS)).toBe(start);
   });
 });

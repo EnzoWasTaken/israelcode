@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "./phosphor-icons";
 import {
   PROJECT_ACCENTS,
   PROJECT_COLOUR_NAMES,
