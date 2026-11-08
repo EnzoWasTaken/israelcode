@@ -18,7 +18,7 @@
  * Sections:
  *   bundle      eager JS/CSS (manifest walk from index.html) + every lazy chunk;
  *               when the entry chunk has a .map, attributes its bytes to modules
- *   startup     FCP, app visible (.home-actions), script/task time, long tasks, heap
+ *   startup     FCP, app visible (Home's mode buttons), script/task time, long tasks, heap
  *   transcript  open a ~300-message session; time until its last message renders
  *   streaming   ~30 text_delta events/s for 10 s; busy ms/s, long tasks, fps
  *   sidecar     spawn packages/ggcoder/dist/app-sidecar.js: port up, /state 200
@@ -492,7 +492,8 @@ function initScript({ responses, appVersion, visibleSelector }) {
 
 // ── Browser helpers ──────────────────────────────────────────────────────────
 const VIEWPORT = { width: 1440, height: 900 };
-const VISIBLE_SELECTOR = ".home-actions";
+// The Home mode buttons: .home-actions before the 0.109 launchpad, .home-modes after.
+const VISIBLE_SELECTOR = ".home-actions, .home-modes";
 
 async function openPage(browser, url, { history = [], throttle = 1 } = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT });
@@ -548,12 +549,19 @@ async function startupRun(browser, url, throttle) {
   };
 }
 
+// A session row: .picker-item before the 0.109 session browser, .sb-row after.
+const SESSION_ROW = `.picker-item:has-text("${SESSION_PREVIEW}"), .sb-row:has-text("${SESSION_PREVIEW}")`;
+
 /** From home: Code → project → the session list. */
 async function openProjectSessionList(page) {
   await page.waitForFunction(() => window.__perf.appVisibleAt > 0, null, { timeout: 60_000 });
-  await page.click("text=Code", { timeout: 15_000 });
+  await page
+    .locator(".home-actions, .home-modes")
+    .getByText("Code", { exact: true })
+    .first()
+    .click({ timeout: 15_000 });
   await page.click(".picker-item", { timeout: 15_000 });
-  await page.waitForSelector(`.picker-item:has-text("${SESSION_PREVIEW}")`, { timeout: 15_000 });
+  await page.waitForSelector(SESSION_ROW, { timeout: 15_000 });
 }
 
 async function startProfile(cdp) {
@@ -571,7 +579,7 @@ async function transcriptRun(browser, url, throttle, history, profile = false) {
   const t = await page.evaluate(
     ([preview, marker]) =>
       new Promise((done) => {
-        const item = [...document.querySelectorAll(".picker-item")].find((el) =>
+        const item = [...document.querySelectorAll(".picker-item, .sb-row")].find((el) =>
           el.textContent.includes(preview),
         );
         const t0 = performance.now();
@@ -655,7 +663,7 @@ async function streamingRun(browser, url, throttle, profile = false) {
     throttle,
   });
   await openProjectSessionList(page);
-  await page.click(`.picker-item:has-text("${SESSION_PREVIEW}")`);
+  await page.click(SESSION_ROW);
   await page.waitForSelector("textarea", { timeout: 15_000 });
   await page.fill("textarea", "Explain the checkout retry change");
   await page.keyboard.press("Enter");

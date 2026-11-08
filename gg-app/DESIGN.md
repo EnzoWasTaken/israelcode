@@ -46,6 +46,8 @@ Israel's face (`src/ken-face.ts`, 18×18) and dialogue portrait (`src/goal-ken-p
 - One action registry (`src/commands/command-registry.ts`) drives the command palette (Ctrl/⌘+K, Ctrl/⌘+P for projects and sessions, Ctrl/⌘+Shift+M for models) and the keyboard shortcuts sheet (Ctrl/⌘+/). A new global action or shortcut goes in the registry so both stay in step.
 - Empty lists and empty searches say what belongs there and offer the next step (`src/EmptyState.tsx`).
 - Every control has an accessible name (`src/accessible-names.test.tsx`).
+- **Home is a launchpad** (`src/HomeLaunchpad.tsx`): one night-glass panel over the pixel forest with quick start (project, prompt, Code/Chat; `src/first-prompt.ts` sends the text once the session is ready), Jump back in (`src/home-recents.ts`), mode keys `1`–`5`, background work and Ctrl/⌘+K. The forest, critters and pixel title stay; a new Home action goes in the panel, and in the registry if it has a key. The panel must fit the 660×400 default window without hiding the mode row.
+- **One session browser** (`src/SessionBrowser.tsx`, grouping and times in `src/session-browser-model.ts`) serves a project's sessions, Chats and Motion: one-line rows grouped Today / Yesterday / This week / Earlier, `/` to search, filter chips, arrow keys, Enter, Ctrl/⌘+Enter for a new window. Keep rows to one line: secondary facts go in the quiet right-hand columns, not in per-row badges.
 
 # App motion
 
