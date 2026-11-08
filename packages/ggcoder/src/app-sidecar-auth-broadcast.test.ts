@@ -292,10 +292,15 @@ describe("a goal window reconnecting", () => {
     const created = await request("POST", "/session", { body: { mode: "code", cwd: goalDir } });
     expect(created.status).toBe(200);
     // A busy machine can make the first git read miss its 2 s limit; the
-    // sidecar then re-reads in the background, so poll briefly for the result.
+    // sidecar then re-reads in the background. The uncommitted-file count
+    // also lands just after ready (settleDeferredGit), so poll for both.
     const sessionId = created.json.sessionId as string;
     let state = await request("GET", "/state", { session: sessionId });
-    for (let i = 0; i < 40 && state.json.isGitRepo !== true; i++) {
+    for (
+      let i = 0;
+      i < 40 && (state.json.isGitRepo !== true || state.json.gitDirtyFileCount !== 2);
+      i++
+    ) {
       await new Promise((resolve) => setTimeout(resolve, 250));
       state = await request("GET", "/state", { session: sessionId });
     }
@@ -506,7 +511,13 @@ describe("two windows on one checkout", () => {
       body: { mode: "code", cwd: tree, sessionPath: picked.json.sessionPath ?? undefined },
     });
     expect(moved.json.error ?? null).toBeNull();
-    const state = await request("GET", "/state", { session: moved.json.sessionId as string });
+    // The worktree's main folder is looked up just after ready
+    // (settleDeferredGit), so poll briefly for it.
+    let state = await request("GET", "/state", { session: moved.json.sessionId as string });
+    for (let i = 0; i < 40 && !state.json.worktreeOf; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      state = await request("GET", "/state", { session: moved.json.sessionId as string });
+    }
     expect(state.json.gitBranch).toBe("feature/x");
     // Home opens on the project, not the worktree folder.
     expect(state.json.worktreeOf).toBe(await realpathNative(repo));

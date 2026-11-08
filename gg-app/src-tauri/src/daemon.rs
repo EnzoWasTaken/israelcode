@@ -413,6 +413,7 @@ pub(crate) async fn daemon_detach_session(app: &tauri::AppHandle, port: u16, id:
 
 /// Number of background sessions still working (`running` or
 /// `awaiting_input`) in a `GET /background-sessions` body.
+#[cfg(any(target_os = "macos", windows, test))]
 pub(crate) fn count_active_background(value: &serde_json::Value) -> usize {
     value
         .get("sessions")
@@ -448,6 +449,7 @@ pub(crate) async fn active_background_count(app: &tauri::AppHandle, port: u16) -
 }
 
 /// What the windowless background poller should do after one observation.
+#[cfg(any(target_os = "macos", windows, test))]
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PollStep {
     /// Keep polling; tray count becomes `count`.
@@ -463,6 +465,7 @@ pub(crate) enum PollStep {
 /// Pure transition: `prev` is the last known count, `observed` the new poll
 /// (`None` = daemon unreachable). `failures` counts consecutive unreachable
 /// polls; after `POLL_MAX_FAILURES` the count drops to 0 (no daemon, no work).
+#[cfg(any(target_os = "macos", windows, test))]
 pub(crate) fn poll_step(
     prev: usize,
     observed: Option<usize>,
@@ -486,6 +489,7 @@ pub(crate) fn poll_step(
     }
 }
 
+#[cfg(any(target_os = "macos", windows, test))]
 pub(crate) const POLL_MAX_FAILURES: u32 = 3;
 
 #[cfg(any(target_os = "macos", windows))]
