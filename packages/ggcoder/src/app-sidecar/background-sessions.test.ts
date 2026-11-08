@@ -404,4 +404,15 @@ describe("routes", () => {
     expect(d.fake.stops).toBe(0);
     await expect(fs.access(outside)).resolves.toBeUndefined();
   });
+
+  it("delete refuses a session still open in a window", async () => {
+    const file = convo("e");
+    await fs.writeFile(file, "{}\n");
+    const e = fakeContext("e", file);
+    registry.track(e);
+    const res = await call("POST", "/background-sessions/delete", { id: "e" });
+    expect(res.status).toBe(409);
+    expect(e.fake.disposed).toBe(false);
+    await expect(fs.access(file)).resolves.toBeUndefined();
+  });
 });

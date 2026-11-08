@@ -1042,6 +1042,19 @@ async function createSession(
     statusUpdatedAt = Date.now();
     deps.onStatusChange?.(opts.id);
   }
+  // Every kind of in-flight work: a detach or status read must not see a
+  // run-all sweep, review, stranded-queue drain or queued prompts as idle.
+  function contextWorking(): boolean {
+    return (
+      running ||
+      runClaim.active ||
+      autopilotActive ||
+      autopilotReviewing ||
+      drainingStrandedQueue ||
+      taskRunAll ||
+      session.getQueuedCount() > 0
+    );
+  }
   function contextStatus(): ContextStatus {
     const firstUser = session.getMessages().find((m) => m.role === "user");
     const text =
@@ -1057,10 +1070,13 @@ async function createSession(
     if (asks.pendingCount > 0) {
       return { ...base, state: "awaiting_input", detail: "Asked you a question" };
     }
+    if (elicitations.pendingCount > 0) {
+      return { ...base, state: "awaiting_input", detail: "Waiting for your input" };
+    }
     if (pendingPlanPath !== null && !running && !runClaim.active && !autopilotActive) {
       return { ...base, state: "awaiting_input", detail: "Plan ready for review" };
     }
-    if (running || runClaim.active || autopilotActive) {
+    if (contextWorking()) {
       return { ...base, state: "running", detail: null };
     }
     if (lastOutcome === "failed") {
@@ -1174,6 +1190,8 @@ async function createSession(
   // when the webview POSTs /mcp/elicit/:id.
   const elicitations = createElicitationBridge({
     broadcast: (prompt) => broadcast("mcp_elicit", prompt),
+    // Nobody is watching a detached session: the form waits for the user.
+    isSuspended: () => detached,
     onTimeout: (prompt) =>
       log("WARN", "app-sidecar", "MCP elicitation timed out", {
         id: prompt.id,
@@ -2601,7 +2619,9 @@ async function createSession(
       return autopilotReviewing;
     },
     set autopilotReviewing(v) {
+      const changed = autopilotReviewing !== v;
       autopilotReviewing = v;
+      if (changed) notifyStatus();
     },
     get broadcast() {
       return broadcast;
@@ -2727,7 +2747,9 @@ async function createSession(
       return drainingStrandedQueue;
     },
     set drainingStrandedQueue(v) {
+      const changed = drainingStrandedQueue !== v;
       drainingStrandedQueue = v;
+      if (changed) notifyStatus();
     },
     get running() {
       return running;
@@ -2745,7 +2767,9 @@ async function createSession(
       return taskRunAll;
     },
     set taskRunAll(v) {
+      const changed = taskRunAll !== v;
       taskRunAll = v;
+      if (changed) notifyStatus();
     },
   });
 
@@ -3214,13 +3238,17 @@ async function createSession(
       return autopilotReviewing;
     },
     set autopilotReviewing(v) {
+      const changed = autopilotReviewing !== v;
       autopilotReviewing = v;
+      if (changed) notifyStatus();
     },
     get taskRunAll() {
       return taskRunAll;
     },
     set taskRunAll(v) {
+      const changed = taskRunAll !== v;
       taskRunAll = v;
+      if (changed) notifyStatus();
     },
     get kenAutoAbort() {
       return kenAutoAbort;
@@ -3282,9 +3310,7 @@ async function createSession(
   };
 
   const isBusy = (): boolean =>
-    running ||
-    runClaim.active ||
-    autopilotActive ||
+    contextWorking() ||
     session.listSubAgents().some((w) => w.state === "running" || w.state === "starting");
   const branchCtx: BranchRouteContext = {
     gitDir: () => gitCwd,

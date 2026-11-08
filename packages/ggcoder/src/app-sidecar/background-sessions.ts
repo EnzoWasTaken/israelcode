@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { environmentSecrets, redactValue } from "@kenkaiiii/gg-ai";
 import { atomicWrite } from "../core/session-storage.js";
+import { log } from "../core/logger.js";
 import type { SessionContext, WorkspaceMode } from "./session-types.js";
 
 /**
@@ -469,12 +470,20 @@ export function handleBackgroundSessionRoutes(
         json(res, 400, { error: "conversation file is outside the sessions folder" });
         return;
       }
+      if (found.attached) {
+        json(res, 409, { error: "open in a window; close it before deleting" });
+        return;
+      }
       if (found.ctx) await found.ctx.stop().catch(() => "failed");
       await registry.remove(target);
       if (file) await fs.rm(file, { force: true }).catch(() => {});
       json(res, 200, { ok: true });
     } catch (err) {
-      json(res, 500, { error: err instanceof Error ? err.message : String(err) });
+      log("ERROR", "background-sessions", "background session action failed", {
+        url,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      json(res, 500, { error: "background session action failed" });
     }
   });
   return true;
