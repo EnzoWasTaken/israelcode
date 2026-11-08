@@ -447,6 +447,14 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|app, event| {
+            // macOS Dock click with no workspace window: open one, like the tray's
+            // "new chat" action (the tray is otherwise the only way back in).
+            #[cfg(target_os = "macos")]
+            if let RunEvent::Reopen { .. } = &event {
+                if workspace_window_count(app) == 0 {
+                    dispatch_tray_action(app.clone(), "new-chat");
+                }
+            }
             if let RunEvent::ExitRequested { code, api, .. } = &event {
                 // Closing the last window (code == None, not an explicit
                 // Quit/app.exit) keeps the app alive in the tray while the
@@ -467,7 +475,7 @@ pub fn run() {
                         if let Some(n) = active.filter(|n| *n > 0) {
                             api.prevent_exit();
                             update_tray_status(app, |s| s.background_tasks = n);
-                            start_background_poller(app.clone(), port, n);
+                            start_background_poller(app.clone(), n);
                             log::info!(
                                 "last window closed; staying in tray for {n} background task(s)"
                             );
