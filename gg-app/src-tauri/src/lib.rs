@@ -181,6 +181,10 @@ pub fn run() {
             commands::world::agent_world_account_delete,
             commands::agent::agent_keep_awake_get,
             commands::agent::agent_keep_awake_set,
+            commands::background::background_sessions_list,
+            commands::background::background_session_stop,
+            commands::background::background_session_dismiss,
+            commands::background::background_session_delete,
             commands::agent::agent_usage,
             commands::agent::agent_prompt,
             commands::agent::agent_cancel,
@@ -358,8 +362,9 @@ pub fn run() {
                 if !exiting {
                     remove_window_from_workspace(app, window.label());
                 }
-                // Dispose only THIS window's session in the shared daemon so
-                // other projects keep running. The daemon process itself is
+                // Detach (not delete) THIS window's session: the daemon keeps
+                // busy sessions running in the background and disposes idle
+                // ones, and other projects keep running. The daemon process itself is
                 // never killed here (that happens only on app exit).
                 let state: State<Windows> = window.state();
                 let session_id = state
@@ -371,7 +376,7 @@ pub fn run() {
                     if let Some(port) = *app.state::<Daemon>().port.lock_or_recover() {
                         let app2 = app.clone();
                         tauri::async_runtime::spawn(async move {
-                            daemon_delete_session(&app2, port, &id).await;
+                            daemon_detach_session(&app2, port, &id).await;
                         });
                     }
                 }
@@ -435,7 +440,35 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|app, event| {
-            if let RunEvent::ExitRequested { .. } = event {
+            if let RunEvent::ExitRequested { code, api, .. } = &event {
+                // Closing the last window (code == None, not an explicit
+                // Quit/app.exit) keeps the app alive in the tray while the
+                // daemon still has running / awaiting-input sessions. The
+                // tray exists on macOS and Windows only; on Linux there is no
+                // tray, so closing the last window quits and stops the work.
+                // AppExiting is deliberately NOT set when exit is prevented:
+                // the closed window was already removed from the restore
+                // snapshot as a deliberate close.
+                #[cfg(any(target_os = "macos", windows))]
+                if code.is_none() {
+                    let port = *app.state::<Daemon>().port.lock_or_recover();
+                    if let Some(port) = port {
+                        let handle = app.clone();
+                        let active = tauri::async_runtime::block_on(async move {
+                            active_background_count(&handle, port).await
+                        });
+                        if let Some(n) = active.filter(|n| *n > 0) {
+                            api.prevent_exit();
+                            update_tray_status(app, |s| s.background_tasks = n);
+                            log::info!(
+                                "last window closed; staying in tray for {n} background task(s)"
+                            );
+                            return;
+                        }
+                    }
+                }
+                #[cfg(not(any(target_os = "macos", windows)))]
+                let _ = (code, api);
                 // Mark the quit BEFORE windows start tearing down, so the
                 // Destroyed handlers preserve the snapshot, then write the final
                 // snapshot (current geometry + each window's live cwd/session).
