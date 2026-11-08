@@ -164,3 +164,65 @@ describe("route control and line", () => {
     expect(line.getAttribute("data-fallback")).toBe("true");
   });
 });
+
+describe("execution mode semantics in Auto", () => {
+  const auto = (pins = {}) => ({ enabled: true, pins, lastDecision: null, available: true });
+
+  it("Standard pins the mode instead of only clearing toggles", () => {
+    const { onUltracodeChange } = panel(mk(auto(), { ultracode: true }));
+    fireEvent.click(screen.getByRole("radio", { name: "Standard" }));
+    expect(setSessionRouting).toHaveBeenCalledWith({ pins: { executionMode: "standard" } });
+    expect(onUltracodeChange).not.toHaveBeenCalled();
+  });
+
+  it("Ultracode / Orchestrate pin and keep other pins", () => {
+    panel(mk(auto({ effort: "high" })));
+    fireEvent.click(screen.getByRole("radio", { name: "Orchestrate" }));
+    expect(setSessionRouting).toHaveBeenCalledWith({
+      pins: { effort: "high", executionMode: "orchestrate" },
+    });
+  });
+
+  it("Auto clears the pin and turns an on toggle off", () => {
+    const { onUltracodeChange, onOrchestrateChange } = panel(
+      mk(auto({ executionMode: "ultracode" }), { ultracode: true }),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Auto", checked: false }));
+    expect(setSessionRouting).toHaveBeenCalledWith({ pins: {} });
+    expect(onUltracodeChange).toHaveBeenCalledWith(false);
+    expect(onOrchestrateChange).not.toHaveBeenCalled();
+  });
+
+  it("shows a saved toggle as pinned, not Auto", () => {
+    panel(mk(auto(), { ultracode: true }));
+    expect(screen.getByText("Ultracode (your setting)")).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Ultracode" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+  });
+
+  it("shows a pin as pinned", () => {
+    panel(mk(auto({ executionMode: "standard" })));
+    expect(screen.getByText("Standard (pinned)")).toBeDefined();
+  });
+
+  it("both toggles on shows the combined label and any choice normalises", () => {
+    const { onUltracodeChange, onOrchestrateChange } = panel(
+      mk(auto(), { ultracode: true, orchestration: { orchestrate: true } as never }),
+    );
+    expect(screen.getByText("Ultracode + Orchestrate (your setting)")).toBeDefined();
+    fireEvent.click(screen.getByRole("radio", { name: "Ultracode" }));
+    expect(setSessionRouting).toHaveBeenCalledWith({ pins: { executionMode: "ultracode" } });
+    expect(onUltracodeChange).toHaveBeenCalledWith(false);
+    expect(onOrchestrateChange).toHaveBeenCalledWith(false);
+  });
+
+  it("Manual still drives the toggles", () => {
+    const { onOrchestrateChange } = panel(
+      mk({ enabled: false, pins: {}, lastDecision: null, available: true }),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Orchestrate" }));
+    expect(onOrchestrateChange).toHaveBeenCalledWith(true);
+    expect(setSessionRouting).not.toHaveBeenCalled();
+  });
+});
