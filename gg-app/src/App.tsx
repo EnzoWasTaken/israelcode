@@ -34,6 +34,8 @@ import {
   cancel,
   newSession,
   selectProject,
+  selectWorkspace,
+  type BackgroundSessionRow,
   listModels,
   switchModel,
   isSwitchModelError,
@@ -164,6 +166,7 @@ const GoalPicker = lazy(() =>
 );
 import { BackButton } from "./BackButton";
 import { HomeScreen } from "./HomeScreen";
+import { noteBackgroundHandoff } from "./BackgroundSessions";
 import { WorldScreen } from "./WorldScreen";
 import { SettingsModal } from "./SettingsModal";
 import { initialEntryView, type EntryView } from "./app-entry-view";
@@ -2819,7 +2822,25 @@ function App(): React.ReactElement {
     setDeckPanel(null);
     onProjectChosen();
   }
+  // Reattach (or reopen) a background conversation exactly as the pickers do:
+  // point this window at it, then reset and re-hydrate. Never starts a run.
+  async function openBackgroundSession(row: BackgroundSessionRow): Promise<void> {
+    if (!row.sessionPath) return;
+    await selectWorkspace(
+      row.mode,
+      row.cwd,
+      row.sessionPath,
+      row.chatAgent === "therapist" || row.chatAgent === "research" ? row.chatAgent : "general",
+    );
+    showScreen(() => {
+      setWorkspaceMode(row.mode);
+      setShowPicker(false);
+      resetForChosenProject();
+    });
+  }
   function resetForChosenProject(): void {
+    // Leaving a task mid-run: it carries on in the daemon. Say so, once.
+    if (running) noteBackgroundHandoff();
     checklistFetchRef.current++;
     checklistRunRef.current = null;
     setShowChecklist(false);
@@ -2952,6 +2973,7 @@ function App(): React.ReactElement {
                 })
               }
               refreshSignal={homeRefreshSignal}
+              onOpenBackground={openBackgroundSession}
             />
           ) : entryView === "settings" ? (
             <SettingsScreen
@@ -3094,6 +3116,7 @@ function App(): React.ReactElement {
           leading={<BackButton label={backLabel} onClick={goBack} />}
           trailing={
             <TitleBarActions
+              onOpenBackground={openBackgroundSession}
               workspaceMode={workspaceMode}
               isGoal={Boolean(state?.goal)}
               goalView={goalView}
