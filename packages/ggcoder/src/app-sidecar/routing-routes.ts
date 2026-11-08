@@ -48,7 +48,9 @@ export function describeTestFailure(reason: RouteFallbackReason, status: number 
     return `The service had a problem (${status}), try again shortly`;
   switch (reason) {
     case "missing_credentials":
-      return "No usable key or sign-in for the decision model";
+      return status === null
+        ? "No API key or sign-in is saved for the decision model. Add one first"
+        : "The key was rejected";
     case "timeout":
       return "The decision model took too long to answer";
     case "invalid_output":
@@ -56,7 +58,7 @@ export function describeTestFailure(reason: RouteFallbackReason, status: number 
     case "no_decision_provider":
       return "No decision model is selected or it can't be used";
     case "constraint_violation":
-      return "No connected model is available to route to";
+      return "No connected model is available to route to. Sign in to a provider first";
     default:
       return "The decision model couldn't be reached";
   }
@@ -183,11 +185,13 @@ async function runTest(deps: RoutingRouteDeps) {
   const reason = decision.fallbackReason;
   // A low-confidence answer still proves the service works.
   if (reason && reason !== "low_confidence") {
+    // A model decider reports a rejected login as missing_credentials with no HTTP status.
+    const status = built.lastStatus() ?? (reason === "missing_credentials" ? 401 : null);
     return {
       ok: false,
       latencyMs,
       decider,
-      error: { reason, message: describeTestFailure(reason, built.lastStatus()) },
+      error: { reason, message: describeTestFailure(reason, status) },
     };
   }
   return {
