@@ -6,6 +6,7 @@ import { goalCritterPick } from "../goals-agent/goals-agent.js";
 import { getSupportedThinkingLevels } from "../core/thinking-level.js";
 import { json } from "./http.js";
 import { orchestrationStatePayload } from "./orchestration.js";
+import { autoRoutePayload } from "./session-routing.js";
 import type { SseClient } from "./session-types.js";
 import type { SessionRouteContext } from "./route-context.js";
 
@@ -71,6 +72,7 @@ export function handleSessionRoutes(
       autopilot: ctx.autopilot,
       ultracode: ctx.session.isUltracode(),
       orchestration: orchestrationStatePayload(ctx),
+      autoRoute: autoRoutePayload(ctx),
       budget: ctx.budget?.statePayload() ?? null,
       verify: ctx.verify?.statePayload() ?? null,
       hooks: ctx.hooks ? { enabled: ctx.hooks.enabled } : null,
@@ -189,6 +191,7 @@ export function handleSessionRoutes(
           autopilot: ctx.autopilot,
           ultracode: ctx.session.isUltracode(),
           orchestration: orchestrationStatePayload(ctx),
+          autoRoute: autoRoutePayload(ctx),
           budget: ctx.budget?.statePayload() ?? null,
           verify: ctx.verify?.statePayload() ?? null,
           hooks: ctx.hooks ? { enabled: ctx.hooks.enabled } : null,

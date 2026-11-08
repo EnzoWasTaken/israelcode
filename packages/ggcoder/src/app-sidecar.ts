@@ -129,7 +129,7 @@ import { createAskUserTool } from "./tools/ask-user.js";
 import { createTodoWriteTool } from "./tools/todo-write.js";
 import { createApprovalBridge } from "./app-sidecar/approvals.js";
 import { createUsageService } from "./app-sidecar/usage.js";
-import { daemonReadBody, daemonJson, json } from "./app-sidecar/http.js";
+import { daemonReadBody, daemonJson, json, readBody } from "./app-sidecar/http.js";
 import { runJsonModeIfRequested } from "./app-sidecar/json-mode.js";
 import {
   type SseClient,
@@ -209,6 +209,9 @@ import { resolveResumeCheckout } from "./app-sidecar/git-branches.js";
 import { mainCheckoutOf, resolveSetupCommand, setupNote } from "./app-sidecar/worktrees.js";
 import { readCheckoutRecord } from "./core/checkout-record.js";
 import { cancelActiveRun, handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
+import { createRoutingRuntime, type RoutingRuntime } from "./app-sidecar/routing-runtime.js";
+import { handleRoutingRoutes, handleRoutingSessionRoute } from "./app-sidecar/routing-routes.js";
+import { autoRoutePayload, type AutoRouteSessionState } from "./app-sidecar/session-routing.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
 import { handleIntegrationRoutes } from "./app-sidecar/integration-routes.js";
 import { handleMcpRoutes } from "./app-sidecar/mcp-routes.js";
@@ -347,6 +350,8 @@ async function main(): Promise<void> {
 
   const auth = new AuthStorage(paths.authFile);
   await auth.load();
+  // Auto routing engine: one shared config, decision cache and diagnostics log per daemon.
+  const routing = await createRoutingRuntime({ auth, agentDir: paths.agentDir });
 
   // Every window's session lives here as an in-process object, keyed by the id
   // the daemon hands back from POST /session. The Rust shell routes each proxy
@@ -613,6 +618,7 @@ async function main(): Promise<void> {
               pendingMoveNotes,
               pendingSetups,
               pendingCheckoutNotices,
+              routing,
               onStatusChange: (sessionId) => backgroundSessions.refresh(sessionId),
             },
             { id, mode, chatAgent, cwd: sessionCwd, sessionPath },
@@ -677,6 +683,18 @@ async function main(): Promise<void> {
           readBody: daemonReadBody,
           json: daemonJson,
         },
+        req,
+        res,
+        url,
+        method,
+      )
+    ) {
+      return;
+    }
+
+    if (
+      handleRoutingRoutes(
+        { runtime: routing, auth, readBody: daemonReadBody, json: daemonJson, broadcastAll },
         req,
         res,
         url,
@@ -904,6 +922,8 @@ async function createSession(
     pendingCheckoutNotices: Map<string, string>;
     /** A session's run state, approvals, questions or plan changed. */
     onStatusChange?: (id: string) => void;
+    /** Daemon-level Auto routing engine. */
+    routing: RoutingRuntime;
   },
   opts: {
     id: string;
@@ -929,6 +949,7 @@ async function createSession(
     pendingMoveNotes,
     pendingSetups,
     pendingCheckoutNotices,
+    routing,
   } = deps;
   const paths = deps.paths;
   const mode = opts.mode;
@@ -2997,7 +3018,19 @@ async function createSession(
     emit: (type, data) => broadcast(type, data),
     onEnd: (run) => finishShellRun(routeCtx, run),
   });
+  // Auto routing state for this window; follows the saved on/off until the user flips it here.
+  const autoRoute: AutoRouteSessionState = {
+    enabled: routing.config().enabled,
+    pins: {},
+    lastDecision: null,
+  };
+  const unsubscribeRouting = routing.onConfigChange((config) => {
+    autoRoute.enabled = config.enabled;
+    broadcast("route_state", autoRoutePayload({ mode, goal, autoRoute }));
+  });
   const routeCtx: SessionRouteContext = {
+    routing,
+    autoRoute,
     shell,
     get session() {
       return session;
@@ -3323,6 +3356,7 @@ async function createSession(
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;
     if (handleBranchRoutes(branchCtx, req, res, url, method)) return;
+    if (handleRoutingSessionRoute(routeCtx, req, res, url, method, readBody, json)) return;
     if (handleRunControlRoutes(routeCtx, req, res, url, method)) return;
     if (handleAuthRoutes(routeCtx, req, res, url, method)) return;
     if (handleIntegrationRoutes(routeCtx, req, res, url, method)) return;
@@ -3339,6 +3373,7 @@ async function createSession(
     // run-all sweep or autopilot turn, and a model download this window
     // started. Otherwise they keep streaming tokens and running tools on a
     // session that is being torn down.
+    unsubscribeRouting();
     abortOwnedWork();
     shell.stopAll();
     idleWake?.dispose();
