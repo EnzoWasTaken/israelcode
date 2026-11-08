@@ -3,7 +3,15 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type http from "node:http";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const logged = vi.hoisted(() => ({ calls: [] as unknown[][] }));
+vi.mock("../core/logger.js", async () => ({
+  ...(await vi.importActual<Record<string, unknown>>("../core/logger.js")),
+  log: (...args: unknown[]) => {
+    logged.calls.push(args);
+  },
+}));
 import { DEFAULT_AUTO_ROUTE_CONFIG, type AutoRouteConfig } from "../core/routing/index.js";
 import type { SessionRouteContext } from "./route-context.js";
 import {
@@ -455,5 +463,43 @@ describe("session pins", () => {
     expect(after.pins).toEqual({ effort: "high", executionMode: "ultracode" });
     expect(await post({ pins: null })).toMatchObject({ pins: {}, enabled: true });
     expect(events.at(-1)).toEqual(["route_state", expect.objectContaining({ pins: {} })]);
+  });
+});
+
+describe("sidecar log never carries the key", () => {
+  const CANARY = "canary-LOG-9876543210-SECRET";
+  const decider = { kind: "decisions-api", service: "typesafe", model: "jev-latest" } as const;
+
+  it("stays clean for a failing decision call and a failing /routing/test", async () => {
+    logged.calls.length = 0;
+    const failing = (async () => {
+      throw new Error(`connect failed, Authorization: Bearer ${CANARY}`);
+    }) as unknown as typeof fetch;
+    const t = await setup({ typesafe: CANARY }, failing, { decider });
+
+    // Failing decision call, as the router makes it.
+    const built = await t.runtime.buildAdapter();
+    expect(built.adapter).not.toBeNull();
+    const registry = await t.runtime.buildRegistry();
+    const candidates = registry.slice(0, 2).map((c) => ({
+      id: `${c.provider}:${c.model}`,
+      description: "",
+      thinkingLevels: [],
+    }));
+    const err = await built
+      .adapter!.decide(
+        { taskText: "hi", candidates, allowedModes: ["standard"], signals: {} } as never,
+        new AbortController().signal,
+      )
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(String(err)).not.toContain(CANARY);
+
+    // Failing /routing/test.
+    const r = await t.call("POST", "/routing/test");
+    expect(r.body.ok).toBe(false);
+
+    expect(JSON.stringify(logged.calls)).not.toContain(CANARY);
+    expect(t.bodies.join(String.fromCharCode(10))).not.toContain(CANARY);
   });
 });
