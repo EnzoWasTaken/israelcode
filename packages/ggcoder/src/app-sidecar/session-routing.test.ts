@@ -476,7 +476,7 @@ describe("saved Auto default vs live windows", () => {
 describe("routing latency and cancellation", () => {
   it("does not build the adapter on a route-cache hit", async () => {
     const buildAdapter = vi.fn(async () => ({
-      adapter: adapterPicking("haiku"),
+      adapter: adapterPicking("luna"),
       lastStatus: () => null,
     }));
     const t = makeCtx({ buildAdapter });
