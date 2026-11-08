@@ -16,6 +16,7 @@ import {
   persistModelSelection,
   persistThinkingLevel,
 } from "./app-settings.js";
+import type { CancelResult } from "../core/run-lifecycle.js";
 import type { SessionRouteContext } from "./route-context.js";
 
 /**
@@ -48,6 +49,33 @@ export function resolveThinkingRequest(
   const match = getSupportedThinkingLevels(provider, model).find((l) => l === level);
   if (!match) return { ok: false, error: `${model} doesn't support thinking level "${level}"` };
   return { ok: true, level: match };
+}
+
+/**
+ * The Stop button's cancellation, shared by `POST /cancel` and the daemon's
+ * `POST /background-sessions/stop`: stops a task sweep, drains queued steering
+ * and aborts the active run, resolving once it has settled (or timed out).
+ */
+export async function cancelActiveRun(
+  ctx: SessionRouteContext,
+): Promise<{ result: CancelResult; drained: string }> {
+  // Even between task runs, cancellation stops the sweep. Active provider
+  // ownership invokes the full abort hook exactly once through lifecycle.
+  ctx.taskRunAll = false;
+  ctx.autopilotCancelled = true;
+  if (!ctx.runLifecycle.running) {
+    ctx.kenAutoAbort.abort();
+    ctx.kenAutoAbort = new AbortController();
+    ctx.kenAutoSession?.setSignal(ctx.kenAutoAbort.signal);
+  }
+
+  const generation = ctx.runLifecycle.generation;
+  if (!ctx.pendingCancelDrain || ctx.pendingCancelDrain.generation !== generation) {
+    ctx.pendingCancelDrain = { generation, text: ctx.session.drainQueue() };
+    ctx.broadcast("queued", { count: 0, messages: [] });
+  }
+  const result = await ctx.runLifecycle.cancel(ctx.CANCEL_TIMEOUT_MS);
+  return { result, drained: ctx.pendingCancelDrain?.text ?? "" };
 }
 
 export function handleRunControlRoutes(
@@ -402,23 +430,7 @@ export function handleRunControlRoutes(
 
   if (method === "POST" && url === "/cancel") {
     void (async () => {
-      // Even between task runs, cancellation stops the sweep. Active provider
-      // ownership invokes the full abort hook exactly once through lifecycle.
-      ctx.taskRunAll = false;
-      ctx.autopilotCancelled = true;
-      if (!ctx.runLifecycle.running) {
-        ctx.kenAutoAbort.abort();
-        ctx.kenAutoAbort = new AbortController();
-        ctx.kenAutoSession?.setSignal(ctx.kenAutoAbort.signal);
-      }
-
-      const generation = ctx.runLifecycle.generation;
-      if (!ctx.pendingCancelDrain || ctx.pendingCancelDrain.generation !== generation) {
-        ctx.pendingCancelDrain = { generation, text: ctx.session.drainQueue() };
-        ctx.broadcast("queued", { count: 0, messages: [] });
-      }
-      const result = await ctx.runLifecycle.cancel(ctx.CANCEL_TIMEOUT_MS);
-      const drained = ctx.pendingCancelDrain.text;
+      const { result, drained } = await cancelActiveRun(ctx);
       if (result.status === "failed") {
         ctx.broadcast("cancel_failed", {
           error: "cancel_failed",
