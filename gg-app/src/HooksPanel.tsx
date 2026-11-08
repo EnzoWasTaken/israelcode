@@ -386,7 +386,9 @@ export function HooksPanel(): React.ReactElement {
         description="The last hooks that ran in this window."
       >
         {recent.length === 0 ? (
-          <div className="modal-hint">Nothing yet.</div>
+          <div className="modal-hint">
+            Nothing yet. Each hook that runs in this window shows up here.
+          </div>
         ) : (
           <ul className="hooks-recent" aria-label="Recent hook activity">
             {recent.map((ev: HookEvent, i) => (

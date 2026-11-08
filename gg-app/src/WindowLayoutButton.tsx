@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { AppWindowIcon } from "@phosphor-icons/react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { AppWindowIcon } from "./phosphor-icons";
 import { setupWindows, arrangeAllWindows } from "./agent";
 import { supportsNativeSelectPopup } from "./platform";
 import { playSound } from "./sounds";
@@ -24,6 +24,21 @@ export function WindowLayoutButton({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [flipUp, setFlipUp] = useState(false);
+
+  // The deck sits at the window's bottom: open upward when the menu would run off it.
+  useLayoutEffect(() => {
+    if (!open) {
+      setFlipUp(false);
+      return;
+    }
+    const trigger = triggerRef.current?.getBoundingClientRect();
+    const menu = menuRef.current;
+    if (!trigger || !menu) return;
+    const need = menu.offsetHeight + 14;
+    setFlipUp(window.innerHeight - trigger.bottom < need && trigger.top > need);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -138,6 +153,8 @@ export function WindowLayoutButton({
           <div className="menu-backdrop" onMouseDown={() => setOpen(false)} />
           <div
             id={menuId}
+            ref={menuRef}
+            data-flip={flipUp ? "up" : undefined}
             className="winlayout-menu"
             role="menu"
             aria-label="Window layout"

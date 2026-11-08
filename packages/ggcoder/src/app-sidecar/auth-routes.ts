@@ -108,6 +108,7 @@ export function handleAuthRoutes(
       // `auth_done` means "a login succeeded" (modals close on it).
       // `auth_change` means "auth.json changed" — which a DISCONNECT also is,
       // so connection state has one signal that covers both directions.
+      ctx.routing.invalidateRegistry();
       ctx.broadcastAll("auth_change", { provider });
       // A newly connected provider unlocks its models. `/models` filters on
       // who is logged in, so every window's picker is now stale — without
@@ -173,6 +174,7 @@ export function handleAuthRoutes(
           // should close and its provider list refresh, not just the one
           // that started the flow.
           ctx.broadcastAll("auth_done", { provider });
+          ctx.routing.invalidateRegistry();
           ctx.broadcastAll("auth_change", { provider });
           // The OAuth provider's models just became selectable everywhere.
           ctx.broadcastAll("models_change", {});

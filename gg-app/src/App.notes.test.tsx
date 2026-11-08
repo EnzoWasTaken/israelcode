@@ -9,6 +9,12 @@ import type { AgentState } from "./agent";
 mockWindows("main");
 mockIPC(() => new Promise(() => {}));
 const { default: App } = await import("./App");
+// The markdown renderer and on-demand dialogs load lazily (the app warms them
+// on idle); load them up front so a loaded machine cannot outrun findBy*.
+await (await import("./LazyMarkdown")).preloadMarkdown();
+// Deck tool bodies load on demand (warmed on idle in the app); load them up
+// front so the deck opens synchronously, as it does once warmed.
+await (await import("./lazy-surfaces")).preloadLazySurfaces();
 
 // jsdom has no scrolling implementation; keep this browser-only API at the boundary.
 const scrollToDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");

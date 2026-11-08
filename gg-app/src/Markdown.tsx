@@ -8,10 +8,11 @@ import {
   useState,
   createContext,
 } from "react";
+import { PromptSendContext } from "./prompt-send";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { CheckIcon, CopyIcon, ArrowElbowDownLeftIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon, ArrowElbowDownLeftIcon } from "./phosphor-icons";
 import { openProjectPath, openUrl, readChatImage, sendPrompt } from "./agent";
 import { toast } from "./toast";
 import { ImageCard } from "./ImageCard";
@@ -288,7 +289,7 @@ const PromptReadyContext = createContext(true);
  * the prompt never reached the agent, so the button can offer it again. Defaults
  * to null, in which case the button falls back to sending directly with no
  * transcript row (safe for any render outside App). */
-const PromptSendContext = createContext<((text: string) => Promise<boolean>) | null>(null);
+export { PromptSendProvider } from "./prompt-send";
 
 /**
  * A Ken-recommended GG Coder prompt. Ken wraps every runnable prompt in a
@@ -435,6 +436,23 @@ function CodeBlock({ children }: { children?: React.ReactNode }): React.ReactEle
  * This is the technique used by Vercel Streamdown, Cline, and the Vercel AI
  * SDK cookbook. It reduces per-token cost from O(message_length) to O(block_length).
  */
+/**
+ * A per-row lexer that re-lexes only from the last block on while text grows
+ * at its tail, so the finished blocks above keep their strings and memo holds.
+ */
+function createBlockLexer(): (markdown: string) => string[] {
+  let stable: string[] = [];
+  let stableText = "";
+  return (markdown) => {
+    const next = markdown.startsWith(stableText)
+      ? [...stable, ...parseMarkdownIntoBlocks(markdown.slice(stableText.length))]
+      : parseMarkdownIntoBlocks(markdown);
+    stable = next.slice(0, -1);
+    stableText = stable.join("");
+    return next;
+  };
+}
+
 function parseMarkdownIntoBlocks(markdown: string): string[] {
   try {
     const tokens = marked.lexer(markdown);
@@ -460,14 +478,45 @@ function isPromptBlockComplete(raw: string): boolean {
   return /`{3,}\s*$/.test(body);
 }
 
-const ANIMATED_PLUGINS = [rehypeHighlight, rehypeArrows, rehypeAnimateWords];
+/**
+ * Whether a block is a fenced code block whose closing fence hasn't arrived
+ * yet. Highlighting it on every delta was the top streaming cost; it shows as
+ * plain code until it closes, then highlights once.
+ */
+function isOpenFence(raw: string): boolean {
+  const t = raw.trim();
+  const open = /^(`{3,}|~{3,})/.exec(t);
+  if (!open) return false;
+  const lines = t.split(/\r?\n/);
+  if (lines.length < 2) return true;
+  const last = lines[lines.length - 1].trim();
+  const mark = open[1][0];
+  return !(last.length >= 3 && [...last].every((c) => c === mark));
+}
+
+/**
+ * rehype-highlight builds a fresh lowlight (37 grammars registered, each
+ * compiled again on first use) every time its attacher runs, and
+ * react-markdown runs attachers on every render of every block. Its transform
+ * only reads that instance, so one shared transform gives the same output
+ * without re-registering and recompiling the grammars per block.
+ */
+let highlightTransform: ReturnType<typeof rehypeHighlight> | null = null;
+function rehypeHighlightShared(): ReturnType<typeof rehypeHighlight> {
+  highlightTransform ??= rehypeHighlight();
+  return highlightTransform;
+}
+
+const ANIMATED_PLUGINS = [rehypeHighlightShared, rehypeArrows, rehypeAnimateWords];
+const ANIMATED_PLAIN_PLUGINS = [rehypeArrows, rehypeAnimateWords];
+const PLAIN_PLUGINS = [rehypeArrows];
 /**
  * How long a block keeps its word spans after a newer block starts below it.
  * Covers the reveal catching up plus the word fade (`--dur-row`, 220ms), so the
  * last words of a finished paragraph finish fading instead of snapping solid.
  */
 const WORD_FADE_HOLD_MS = 450;
-const PLUGINS = [rehypeHighlight, rehypeArrows];
+const PLUGINS = [rehypeHighlightShared, rehypeArrows];
 const COMPONENTS = {
   a: ExternalLink,
   img: MarkdownImage,
@@ -482,17 +531,27 @@ const MemoizedMarkdownBlock = memo(
     content,
     promptReady,
     animate,
+    highlight,
   }: {
     content: string;
     promptReady: boolean;
     animate: boolean;
+    highlight: boolean;
   }): React.ReactElement {
     const normalized = content.replace(/\\n/g, "\n").replace(/^\n+|\n+$/g, "");
     return (
       <PromptReadyContext.Provider value={promptReady}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={animate ? ANIMATED_PLUGINS : PLUGINS}
+          rehypePlugins={
+            highlight
+              ? animate
+                ? ANIMATED_PLUGINS
+                : PLUGINS
+              : animate
+                ? ANIMATED_PLAIN_PLUGINS
+                : PLAIN_PLUGINS
+          }
           components={COMPONENTS}
           urlTransform={urlTransform}
         >
@@ -504,7 +563,8 @@ const MemoizedMarkdownBlock = memo(
   (prev, next) =>
     prev.content === next.content &&
     prev.promptReady === next.promptReady &&
-    prev.animate === next.animate,
+    prev.animate === next.animate &&
+    prev.highlight === next.highlight,
 );
 
 /**
@@ -521,7 +581,10 @@ export const Markdown = memo(function Markdown({
   animate = false,
   contentRef,
 }: Props): React.ReactElement {
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(children), [children]);
+  // Re-lex only from the last block on while text grows at its tail; the
+  // finished blocks above keep their strings, so their memo holds.
+  const [lexer] = useState(createBlockLexer);
+  const blocks = useMemo(() => lexer(children), [lexer, children]);
   const [rowExpanded, setRowExpanded] = useState(false);
   const ownRootRef = useRef<HTMLDivElement>(null);
   const rootRef = contentRef ?? ownRootRef;
@@ -570,6 +633,8 @@ export const Markdown = memo(function Markdown({
           // keep their spans briefly so their last words finish fading. Older
           // blocks stay memoized and span-free.
           animate={animate && index >= spanFrom}
+          // The still-open fence at a streaming tail shows as plain code.
+          highlight={!(animate && index === lastIndex && isOpenFence(block))}
         />
       ))}
       {rowFolded && (
@@ -587,7 +652,3 @@ export const Markdown = memo(function Markdown({
     </div>
   );
 });
-
-/** Provider for the "Send to GG Coder" click handler. App wraps the transcript
- *  with this so prompt-block buttons push a transcript row + send. */
-export const PromptSendProvider = PromptSendContext.Provider;

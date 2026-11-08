@@ -1,0 +1,394 @@
+/* ── The deck ── */
+.deck {
+  /* One leading gutter for every row (status, notices, message box, panels),
+     and one 8px column for each row's marker (status light, notice dot), so
+     their left edges line up down the deck. */
+  --deck-gutter: var(--space-6);
+  --deck-mark: 8px;
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* The same centred column as the transcript (see --gutter in App.css). */
+  margin: var(--space-2) var(--gutter) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-1);
+  /* One quiet edge: the border. No raised highlight, no cast shadow. */
+  container: deck / inline-size;
+  transition:
+    border-color var(--t-out),
+    box-shadow var(--t-out);
+}
+/* Writing in the message box: the deck's edge turns Tekhelet with a faint
+   halo, so the composer reads as the place your words go. */
+.deck:has(.inputwrap:focus-within) {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  transition:
+    border-color var(--t-in),
+    box-shadow var(--t-in);
+}
+.deck[data-plan-mode] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--primary) 70%, transparent);
+}
+.deck > * {
+  flex-shrink: 0;
+}
+.deck-spacer {
+  flex: 1 1 auto;
+}
+
+/* The status line and message box. Away (a panel is up), they leave the flow
+   but keep their width and state; back, they fade in where they already are. */
+.deck-main {
+  transition: opacity var(--dur-pop-in) var(--ease-out);
+}
+.deck-main[data-away] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+/* Status line: one row, never wraps. Long steps and errors end in "…". */
+.deck-status {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+}
+.deck-status > .task-activity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.deck .statusrow {
+  padding: var(--space-3) var(--deck-gutter);
+  border-top: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+.deck .statusrow .activity-label-reveal {
+  font-weight: 600;
+}
+.deck .activity-meta {
+  font-size: var(--fs-xs);
+}
+/* Stop: a key like the deck's others, with its words in the error colour.
+   No underline; the raised key is the affordance. */
+/* `.statusrow-right` matches the older rule that zeroed the left padding
+   (`.statusrow.running .statusrow-right .cancel`), which pushed "Stop" against
+   the key's left edge. */
+.deck .statusrow .statusrow-right .cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  /* Even on all sides. The line box sits a touch high in a 24px key (Sora's
+     ascent), so it is set to the key's own height and the word centres in it. */
+  padding: 0 var(--space-5);
+  line-height: 24px;
+  border-radius: var(--radius-button);
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.deck .statusrow .statusrow-right .cancel:hover:not(:disabled) {
+  background: var(--surface-3);
+  text-decoration: none;
+}
+.deck-flag {
+  flex: none;
+  margin-right: var(--space-6);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Plan progress: one bar and a count, the same size at 5 steps or 50. */
+.plan-steps-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.plan-steps-word {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.plan-steps-bar,
+.cbar {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--well);
+  box-shadow: inset 0 1px 1px var(--well-shadow);
+}
+.plan-steps-bar::before,
+.cbar::before {
+  content: "";
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  width: calc((100% - 4px) * var(--p, 0) / 100);
+  border-radius: 1px;
+  background: var(--primary-fill);
+  transition: width var(--t-out);
+}
+/* A plan's progress fills in sun gold. */
+.plan-steps-bar::before {
+  background: var(--gold-fill);
+}
+.plan-steps-count {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  color: var(--text);
+  font-size: var(--fs-xs);
+}
+
+/* The message box, inside the deck: no box of its own. */
+.deck .inputwrap {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-2) var(--deck-gutter);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.deck .inputwrap:focus-within {
+  border-color: transparent;
+}
+.deck .inputwrap > .working-beam,
+.deck .inputactions-trailing > .working-beam {
+  display: none;
+}
+.deck .icon-circle {
+  background: transparent;
+  box-shadow: none;
+}
+/* Attach: its glyph's left edge sits on the gutter, where the status line's
+   and the notice's words start. The 30px hit area keeps its size; only where
+   it sits moves (the glyph is 15px, centred). */
+.deck .inputrow > .icon-circle:first-of-type {
+  margin-left: calc(-1 * (30px - 15px) / 2);
+}
+.deck .icon-circle:hover:not(:disabled) {
+  background: rgb(var(--ink-rgb) / 0.06);
+  color: var(--text);
+}
+.deck .icon-circle-primary,
+.deck .icon-circle-primary:hover:not(:disabled) {
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--on-primary-fill) 25%, transparent),
+    0 1px 0 var(--key-edge);
+}
+/* Mid-run the send key is Stop: it keeps its red in the deck too, so the
+   one way to halt the agent never reads as "send". */
+.deck .icon-circle-stop,
+.deck .icon-circle-stop:hover:not(:disabled) {
+  background: var(--stop-fill);
+  color: #ffffff;
+}
+.deck .icon-circle-stop:hover:not(:disabled) {
+  background: var(--stop-fill-hi);
+}
+.deck .icon-circle-primary:disabled {
+  background: var(--key);
+  color: var(--text-dim);
+}
+/* The cache warning: one quiet line, cut short rather than wrapped. */
+/* The notice's entrance in the deck: it grows from nothing to its pinned
+   height and its gap, and no more. The shared keyframes also animate the
+   strip's padding and border, which the deck's notice doesn't have, so it
+   used to open 12px too tall and snap back when the animation ended. */
+@keyframes deck-notice-in {
+  from {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: var(--pin-h, 200px);
+    margin-bottom: var(--space-3);
+  }
+}
+.deck .queued-bar:not(.leaving) {
+  animation-name: deck-notice-in;
+}
+.deck .queued-bar {
+  border: 0;
+  background: transparent;
+  /* Inside the message box, which already holds the gutter, so the notice's
+     words start on the same edge as the status line's. */
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+
+.deck .queued-bar-row {
+  flex-wrap: nowrap;
+  gap: var(--space-4);
+}
+.deck .queued-bar-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+/* Enhance: a key beside send, only while there's a draft to improve. */
+.enhance-key {
+  align-self: center;
+}
+.enhance-key:not([data-visible]) {
+  display: none;
+}
+.enhance-key[data-visible] {
+  animation: fade-in var(--dur-pop-in) var(--ease-out) backwards;
+}
+.enhance-key.enhancing {
+  color: var(--primary);
+}
+
+/* ── Readout rail ── */
+.deck-rail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+.rail-key {
+  flex: none;
+}
+/* Quiet chrome: the rail and the title-bar keys rest flat, so the message box
+   and the one primary action (Commit) carry the emphasis. They rise on hover
+   and keep the global focus ring. */
+.deck-rail .key,
+.chat-head-trail .key:not(.commit-key) {
+  background: transparent;
+  box-shadow: none;
+}
+.deck-rail .key:hover:not(:disabled),
+.chat-head-trail .key:not(.commit-key):hover:not(:disabled) {
+  background: var(--surface-3);
+}
+.deck-rail .key:is([aria-expanded="true"], [aria-pressed="true"], [aria-checked="true"]),
+.chat-head-trail .key:not(.commit-key):is([aria-expanded="true"], [aria-pressed="true"]) {
+  background: var(--well);
+  box-shadow: none;
+}
+.deck-rail .key .well {
+  background: transparent;
+  box-shadow: none;
+  padding-inline: 0;
+}
+.rail-label {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.branch-key .rail-label {
+  font-weight: 600;
+  color: var(--text);
+}
+.ctx-key[data-hot] .cbar::before {
+  background: var(--warning);
+}
+.ctx-key[data-hot] .well {
+  color: var(--warning);
+}
+.ctx-key .cbar {
+  width: 22px;
+}
+.model-key {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0 var(--space-2) 0 var(--space-4);
+}
+.model-key .well {
+  min-width: 0;
+}
+/* Real-money models (Claude fast mode) wear the same amber as a nearly full
+   context: worth noticing, not an error. */
+.model-key .model-cost,
+.opt-sub[data-paid],
+.deck-note[data-paid] {
+  color: var(--warning);
+}
+.paid-confirm .deck-note + .deck-note {
+  padding-top: 0;
+}
+.paid-confirm-yes {
+  color: var(--warning);
+}
+.model-key .model-cost {
+  flex: none;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.onair-key .eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+  height: 11px;
+}
+.onair-key .eq i {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--primary-fill);
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s var(--ease-in-out) infinite alternate;
+  animation-play-state: var(--loop-play-state, running);
+}
+.onair-key .eq i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.onair-key .eq i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+@keyframes eq-bounce {
+  from {
+    transform: scaleY(0.3);
+  }
+}
+/* Schedules keep their own popover; their trigger becomes a key. */
+.deck-rail .bgtasks {
+  display: inline-flex;
+}
+.deck-rail .bgtasks-button {
+  height: 28px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+  font-size: var(--fs-sm);
+}

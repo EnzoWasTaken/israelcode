@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { readSheet } from "./read-sheet.mjs";
 import { describe, expect, it } from "vitest";
 
 // Guards the motion tokens in App.css `:root`. Every curve outside `:root`
@@ -11,8 +12,9 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const sheets = FILES.map((name) => ({
   name,
   // Comments may mention raw values; only real declarations count.
-  css: read(`../src/${name}`).replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-    comment.replace(/[^\n]/g, " "),
+  css: readSheet(new URL(`../src/${name}`, import.meta.url)).replace(
+    /\/\*[\s\S]*?\*\//g,
+    (comment) => comment.replace(/[^\n]/g, " "),
   ),
 }));
 

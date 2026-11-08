@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { fl } from "./flavor";
 import { useAppUpdate, type UpdateCheckResult } from "./update";

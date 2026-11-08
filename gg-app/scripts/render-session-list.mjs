@@ -11,10 +11,11 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { readSheet } from "./read-sheet.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const css = readFileSync(join(here, "..", "src", "App.css"), "utf-8");
+const css = readSheet(pathToFileURL(join(here, "..", "src", "App.css")));
 // The app's page background lives in index.html, not App.css — read it from
 // there so this harness can never drift into rendering the UI on the wrong
 // backdrop (which would hide any contrast problem in the badge).
@@ -32,7 +33,9 @@ const themeColor = (key) => {
 };
 const TEXT = themeColor("text");
 const TEXT_MUTED = themeColor("textMuted");
-const out = resolve(process.argv[2] ?? join(here, "..", "..", ".gg", "screenshots", "session-list.html"));
+const out = resolve(
+  process.argv[2] ?? join(here, "..", "..", ".gg", "screenshots", "session-list.html"),
+);
 
 /** Mirrors the SOURCE_STYLES map in src/Badge.tsx. */
 const SOURCE = {

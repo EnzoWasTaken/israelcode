@@ -36,7 +36,13 @@ import {
 import { formatTokenCount } from "./ActivityBar";
 import type { LiveToolEntry } from "./LiveToolPanel";
 import { parseTodos } from "./todos";
-import type { PendingApproval, TurnFileDiff } from "./agent";
+import type {
+  PendingApproval,
+  TurnFileDiff,
+  AutoRouteSessionState,
+  RouteDecisionInfo,
+} from "./agent";
+import { applyRouteState, applyRouteDecision } from "./agent";
 
 /** Recent tool calls kept for the live views (the floating current-tool line
  *  and the goal world's coordinator). */
@@ -1136,6 +1142,13 @@ export function useAgentEvents(deps: AgentEventsDeps): AgentEvents {
           break;
         // Native orchestration: the Worker model pin or the Orchestrate toggle
         // changed (this window or another on the same project).
+        // Auto routing: the switch/pins changed, or a prompt was routed.
+        case "route_state":
+          setState((s) => (s ? applyRouteState(s, d as unknown as AutoRouteSessionState) : s));
+          break;
+        case "route_decision":
+          setState((s) => (s ? applyRouteDecision(s, d as unknown as RouteDecisionInfo) : s));
+          break;
         case "orchestration_state":
           setState((s) =>
             s

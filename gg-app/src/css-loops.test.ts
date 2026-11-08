@@ -6,12 +6,28 @@ import { describe, expect, it } from "vitest";
 // shimmer, the signal arcs and the scorecard's rank shimmer were missed by
 // the old hand-kept pause list.
 
-/** Every stylesheet next to this test, as text, keyed by "./Name.css". */
-const SHEETS = import.meta.glob<string>("./*.css", {
+/** Every stylesheet next to this test and its partials under ./styles, as text. */
+const RAW = import.meta.glob<string>(["./*.css", "./styles/**/*.css"], {
   query: "?raw",
   import: "default",
   eager: true,
 });
+
+/** A sheet with its `@import "./styles/…"` lines replaced by the partials' text, in order. */
+function inlineImports(css: string): string {
+  return css.replace(/^@import "([^"]+)";\n/gm, (_, path: string) => {
+    const partial = RAW[path];
+    if (partial === undefined) throw new Error(`missing partial ${path}`);
+    return inlineImports(partial);
+  });
+}
+
+/** Every stylesheet next to this test, as text with its partials inlined, keyed by "./Name.css". */
+const SHEETS: Record<string, string> = Object.fromEntries(
+  Object.entries(RAW)
+    .filter(([name]) => !name.startsWith("./styles/"))
+    .map(([name, css]) => [name, inlineImports(css)]),
+);
 const LOOP_STATE = "var(--loop-play-state, running)";
 
 function lastIndex(list: readonly string[], test: (item: string) => boolean): number {

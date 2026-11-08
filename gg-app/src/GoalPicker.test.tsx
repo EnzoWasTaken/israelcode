@@ -247,3 +247,24 @@ describe("contextSummary", () => {
     expect(contextSummary({ ...GOAL, context: [{ path: "/a", kind: "file" }] })).toBe("1 file");
   });
 });
+
+describe("GoalPicker search keys and empty states", () => {
+  it("offers Clear search and New goal when nothing matches, and Escape clears", async () => {
+    renderPicker([GOAL]);
+    const search = await screen.findByRole<HTMLInputElement>("textbox", { name: "Search goals" });
+    fireEvent.change(search, { target: { value: "zzz" } });
+    expect(screen.getByText(/No goals match/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "+ New goal" }).length).toBe(2);
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(search.value).toBe("");
+    expect(screen.getByText("API latency")).toBeTruthy();
+  });
+
+  it("opens the top match on Enter", async () => {
+    const { onChosen } = renderPicker([GOAL]);
+    const search = await screen.findByRole("textbox", { name: "Search goals" });
+    fireEvent.change(search, { target: { value: "latency" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    await waitFor(() => expect(onChosen).toHaveBeenCalled());
+  });
+});

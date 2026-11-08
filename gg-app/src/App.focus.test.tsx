@@ -23,6 +23,10 @@ beforeAll(async () => {
   mockIPC(nativeIPC);
   App = (await import("./App")).default;
   WorkspaceHeader = (await import("./WorkspaceHeader")).WorkspaceHeader;
+  // The transcript waits for the lazily loaded markdown renderer (main.tsx
+  // preloads it on idle in the app); load it up front so no import is still
+  // in flight when the test environment tears down.
+  await (await import("./LazyMarkdown")).preloadMarkdown();
 }, 30_000);
 
 beforeEach(() => {

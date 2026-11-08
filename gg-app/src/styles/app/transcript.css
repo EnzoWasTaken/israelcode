@@ -1,0 +1,308 @@
+/* ── Reading: replies (see .assistant-text) ── */
+/* The first message in a conversation needs no turn gap above it. */
+.transcript > .user-msg:first-child {
+  margin-top: var(--space-4);
+}
+/* Prose and lists keep the ~72-character reading measure. Tables, code blocks
+   and Israel's prompt blocks are data, not lines of reading, so they take the
+   full conversation column (long code lines wrap far less). */
+.assistant-text .markdown > :not(.md-table-scroll, .code-block, .ken-prompt-block) {
+  max-width: 36em;
+}
+/* A clear gap between paragraphs, lists and code: one blank line's worth. */
+.assistant-text .markdown > * + * {
+  margin-top: 1em;
+}
+.assistant-text .markdown strong {
+  color: var(--text);
+}
+.assistant-text .markdown :not(pre) > code {
+  font-size: 0.9em;
+  padding: 0.1em 0.42em;
+}
+.assistant-text .markdown pre {
+  padding: var(--space-6) var(--space-7);
+  font-size: 0.88em;
+  line-height: 1.6;
+}
+.assistant-text .markdown > ul {
+  padding-left: 1.3em;
+}
+.assistant-text .markdown > ul > li + li {
+  margin-top: 0.5em;
+}
+/* Numbered steps become rows: the number in a well on the left, the text
+   flowing beside it, a dashed rule between, so a reader can't lose their
+   place mid-instruction. The counter starts at the list's own start number
+   (see StepList in Markdown.tsx). */
+.assistant-text .markdown > ol {
+  list-style: none;
+  padding: 0;
+  border-top: 1px dashed var(--border-strong);
+}
+.assistant-text .markdown > ol > li {
+  --step-line: 1.7em;
+  counter-increment: step;
+  position: relative;
+  margin: 0;
+  padding: var(--space-5) 0 var(--space-5) calc(var(--step-well) + var(--space-7));
+  border-bottom: 1px dashed var(--border-strong);
+  color: var(--text);
+}
+/* The well centres on the step's first line. --step-line is a registered
+   length, so it resolves at the item's font size before the smaller number
+   inherits it. */
+.assistant-text .markdown > ol > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: calc(var(--space-5) + (var(--step-line) - var(--step-well-h)) / 2);
+  width: var(--step-well);
+  height: var(--step-well-h);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tool rows (styled verb/detail/summary, no lead marker) ── */
+.tool-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--sans);
+  /* Keep each tool row to a SINGLE line, truncated with an ellipsis, so a long
+     command/path/summary can't wrap into many lines and eat vertical space
+     (the panel only shows a few rows). min-width:0 lets the flex item shrink
+     below its content so the ellipsis actually engages. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Agent checklist (todo_write): live steps while the run goes, then one
+   "3/7 done" line that unfolds on click. ── */
+.todo-list {
+  margin: var(--space-3) 0 var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.todo-list-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.todo-list-head:disabled {
+  cursor: default;
+}
+.todo-list-head:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.todo-list-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.todo-list-count {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.todo-list-items {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.todo-row {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  color: var(--text-secondary);
+}
+.todo-mark {
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+  color: var(--text-dim);
+}
+.todo-row[data-status="in_progress"] .todo-mark {
+  color: var(--primary);
+}
+.todo-row[data-status="completed"] .todo-mark {
+  color: var(--success);
+}
+.todo-pill {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  max-width: min(var(--column), 100%);
+  margin: 0 auto var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  width: fit-content;
+}
+.todo-pill .todo-mark {
+  color: var(--primary);
+}
+.todo-pill-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.todo-row[data-status="completed"] .todo-text {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+/* ── Sub-agent in-chat line: the agents themselves walk on the critter floor,
+   so the transcript keeps one short summary row. ── */
+.subagents {
+  margin: var(--space-3) 0 var(--space-5);
+}
+.subagents-compact {
+  display: flex;
+  /* Same gutter + gap as `.assistant-msg`, so the critter sits in the assistant
+     dot's column and the text starts where message text starts. */
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  font-family: var(--sans);
+}
+.subagents-critter {
+  flex: 0 0 auto;
+  width: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+/* One sprite cell per CSS px (18×18), kept crisp. */
+.subagents-critter-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+  transform-origin: 50% 100%;
+}
+.subagents-critter-working {
+  animation: subagents-critter-hop 0.9s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+/* Failed / called back: tipped over, like on the floor. Kept at full colour:
+   the red text already says it failed, and a drained sprite read as disabled. */
+.subagents-critter-failed {
+  transform-origin: 50% 50%;
+  transform: rotate(-90deg);
+}
+@keyframes subagents-critter-hop {
+  0%,
+  60%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(-3px) scale(0.94, 1.06);
+  }
+}
+/* Same size and weight as a hook line (`.assistant-text` + `.shimmer-text`),
+   in every state, so a critter row never reads smaller or dimmer than one. */
+.subagents-compact-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Home's pixel body face at the chat's text size. A pixel font has one
+     weight: faux bold would smear its strokes. */
+  font-family: "m5x7", monospace;
+  font-size: var(--fs-pixel);
+  font-weight: 400;
+  line-height: var(--fs-pixel);
+  -webkit-font-smoothing: none;
+}
+.subagents-compact-text .shimmer-text {
+  font-weight: 400;
+}
+.spinner {
+  /* Working reads as sun gold: a soft glow in the progress colour. */
+  text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+@keyframes ggblink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+.blink {
+  animation: ggblink 1s steps(1, end) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@media (prefers-reduced-motion: reduce) {
+  .blink,
+  .subagents-critter-working {
+    animation: none;
+  }
+}
+
+/* ── Pinned live region (tool panel + activity bar) ── */
+.liveregion {
+  flex: 0 0 auto;
+}
+
+/* ── Critter floor: sub-agents walk on top of the pinned live region ──
+   The lane's bottom edge is the tool panel's (or activity bar's) top border,
+   so that border is the floor. 0px tall while nobody is out; eases open when
+   the first critter is summoned, which steals height from the flexible
+   transcript so the chat slides up instead of being covered (the transcript's
+   resize observer keeps the newest message pinned through the transition).
+   Open height = sprite (18 cells × --critter-px) + room for a hovering bee and
+   the bubble/badge above it, so nothing a critter shows overlaps the chat. */
+.critter-lane {
+  --critter-px: 2px;
+  --critter-size: calc(var(--critter-px) * 18);
+  flex: 0 0 auto;
+  position: relative;
+  /* Above the transcript so summon beams and bubbles may glow over it. */
+  z-index: 2;
+  height: 0;
+  transition: height var(--dur-dissolve) var(--ease-out);
+}
+.critter-lane.open {
+  height: calc(var(--critter-size) + 48px);
+}
+/* Critters coming back into view (the chat shown again after a goal's
+   Workers view): the lane and its scenery are simply there, nothing replays. */
+.critter-lane.instant,
+.critter-lane.instant * {
+  transition: none !important;
+}
+.critter-floor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

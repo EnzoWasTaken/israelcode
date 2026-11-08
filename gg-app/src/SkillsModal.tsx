@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircleIcon, WarningCircleIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningCircleIcon, XCircleIcon, XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
 import { Badge } from "./Badge";
@@ -27,6 +27,7 @@ import {
   type SkillSearchResponse,
 } from "./agent";
 import { toast } from "./toast";
+import { EmptyState } from "./EmptyState";
 
 interface Props {
   onClose: () => void;
@@ -679,9 +680,18 @@ export function SkillsModal({ onClose }: Props): React.ReactElement {
       </button>
     </div>
   ) : installed.length === 0 ? (
-    <div className="mcp-empty" style={{ color: theme.textMuted }}>
-      No skills installed yet.
-    </div>
+    <EmptyState
+      className="mcp-empty"
+      message="No skills installed yet. Skills teach the agent a job, like reading PDFs."
+    >
+      <button
+        type="button"
+        className="btn btn-sm btn-ghost"
+        onClick={() => document.getElementById("skills-search")?.focus()}
+      >
+        Search skills
+      </button>
+    </EmptyState>
   ) : (
     <ul className="mcp-list" aria-label="Installed skills" style={{ listStyle: "none" }}>
       {installed.map((row) => (

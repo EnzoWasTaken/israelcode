@@ -1,0 +1,559 @@
+/* ── Footer: background tasks indicator + popover ── */
+/* No outer margin: the first pill's edge sits on the footer rail, lined up
+   with the composer and transcript above; `.footer-left`'s gap spaces the rest. */
+.bgtasks {
+  position: relative;
+  display: inline-flex;
+}
+.bgtasks-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-family: var(--sans);
+  /* Same size as the rest of the footer's text. */
+  font-size: var(--fs-base);
+  padding: 0 var(--space-4);
+  cursor: pointer;
+  line-height: 1.5;
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast),
+    border-color var(--t-fast);
+}
+.bgtasks-button:hover {
+  background: var(--surface-1);
+}
+/* The popover itself is a .pop-panel (see "Popovers"). */
+.bgtasks-button[data-open] {
+  background: var(--surface-1);
+}
+
+/* ── Model picker (footer, native <select>) ── */
+/* Text-look picker with a native dropdown: the visible label is plain mono
+   text (like the old footer button); a transparent <select> stretched over it
+   takes the click and opens the OS-native dropdown. */
+.model-picker {
+  position: relative;
+  display: inline-flex;
+  line-height: 1;
+}
+.model-select-text {
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  line-height: 1;
+  transition:
+    color var(--t-fast),
+    filter var(--t-fast);
+}
+.model-picker:has(.model-select:not(:disabled)):hover .model-select-text {
+  filter: brightness(1.25);
+}
+.model-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+.model-select:disabled {
+  cursor: default;
+}
+/* The select is invisible (it only takes the click), so its keyboard focus ring
+   is too. Draw the ring on the visible wrapper instead. */
+.model-picker:has(.model-select:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+/* Windows/Linux fallback menu. The trigger keeps the same plain-text footer
+   treatment as the native macOS control. */
+.model-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    filter var(--t-fast);
+}
+.model-button:hover:not(:disabled) {
+  filter: brightness(1.25);
+}
+.model-button:disabled {
+  cursor: default;
+}
+.model-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  max-width: min(640px, 90vw);
+  max-height: 50vh;
+  overflow: hidden;
+  padding: var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+}
+.model-menu-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.model-menu-title {
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Per-provider group heading. Quieter than the menu title so the hierarchy
+   reads title > provider > model. */
+.model-menu-section + .model-menu-section {
+  margin-top: var(--space-3);
+}
+.model-menu-subtitle {
+  padding: var(--space-1) var(--space-3) 3px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.model-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-1) var(--space-4);
+}
+.model-menu-follow {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+.model-menu-item {
+  padding: var(--space-2) var(--space-4);
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.model-menu-item[aria-checked="true"] {
+  background: var(--surface-1);
+}
+.model-menu-item:hover,
+.model-menu-item:focus-visible {
+  background: var(--surface-1);
+}
+
+/* ── Rank / Progress (Ranks system) ───────────────────────────────────── */
+.rank-xp-chip-layer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  z-index: var(--z-float);
+}
+.rank-xp-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  /* Neutral raised chip; the success green lives only in the ink. A green
+     wash under green text read as a generic library badge. */
+  background: var(--surface-2);
+  color: var(--success);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 var(--key-hi);
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  animation: rankXpChip 1.7s ease-out both;
+}
+.rank-fx-dim {
+  color: var(--text-dim);
+}
+.rank-fx-plain {
+  color: var(--text);
+}
+.rank-fx-blue {
+  color: #8fb7ff;
+}
+.rank-fx-green {
+  color: #8ee6b0;
+}
+.rank-fx-gradient,
+.rank-fx-gradient-glow,
+.rank-fx-gold,
+.rank-fx-ember,
+.rank-fx-nebula,
+.rank-fx-rift,
+.rank-fx-prism,
+.rank-fx-eternal,
+.rank-fx-platinum,
+.rank-fx-omega {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+.rank-fx-gradient {
+  background-image: linear-gradient(90deg, var(--fx-rank-violet), var(--fx-rank-blue));
+}
+.rank-fx-gradient-glow {
+  background-image: linear-gradient(
+    90deg,
+    var(--fx-rank-violet),
+    var(--fx-rank-blue),
+    var(--fx-rank-cyan)
+  );
+  text-shadow: 0 0 14px rgba(126, 170, 255, 0.25);
+}
+.rank-fx-animated {
+  color: #7ca8ff;
+  text-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+}
+.rank-fx-gold {
+  background-image: linear-gradient(90deg, #b78b2d, var(--fx-rank-gold), var(--fx-rank-gold-deep));
+}
+.rank-fx-gold-shimmer {
+  color: var(--fx-rank-gold);
+  text-shadow: 0 0 12px rgba(255, 227, 138, 0.2);
+}
+.rank-fx-iridescent {
+  color: var(--fx-rank-iris);
+  text-shadow: 0 0 12px rgba(125, 249, 255, 0.2);
+}
+/* Past the Singularity (levels 51+): one look per two tiers, ending on Origin. */
+.rank-fx-ember {
+  background-image: linear-gradient(90deg, #ff9d4d, #ffd48a, #ff7a3d);
+}
+.rank-fx-nebula {
+  background-image: linear-gradient(90deg, #c77dff, #7ad7ff, #ff8fd0);
+}
+.rank-fx-rift {
+  background-image: linear-gradient(90deg, #6ef2ff, #8f7bff);
+}
+.rank-fx-void {
+  color: #b39dff;
+  text-shadow: 0 0 14px rgba(122, 90, 255, 0.32);
+}
+.rank-fx-aether {
+  color: #b8fff0;
+  text-shadow: 0 0 12px rgba(125, 249, 255, 0.22);
+}
+.rank-fx-prism {
+  background-image: linear-gradient(
+    90deg,
+    var(--fx-rank-pink),
+    var(--fx-rank-gold),
+    var(--fx-rank-cyan),
+    var(--fx-rank-violet)
+  );
+}
+.rank-fx-eternal {
+  background-image: linear-gradient(90deg, #ffd77a, #fff8e6, #ffc861);
+}
+.rank-fx-platinum {
+  background-image: linear-gradient(90deg, #c9d6e6, #ffffff, #a9b8cc);
+}
+.rank-fx-radiant {
+  color: var(--fx-rank-radiant);
+  text-shadow: 0 0 14px rgba(165, 243, 255, 0.34);
+}
+.rank-fx-omega {
+  background-image: linear-gradient(90deg, #ff6b6b, #ffd166, #ff8fab);
+}
+.rank-fx-origin {
+  color: #d7ccff;
+  text-shadow: 0 0 16px rgba(125, 249, 255, 0.3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rank-fx-animated {
+    animation: rankArcaneShift 8s ease-in-out infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+  .rank-fx-gold-shimmer {
+    animation: rankGoldShift 7s ease-in-out infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+  .rank-fx-iridescent {
+    animation: rankIridescentShift 12s ease-in-out infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+  .rank-fx-radiant {
+    animation: rankRadiantShift 9s ease-in-out infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+  .rank-fx-origin {
+    animation: rankOriginShift 10s ease-in-out infinite;
+    animation-play-state: var(--loop-play-state, running);
+  }
+}
+/* Reduced motion: the chip fades in place over the same lifetime. */
+@keyframes rankXpChipStill {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  72% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rank-xp-chip {
+    animation-name: rankXpChipStill;
+  }
+}
+@keyframes rankXpChip {
+  0% {
+    opacity: 0;
+    transform: translateY(7px) scale(0.96);
+  }
+  16% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+@keyframes rankArcaneShift {
+  0%,
+  100% {
+    color: #9b8cf7;
+  }
+  50% {
+    color: #34d399;
+  }
+}
+@keyframes rankGoldShift {
+  0%,
+  100% {
+    color: var(--fx-rank-gold-deep);
+  }
+  50% {
+    color: #fff3bf;
+  }
+}
+@keyframes rankIridescentShift {
+  0%,
+  100% {
+    color: var(--fx-rank-iris);
+  }
+  33% {
+    color: var(--fx-rank-cyan);
+  }
+  66% {
+    color: var(--fx-rank-pink);
+  }
+}
+@keyframes rankRadiantShift {
+  0%,
+  100% {
+    color: var(--fx-rank-radiant);
+  }
+  50% {
+    color: #a5f3ff;
+  }
+}
+@keyframes rankOriginShift {
+  0%,
+  100% {
+    color: #d7ccff;
+  }
+  25% {
+    color: var(--fx-rank-cyan);
+  }
+  50% {
+    color: #ffe9b0;
+  }
+  75% {
+    color: #ff9ede;
+  }
+}
+
+/* Compact subscription quota in the title strip. The track is the primary
+   signal; labels stay terse so the session title keeps most of the width. */
+.title-usage-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  /* The 14px track sets the row height; 1.25 only gives labels descender room. */
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
+}
+.title-usage-meter:hover:not([aria-disabled="true"]) {
+  border-color: var(--border);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+}
+/* Single-window snapshot: read-only status, not a toggle. */
+.title-usage-meter[aria-disabled="true"] {
+  cursor: default;
+}
+.title-usage-window {
+  /* Sized in characters so the longest label ("week") fits at any font size. */
+  width: 4ch;
+  color: var(--text-muted);
+  font-weight: 650;
+  text-align: right;
+}
+.title-usage-track {
+  position: relative;
+  width: 64px;
+  height: 12px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--fx-meter-edge);
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle, var(--fx-meter-from), var(--fx-meter-to));
+  box-shadow: var(--shadow-sm);
+}
+.title-usage-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--fx-volume-from), var(--fx-volume-to));
+  box-shadow:
+    0 0 4px var(--fx-volume-from),
+    0 0 7px var(--fx-volume-to);
+  transition: width 0.45s var(--ease-out);
+}
+.title-usage-fill::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent);
+  content: "";
+  opacity: 0.5;
+  transform: translate(-50%, -50%);
+  animation: titleUsageRipple 3s infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.title-usage-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.title-usage-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.55;
+  animation: titleUsageFloat 5s infinite ease-in-out;
+  animation-play-state: var(--loop-play-state, running);
+}
+.title-usage-particle:nth-child(1) {
+  top: 15%;
+  left: 20%;
+}
+.title-usage-particle:nth-child(2) {
+  top: 30%;
+  left: 72%;
+  animation-delay: 1s;
+}
+.title-usage-particle:nth-child(3) {
+  top: 52%;
+  left: 50%;
+  animation-delay: 2s;
+}
+.title-usage-particle:nth-child(4) {
+  top: 72%;
+  left: 38%;
+  animation-delay: 1.5s;
+}
+.title-usage-particle:nth-child(5) {
+  top: 82%;
+  left: 62%;
+  animation-delay: 2.5s;
+}
+.title-usage-reset {
+  max-width: 62px;
+  overflow: hidden;
+  color: var(--text-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Below 440px the strip can't hold the project counts and the reset time
+   together; the counts were being clipped ("1 P"). The reset time stays in the
+   meter's tooltip and accessible name, so drop the visible copy first. */
+@media (max-width: 440px) {
+  .title-usage-reset {
+    display: none;
+  }
+}
+@keyframes titleUsageRipple {
+  from {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+@keyframes titleUsageFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(3px, -3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-usage-fill::before,
+  .title-usage-particle {
+    animation: none;
+  }
+}

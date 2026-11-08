@@ -48,6 +48,7 @@ export function NewProjectModal({ projectsRoot, onClose, onCreated }: Props): Re
         className="modal-input"
         style={{ color: theme.text, background: theme.inputBackground }}
         value={name}
+        aria-label="Project name"
         placeholder="my-project"
         autoFocus
         onChange={(e) => setName(e.target.value)}

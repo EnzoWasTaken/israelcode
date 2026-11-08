@@ -1,0 +1,103 @@
+/* The rail's Auto / manual model control and the status line's route note. */
+.route-auto {
+  flex: none;
+  color: var(--primary);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.route-sep,
+.route-effort {
+  flex: none;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.route-mode {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.route-pin {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.route-line {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 var(--deck-gutter) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+}
+.route-line > span {
+  color: var(--text);
+  font-weight: 600;
+}
+.route-line[data-fallback] {
+  color: var(--warning);
+}
+.deck-status {
+  flex-wrap: wrap;
+}
+
+/* Model panel: Auto / Manual and the pin rows. */
+.route-section {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--deck-gutter);
+}
+.route-why {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.route-why[data-fallback] {
+  color: var(--warning);
+}
+.route-rows {
+  display: grid;
+  gap: var(--space-2);
+}
+.route-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.route-row-name {
+  flex: none;
+  width: 52px;
+  color: var(--text-dim);
+}
+.route-row-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.route-row-value[data-pinned] {
+  color: var(--text);
+  font-weight: 600;
+}
+.route-more > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  padding: var(--space-2) var(--deck-gutter);
+}
+.route-more > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+@media (max-width: 760px) {
+  .route-mode,
+  .route-effort {
+    display: none;
+  }
+}

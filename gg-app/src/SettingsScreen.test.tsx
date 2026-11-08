@@ -31,11 +31,11 @@ vi.mock("./agent", () => ({
   startServe: vi.fn(),
   stopServe: vi.fn(),
   setRemoteActive: vi.fn(),
-  getSteroidsStatus: () => Promise.resolve({ installed: true, connected: true }),
+  getSteroidsStatus: vi.fn(() => Promise.resolve({ installed: true, connected: true })),
   onSteroidsChange: () => () => {},
 }));
 
-import { getServeStatus } from "./agent";
+import { getServeStatus, getSteroidsStatus } from "./agent";
 import { SETTINGS_PAGE_WAIT_MS } from "./settings-ready";
 import { SettingsScreen } from "./SettingsScreen";
 
@@ -69,7 +69,7 @@ describe("SettingsScreen", () => {
     expect(heading()).toBe("General");
     expect(screen.getByText("general page")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: "MCP" }));
+    fireEvent.click(screen.getByRole("button", { name: "MCP" }));
 
     expect(heading()).toBe("MCP");
     expect(screen.getByText("mcp page")).toBeTruthy();
@@ -80,8 +80,8 @@ describe("SettingsScreen", () => {
     await renderScreen({ initialTab: "steroids" });
 
     expect(heading()).toBe("Steroids");
-    expect(screen.getByRole("tab", { name: "Steroids" }).getAttribute("aria-selected")).toBe(
-      "true",
+    expect(screen.getByRole("button", { name: "Steroids" }).getAttribute("aria-current")).toBe(
+      "page",
     );
   });
 
@@ -89,10 +89,10 @@ describe("SettingsScreen", () => {
     await renderScreen();
     expect(screen.queryByText("3 connected")).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: "AI Providers" }));
+    fireEvent.click(screen.getByRole("button", { name: "AI Providers" }));
     expect(screen.getByText("3 connected")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: "General" }));
+    fireEvent.click(screen.getByRole("button", { name: "General" }));
     expect(screen.queryByText("3 connected")).toBeNull();
   });
 
@@ -132,7 +132,7 @@ describe("SettingsScreen", () => {
 
   it("never holds a page that has nothing to load", async () => {
     await renderScreen({ initialTab: "remote" });
-    fireEvent.click(screen.getByRole("tab", { name: "About" }));
+    fireEvent.click(screen.getByRole("button", { name: "About" }));
     expect(waiting()).toBe(false);
   });
 
@@ -155,17 +155,17 @@ describe("SettingsScreen", () => {
     await renderScreen({ initialTab: "remote" });
     expect(screen.queryByRole("button", { name: "Start serving" })).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: "MCP" }));
+    fireEvent.click(screen.getByRole("button", { name: "MCP" }));
 
     expect(screen.queryByRole("button", { name: "Start serving" })).toBeNull();
   });
 
-  it("ends with the About tab", async () => {
+  it("ends with the About entry", async () => {
     await renderScreen();
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs[tabs.length - 1]?.getAttribute("aria-label")).toBe("About");
+    const tabs = screen.getByRole("navigation").querySelectorAll("button");
+    expect(tabs[tabs.length - 1]?.textContent).toBe("About");
 
-    fireEvent.click(screen.getByRole("tab", { name: "About" }));
+    fireEvent.click(screen.getByRole("button", { name: "About" }));
 
     expect(heading()).toBe("About");
     expect(screen.getByText("about page")).not.toBeNull();
@@ -177,5 +177,47 @@ describe("SettingsScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
 
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("groups the sections in a labelled nav with the open page marked current", async () => {
+    await renderScreen({ initialTab: "mcp" });
+    const nav = screen.getByRole("navigation", { name: "Settings sections" });
+    expect(nav.querySelectorAll("[role=group]").length).toBe(5);
+    expect(
+      screen.getByRole("group", { name: "Integrations" }).querySelectorAll("button").length,
+    ).toBe(5);
+    expect(nav.querySelectorAll("[aria-current=page]").length).toBe(1);
+    expect(screen.getByRole("button", { name: "MCP" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByText("Servers that give your agents extra tools.")).toBeTruthy();
+  });
+
+  it("moves focus with the arrow keys and opens an entry with a click", async () => {
+    await renderScreen();
+    const general = screen.getByRole("button", { name: "General" });
+    general.focus();
+    fireEvent.keyDown(general, { key: "ArrowDown" });
+    const providers = screen.getByRole("button", { name: "Sessions & background" });
+    expect(document.activeElement).toBe(providers);
+    fireEvent.keyDown(providers, { key: "End" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "About" }));
+    fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(general);
+    fireEvent.keyDown(general, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "About" }));
+    // Moving focus does not open a page.
+    expect(heading()).toBe("General");
+  });
+
+  it("shows an alert dot on Steroids when it is not connected", async () => {
+    vi.mocked(getSteroidsStatus).mockResolvedValueOnce({
+      installed: true,
+      connected: false,
+    } as never);
+    await renderScreen();
+    const steroids = screen.getByRole("button", { name: /Steroids/ });
+    expect(steroids.querySelector(".settings-nav-alert")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "MCP" }).querySelector(".settings-nav-alert"),
+    ).toBeNull();
   });
 });

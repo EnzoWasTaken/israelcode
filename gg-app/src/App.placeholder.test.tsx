@@ -8,6 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 mockWindows("main");
 mockIPC(() => new Promise(() => {}));
 const { default: App } = await import("./App");
+// The markdown renderer and on-demand dialogs load lazily (the app warms them
+// on idle); load them up front so a loaded machine cannot outrun findBy*.
+await (await import("./LazyMarkdown")).preloadMarkdown();
+await (await import("./lazy-surfaces")).preloadLazySurfaces();
 
 beforeEach(() => {
   vi.useFakeTimers();

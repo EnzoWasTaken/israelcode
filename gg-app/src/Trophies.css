@@ -405,7 +405,7 @@
   box-shadow: var(--focus-ring);
 }
 
-/* The back: graphite with engine-turned rings and an engraved GG. A material,
+/* The back: night navy with engine-turned rings and an engraved GG. A material,
    dark in both themes, with its own light ink. */
 .tu-back {
   transform: rotateY(180deg) translateZ(calc(var(--depth) / 2 + 0.5px));
@@ -414,13 +414,17 @@
   align-content: center;
   gap: var(--space-1);
   background:
-    radial-gradient(circle at 50% 50%, rgb(143 163 255 / 0.2), transparent 55%),
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--night-primary) 20%, transparent),
+      transparent 55%
+    ),
     repeating-radial-gradient(
       circle at 50% 50%,
       rgb(255 255 255 / 0.05) 0 1px,
       transparent 1px 6px
     ),
-    linear-gradient(150deg, #33383e, #1a1d21 55%, #24282d);
+    linear-gradient(150deg, var(--night-surface-3), var(--night-bg) 55%, var(--night-surface-2));
   border: 1px solid rgb(255 255 255 / 0.14);
   color: #e8ebef;
 }

@@ -42,6 +42,8 @@ export function createElicitationBridge(opts: {
   /** Called when a request auto-cancels on timeout, for logging. */
   onTimeout?: (prompt: ElicitationPrompt) => void;
   timeoutMs?: number;
+  /** While true the timeout re-arms instead of cancelling. */
+  isSuspended?: () => boolean;
 }): ElicitationBridge {
   const parked = createParkedRequests<MCPElicitation, ElicitResult>({
     idPrefix: "elicit",
@@ -49,6 +51,7 @@ export function createElicitationBridge(opts: {
     cancelValue: () => ({ action: "cancel" }),
     timeoutMs: opts.timeoutMs ?? MCP_ELICIT_TIMEOUT_MS,
     ...(opts.onTimeout ? { onTimeout: opts.onTimeout } : {}),
+    ...(opts.isSuspended ? { isSuspended: opts.isSuspended } : {}),
   });
 
   return {

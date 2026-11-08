@@ -5,15 +5,14 @@ import {
   focusWindowByOffset,
   getSettings,
   listSessions,
+  newWindow,
   selectWorkspace,
   waitForReady,
   type ChatAgentId,
   type RecentSession,
 } from "./agent";
 import { motionWorkspacePath } from "./motion-workspace";
-import { Badge } from "./Badge";
-import { BackButton } from "./BackButton";
-import { ListSkeleton } from "./Skeleton";
+import { SessionBrowser } from "./SessionBrowser";
 import { useCachedList } from "./useCachedList";
 import { RadioButton } from "./RadioButton";
 import { WindowLayoutButton } from "./WindowLayoutButton";
@@ -29,15 +28,17 @@ interface Props {
 const COPY = {
   chat: {
     title: "Chats",
+    noun: { one: "chat", many: "chats" },
     newLabel: "+ New chat",
-    empty: "No previous chats yet.",
+    empty: "No chats yet. Start one and it shows up here to pick up later.",
     noRoot: "Choose a projects folder in Settings before starting a chat.",
     loadError: "Chats could not be loaded.",
   },
   motion: {
     title: "Motion",
+    noun: { one: "video", many: "videos" },
     newLabel: "+ New video",
-    empty: "No motion sessions yet.",
+    empty: "No videos yet. Start one and it shows up here to pick up later.",
     noRoot: "Choose a projects folder in Settings before starting a video.",
     loadError: "Motion sessions could not be loaded.",
   },
@@ -111,74 +112,70 @@ export function ChatPicker({
       });
   }
 
+  function openInNewWindow(session: RecentSession): void {
+    if (busy || !projectsRoot) return;
+    setChooseError(null);
+    void newWindow({
+      mode,
+      chatAgent: session.chatAgent ?? initialAgent,
+      cwd: projectsRoot,
+      sessionPath: session.path,
+    }).catch((reason: unknown) => {
+      const message = reason instanceof Error ? reason.message : String(reason);
+      setChooseError(`Couldn't open that in a new window: ${message}`);
+    });
+  }
+
   return (
-    <div className="picker chat-picker">
-      <div className="picker-head" data-tauri-drag-region>
-        {onClose ? <BackButton label="Back" onClick={onClose} /> : null}
-        <span className="picker-title">{copy.title}</span>
-        {!loading && !error && <Badge>{sessions.length}</Badge>}
-        <span className="picker-head-actions">
-          <button
-            className="btn btn-primary btn-sm"
-            disabled={busy || loading || !projectsRoot}
-            onClick={() => choose()}
-          >
-            {copy.newLabel}
-          </button>
+    <SessionBrowser
+      title={copy.title}
+      noun={copy.noun}
+      sessions={error ? [] : sessions}
+      loading={loading}
+      busy={busy}
+      newLabel={copy.newLabel}
+      newDisabled={loading || !projectsRoot}
+      onNew={() => choose()}
+      onBack={onClose}
+      onOpen={(session) => choose(session)}
+      onOpenInNewWindow={openInNewWindow}
+      filterBy="chatAgent"
+      headActions={
+        <>
           <RadioButton />
           <WindowLayoutButton />
-        </span>
-      </div>
-
-      <div className="picker-list">
-        {loading && <ListSkeleton rows={5} />}
-        {chooseError && (
-          <div className="picker-error" role="alert">
-            {chooseError}
-          </div>
-        )}
-        {!loading && error && (
-          <div className="picker-empty" role="alert">
-            <span style={{ color: theme.textMuted }}>{error}</span>
-            {/* No projects folder is a settings problem, so retrying can't fix it. */}
-            {error !== copy.noRoot && (
-              <button type="button" className="btn btn-sm btn-ghost" onClick={sessionList.reload}>
-                Try again
-              </button>
-            )}
-          </div>
-        )}
-        {!loading && !error && sessions.length === 0 && (
+        </>
+      }
+      notices={
+        <>
+          {chooseError && (
+            <div className="picker-error" role="alert">
+              {chooseError}
+            </div>
+          )}
+          {!loading && error && (
+            <div className="picker-empty" role="alert">
+              <span style={{ color: theme.textMuted }}>{error}</span>
+              {/* No projects folder is a settings problem, so retrying can't fix it. */}
+              {error !== copy.noRoot && (
+                <button type="button" className="btn btn-sm btn-ghost" onClick={sessionList.reload}>
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      }
+      empty={
+        error ? null : (
           <div className="picker-empty">
             <span style={{ color: theme.textMuted }}>{copy.empty}</span>
             <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => choose()}>
               {copy.newLabel}
             </button>
           </div>
-        )}
-        {!loading && !error && sessions.length > 0 && (
-          <div className="picker-reveal">
-            {sessions.map((session) => (
-              <button
-                key={session.id}
-                className="picker-item"
-                disabled={busy}
-                onClick={() => choose(session)}
-              >
-                <span className="picker-row">
-                  <span className="picker-name picker-preview" style={{ color: theme.text }}>
-                    {session.preview || "(no preview)"}
-                  </span>
-                  <Badge>{session.lastActiveDisplay}</Badge>
-                </span>
-                <span className="picker-meta" style={{ color: theme.textMuted }}>
-                  {`${session.messageCount} msgs`}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+        )
+      }
+    />
   );
 }

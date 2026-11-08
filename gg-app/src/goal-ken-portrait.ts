@@ -1,10 +1,11 @@
 // Little Ken's dialogue portrait for the Workers view (see KenDialogue), and
 // everywhere else he talks (the question and finish signs, the status panel,
-// About): the farm's Ken (KEN_FARM_CRITTER) and his face icon (ken-face.ts)
-// drawn bigger and front-on, still a chibi. A round mochi head with a flat
-// jaw, ears at eye level, a short dark buzzcut, a navy tee, and a touch of bad
-// boy: a slit in his right brow, a plaster on his cheek, a smirk for his
-// resting face. 36×44 cells: head, shoulders and chest (the dialogue box
+// About): his face icon (ken-face.ts) drawn bigger and front-on, still a chibi.
+// A cartoon caricature of Benjamin Netanyahu, drawn as parody (the About page
+// says so): swept-back silver hair with a side part over a high forehead,
+// strong dark-grey brows, a broad face with a heavy jaw and jowls, a confident
+// half-smile for his resting face, and a navy suit with a white shirt collar
+// and a blue tie. 36×44 cells: head, shoulders and chest (the dialogue box
 // covers the rest), with room on the right for a ! ? or sparkle.
 //
 // The bust is a material map: each of the ten faces is small grids of brows,
@@ -22,21 +23,21 @@ export const KEN_PORTRAIT_H = 44;
 
 const PALETTE: Readonly<Record<string, string>> = {
   O: "#1c120e", // outline
-  T: "#3d302a", // buzzcut
-  H: "#6e5a4d", // stubble flecks
-  B: "#f7dcc4", // skin
-  D: "#e3b796", // skin shade (hairline, nose, neck)
-  A: "#ecbf9f", // ears
+  T: "#c3c7cf", // silver hair
+  H: "#8e939c", // the side part and the swept-back strands
+  b: "#3e3f46", // strong dark-grey brows
+  B: "#f2d2b6", // skin
+  D: "#dcb08f", // skin shade (hairline, nose, jowls, neck)
+  A: "#e6b896", // ears
   K: "#1d1418", // eyes
   W: "#ffffff", // eye light
   C: "#f4a99e", // blush
   M: "#b5554c", // mouth
   m: "#5e1f1c", // mouth inside
   t: "#ee7f86", // tongue
-  P: "#fbf1e0", // plaster
-  p: "#c9a07a", // plaster pad
-  S: "#2f4a7a", // tee (navy, as on the farm)
-  c: "#16223e", // collar
+  S: "#1f2b4a", // navy suit
+  X: "#f4f4f2", // white shirt collar
+  N: "#2f6fd0", // blue tie
   Y: "#ffd23a", // sparkles, !
   G: "#fffbe0", // sparkle light
   E: "#9adfff", // water (sweat, tears)
@@ -52,15 +53,15 @@ const MATERIALS: Readonly<Record<string, Material>> = {
   T: "cloth",
   H: "flat",
   S: "cloth",
-  c: "cloth",
-  P: "flat",
+  X: "cloth",
+  N: "cloth",
+  b: "flat",
   K: "flat",
   W: "flat",
   C: "flat",
   M: "flat",
   m: "flat",
   t: "flat",
-  p: "flat",
   Y: "flat",
   G: "flat",
   E: "glass",
@@ -71,15 +72,15 @@ const MATERIALS: Readonly<Record<string, Material>> = {
 const BUST: readonly string[] = [
   "....................................",
   ".........OOOOOOOOOOOOOO.............",
-  ".......OOHTTTTHTTHTHTTTOO...........",
-  "......OTTHTHTTTTHTTTHHTTTO..........",
-  ".....OTTHTTTHHTTTTHTTTTHTTO.........",
-  "....OHTTTTHTTTTHTTTTHTTTTHHO........",
-  "....OTTHTTTTTTTTTTHTTTTTTTTO........",
-  "...OTTTTTTHTTTTTTTTTTHTTTTTTO.......",
-  "...OTTTTTTTTTHTTTTTTTTTTHTTTO.......",
-  "...OTTTTTTTTDDDDDDDDTTTTTTTTO.......",
-  "...OTTDDDDDDBBBBBBBBDDDDDDTTO.......",
+  ".......OOTTTTTTTTTTTTTTOO...........",
+  "......OTTTTHHTTTTTTTTTTTTO..........",
+  ".....OTTTHHTTTTTTHHHTTTTTTO.........",
+  "....OTTTHTTTTTTTTTTHHHTTTTTO........",
+  "....OTTHDDDDDDDDDDDDDDDDHTTO........",
+  "...OTTTDBBBBBBBBBBBBBBBBDTTTO.......",
+  "...OTTTBBBBBBBBBBBBBBBBBBTTTO.......",
+  "...OTTBBBBBBBBBBBBBBBBBBBBTTO.......",
+  "...OTTBBBBBBBBBBBBBBBBBBBBTTO.......",
   "...OTTBBBBBBBBBBBBBBBBBBBBTTO.......",
   "...OTTBBBBBBBBBBBBBBBBBBBBTTO.......",
   ".OOOTTBBBBBBBBBBBBBBBBBBBBTTOOO.....",
@@ -90,25 +91,25 @@ const BUST: readonly string[] = [
   "OAAOBBBBBBBBBBBDDBBBBBBBBBBBOAAO....",
   ".OOOBBBBBBBBBBBBBBBBBBBBBBBBOOO.....",
   "....OBBBBBBBBBBBBBBBBBBBBBBO........",
-  ".....OBBBBBBBBBBBBBBBBBBBBO.........",
-  "......OBBBBBBBBBBBBBBBBBBO..........",
+  "....ODBBBBBBBBBBBBBBBBBBBBDO........",
+  "....ODDBBBBBBBBBBBBBBBBBBDDO........",
+  ".....ODDBBBBBBBBBBBBBBBBDDO.........",
+  "......ODDBBBBBBBBBBBBBBDDO..........",
   ".......OOOOODDDDDDDDOOOOO...........",
   "............OOOOOOOO................",
   "............ODDDDDDO................",
   "........OOOOODDDDDDOOOOO............",
-  ".....OOOSSSSccccccccSSSSOOO.........",
-  "...OOSSSSSSSScSSSScSSSSSSSSOO.......",
-  "..OSSSSSSSSSSSSSSSSSSSSSSSSSSO......",
-  "..OSSSSSSSSSSSSSSSSSSSSSSSSSSO......",
-  ".OSSSSSSSSSSSSSSSSSSSSSSSSSSSSO.....",
-  ".OSSSSSSSSSSSSSSSSSSSSSSSSSSSSO.....",
-  ".OSSSOSSSSSSSSSSSSSSSSSSSSOSSSO.....",
-  ".OSSSOSSSSSSSSSSSSSSSSSSSSOSSSO.....",
+  ".....OOOSSSSXXXNNXXXSSSSOOO.........",
+  "...OOSSSSSSSSXXNNXXSSSSSSSSOO.......",
+  "..OSSSSSSSSSSSXNNXSSSSSSSSSSSO......",
+  "..OSSSSSSSSSSSSNNSSSSSSSSSSSSO......",
+  ".OSSSSSSSSSSSSSNNSSSSSSSSSSSSSO.....",
+  ".OSSSSSSSSSSSSSNNSSSSSSSSSSSSSO.....",
+  ".OSSSOSSSSSSSSSNNSSSSSSSSSOSSSO.....",
+  ".OSSSOSSSSSSSSSNNSSSSSSSSSOSSSO.....",
   ".OSSSOSSSSSSSSSSSSSSSSSSSSOSSSO.....",
   ".OSSSOSSSSSSSSSSSSSSSSSSSSOSSSO.....",
   ".OOOOOSSSSSSSSSSSSSSSSSSSSOOOOO.....",
-  ".OBBBOSSSSSSSSSSSSSSSSSSSSOBBBO.....",
-  ".OBBBOSSSSSSSSSSSSSSSSSSSSOBBBO.....",
   ".OBBBOSSSSSSSSSSSSSSSSSSSSOBBBO.....",
   ".OBBBOSSSSSSSSSSSSSSSSSSSSOBBBO.....",
   ".OBBBOSSSSSSSSSSSSSSSSSSSSOBBBO.....",
@@ -153,10 +154,10 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 14, ["KKK", "WKK", "KKK"]],
     ],
     brows: [
-      [9, 12, ["TTTT"]],
-      [20, 12, ["TT.T"]],
+      [9, 12, ["bbbb"]],
+      [20, 12, ["bbbb"]],
     ],
-    mouth: [14, 19, ["...M", "MMM."]],
+    mouth: [13, 19, [".....M", "MMMMM."]],
     talk: [14, 19, [".MM.", "MmmM", ".MM."]],
     blink: true,
     blush: 0,
@@ -168,8 +169,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 15, [".K.", "K.K"]],
     ],
     brows: [
-      [9, 11, ["TTTT"]],
-      [20, 11, ["TT.T"]],
+      [9, 11, ["bbbb"]],
+      [20, 11, ["bbbb"]],
     ],
     mouth: [13, 19, ["MMMMMM", "MmttmM", ".MMMM."]],
     talk: [13, 19, ["M....M", ".MMMM."]],
@@ -183,8 +184,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 13, ["KKK", "WKK", "KKW", "KKK"]],
     ],
     brows: [
-      [9, 10, ["TTTT"]],
-      [20, 10, ["TT.T"]],
+      [9, 10, ["bbbb"]],
+      [20, 10, ["bbbb"]],
     ],
     mouth: [13, 19, ["MMMMMM", "MmmmmM", "MmttmM", ".MMMM."]],
     talk: [13, 19, ["MMMMMM", "MmttmM", ".MMMM."]],
@@ -202,8 +203,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 14, ["KKW", "KKK", "KKK"]],
     ],
     brows: [
-      [9, 12, ["TTTT"]],
-      [20, 11, ["TT.T"]],
+      [9, 12, ["bbbb"]],
+      [20, 11, ["bbbb"]],
     ],
     mouth: [16, 19, ["MM"]],
     talk: [15, 19, [".M.", "MmM", ".M."]],
@@ -217,8 +218,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 15, ["KKK", "WKK"]],
     ],
     brows: [
-      [9, 12, ["TT..", "..TT"]],
-      [20, 12, ["..TT", "TT.."]],
+      [9, 12, ["bb..", "..bb"]],
+      [20, 12, ["..bb", "bb.."]],
     ],
     mouth: [14, 19, ["MMMM"]],
     talk: [14, 19, ["MMMM", "MmmM"]],
@@ -232,8 +233,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 13, [".K.", "KWK", "KKK", "KKK", ".K."]],
     ],
     brows: [
-      [9, 9, ["TTTT"]],
-      [20, 9, ["TT.T"]],
+      [9, 9, ["bbbb"]],
+      [20, 9, ["bbbb"]],
     ],
     mouth: [14, 19, [".MM.", "MmmM", "MmmM", ".MM."]],
     talk: [14, 19, [".MM.", "MmmM", ".MM."]],
@@ -247,8 +248,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 14, ["KKK", "WKK", "KKK"]],
     ],
     brows: [
-      [9, 11, ["..TT", "TT.."]],
-      [20, 11, ["TT..", "..TT"]],
+      [9, 11, ["..bb", "bb.."]],
+      [20, 11, ["bb..", "..bb"]],
     ],
     mouth: [13, 20, [".MMMM.", "M....M"]],
     talk: [14, 19, [".MM.", "MmmM"]],
@@ -262,8 +263,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 15, ["KKK", "KKK", "WKK"]],
     ],
     brows: [
-      [9, 12, ["..TT", "TT.."]],
-      [20, 12, ["TT..", "..TT"]],
+      [9, 12, ["..bb", "bb.."]],
+      [20, 12, ["bb..", "..bb"]],
     ],
     mouth: [13, 20, [".MMMM.", "M....M"]],
     talk: [13, 20, [".MMMM.", "MmmmmM"]],
@@ -277,8 +278,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 15, ["OOO", "KKK"]],
     ],
     brows: [
-      [9, 11, ["TTTT"]],
-      [20, 11, ["TT.T"]],
+      [9, 11, ["bbbb"]],
+      [20, 11, ["bbbb"]],
     ],
     mouth: [13, 19, [".....M", "MMMMM."]],
     talk: [13, 19, ["MMMMMM", ".mmmmM"]],
@@ -292,8 +293,8 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
       [20, 15, ["K.K", ".K."]],
     ],
     brows: [
-      [9, 12, ["TTTT"]],
-      [20, 12, ["TT.T"]],
+      [9, 12, ["bbbb"]],
+      [20, 12, ["bbbb"]],
     ],
     mouth: [13, 19, ["M....M", ".MMMM."]],
     talk: [13, 19, ["M....M", ".MmmM."]],
@@ -302,9 +303,6 @@ const FACES: Readonly<Record<KenFace, FaceArt>> = {
     extras: [[30, 9, SPARKLE]],
   },
 };
-
-/** The plaster on his right cheek, on every face. */
-const PLASTER: Part = [22, 17, ["PPPP", "PppP", "PPPP"]];
 
 function put(grid: (string | null)[][], [x0, y0, rows]: Part): void {
   rows.forEach((row, r) => {
@@ -325,7 +323,6 @@ export function kenPortraitCells(
   const art = FACES[face];
   const grid = BUST.map((row) => [...row].map((key) => (key === "." ? null : key)));
   if (art.blush > 0) put(grid, [art.blush > 1 ? 7 : 8, 18, [art.blush > 1 ? "CCC" : "CC"]]);
-  put(grid, PLASTER);
   for (const brow of art.brows) put(grid, brow);
   for (const eye of art.eyes) {
     const [x, y, rows] = eye;

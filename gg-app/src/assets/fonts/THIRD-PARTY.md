@@ -3,6 +3,7 @@
 | Font | Author | Used for | Terms | File |
 |---|---|---|---|---|
 | Sora | The Sora Project Authors | App interface text | SIL OFL 1.1 | `sora/OFL.txt` |
+| Frank Ruhl Libre | The Frank Ruhl Libre Project Authors | Card, dialog and page titles | SIL OFL 1.1 | `frank-ruhl-libre/OFL.txt` |
 | Young Serif | The Young Serif Project Authors | Display headings | SIL OFL 1.1 | `young-serif/OFL.txt` |
 | m5x7 | Daniel Linssen | Pixel text: Goal world, critter bubbles, Home tags, plan mode reason | CC0 1.0 (public domain) | `m5x7/LICENSE.txt` |
 | Alagard | Hewett Tsoi | Pixel titles and plate buttons | Free, credit to the author | `alagard/CREDIT.txt` |

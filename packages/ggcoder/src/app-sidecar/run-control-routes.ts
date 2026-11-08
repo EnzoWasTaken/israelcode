@@ -16,7 +16,9 @@ import {
   persistModelSelection,
   persistThinkingLevel,
 } from "./app-settings.js";
+import type { CancelResult } from "../core/run-lifecycle.js";
 import type { SessionRouteContext } from "./route-context.js";
+import { adoptBaseline, autoRoutePayload, ensureBaseline, userModelOf } from "./session-routing.js";
 
 /**
  * What a POST /thinking asks for. An empty body cycles to the next level (the
@@ -48,6 +50,33 @@ export function resolveThinkingRequest(
   const match = getSupportedThinkingLevels(provider, model).find((l) => l === level);
   if (!match) return { ok: false, error: `${model} doesn't support thinking level "${level}"` };
   return { ok: true, level: match };
+}
+
+/**
+ * The Stop button's cancellation, shared by `POST /cancel` and the daemon's
+ * `POST /background-sessions/stop`: stops a task sweep, drains queued steering
+ * and aborts the active run, resolving once it has settled (or timed out).
+ */
+export async function cancelActiveRun(
+  ctx: SessionRouteContext,
+): Promise<{ result: CancelResult; drained: string }> {
+  // Even between task runs, cancellation stops the sweep. Active provider
+  // ownership invokes the full abort hook exactly once through lifecycle.
+  ctx.taskRunAll = false;
+  ctx.autopilotCancelled = true;
+  if (!ctx.runLifecycle.running) {
+    ctx.kenAutoAbort.abort();
+    ctx.kenAutoAbort = new AbortController();
+    ctx.kenAutoSession?.setSignal(ctx.kenAutoAbort.signal);
+  }
+
+  const generation = ctx.runLifecycle.generation;
+  if (!ctx.pendingCancelDrain || ctx.pendingCancelDrain.generation !== generation) {
+    ctx.pendingCancelDrain = { generation, text: ctx.session.drainQueue() };
+    ctx.broadcast("queued", { count: 0, messages: [] });
+  }
+  const result = await ctx.runLifecycle.cancel(ctx.CANCEL_TIMEOUT_MS);
+  return { result, drained: ctx.pendingCancelDrain?.text ?? "" };
 }
 
 export function handleRunControlRoutes(
@@ -155,6 +184,12 @@ export function handleRunControlRoutes(
       // Clamp the reasoning level to what the new model supports (mirrors the
       // CLI): keep thinking on at the first supported tier if it was on but
       // the prior level is unsupported here; leave it off if it was off.
+      // While Auto is on the session level is Auto's routed effort, not the user's: use their
+      // baseline (or pinned) effort for the preference instead.
+      const baseline = ctx.autoRoute.baseline;
+      if (ctx.autoRoute.enabled && (ctx.autoRoute.pins.effort || baseline)) {
+        ctx.session.setThinkingLevel(ctx.autoRoute.pins.effort ?? baseline?.thinkingLevel);
+      }
       const prevLevel = ctx.session.getThinkingLevel();
       if (prevLevel && !isThinkingLevelSupported(target.provider, target.id, prevLevel)) {
         ctx.session.setThinkingLevel(getNextThinkingLevel(target.provider, target.id, undefined));
@@ -171,6 +206,16 @@ export function handleRunControlRoutes(
       });
       await persistModelSelection(ctx.paths.settingsFile, target.provider, target.id);
       await persistThinkingLevel(ctx.paths.settingsFile, ctx.session.getThinkingLevel());
+      // An explicit pick while Auto is on is the user's own model from now on (the baseline
+      // Auto restores) and pins only the model: effort and mode stay up to the router.
+      if (ctx.autoRoute.enabled) {
+        adoptBaseline(ctx);
+        ctx.autoRoute.pins = {
+          ...ctx.autoRoute.pins,
+          model: { provider: target.provider, model: target.id },
+        };
+        ctx.broadcast("route_state", autoRoutePayload(ctx));
+      }
       const payload = {
         thinkingLevel: ctx.session.getThinkingLevel() ?? null,
         supportedThinkingLevels: getSupportedThinkingLevels(target.provider, target.id),
@@ -368,11 +413,23 @@ export function handleRunControlRoutes(
       }
       const next = resolved.level;
       ctx.session.setThinkingLevel(next);
+      // Same for the reasoning level: it becomes the baseline and pins only effort (turning
+      // it off clears the pin; the router may set it again).
+      const userModel = userModelOf(ctx);
+      if (ctx.autoRoute.enabled) {
+        ensureBaseline(ctx);
+        if (ctx.autoRoute.baseline) ctx.autoRoute.baseline.thinkingLevel = next;
+        const { effort: _drop, ...rest } = ctx.autoRoute.pins;
+        void _drop;
+        ctx.autoRoute.pins = next ? { ...rest, effort: next } : rest;
+        ctx.broadcast("route_state", autoRoutePayload(ctx));
+      }
       // Persist per-project so THIS window restores its thinking state on
       // restart; keep the global write as a fallback (mirrors the CLI).
+      // Saved against the user's own model, never one Auto routed to for this prompt.
       void saveProjectModelPrefs(ctx.cwd, {
-        provider: st.provider,
-        model: st.model,
+        provider: userModel.provider,
+        model: userModel.model,
         thinkingEnabled: !!next,
         thinkingLevel: next ?? undefined,
       }).then(() => persistThinkingLevel(ctx.paths.settingsFile, next));
@@ -391,34 +448,23 @@ export function handleRunControlRoutes(
     // Best-effort Anthropic cache prewarm on the composer's first keystroke.
     // Fire-and-forget: AgentSession.prewarm() applies its own gating (provider,
     // setting, history size, TTL, in-flight) and swallows request errors.
-    if (!ctx.running) {
+    // Auto sessions skip it: the prompt may be routed to a different model, and a cache warmed
+    // for the current one would be wasted (and cost a cache write).
+    const skip = ctx.running || ctx.autoRoute.enabled;
+    if (!skip) {
       void ctx.session.prewarm().catch((err: unknown) => {
         log("WARN", "app-sidecar", "prewarm failed", { err: String(err) });
       });
     }
-    json(res, 202, { accepted: !ctx.running });
+    json(res, 202, { accepted: !skip });
     return true;
   }
 
   if (method === "POST" && url === "/cancel") {
     void (async () => {
-      // Even between task runs, cancellation stops the sweep. Active provider
-      // ownership invokes the full abort hook exactly once through lifecycle.
-      ctx.taskRunAll = false;
-      ctx.autopilotCancelled = true;
-      if (!ctx.runLifecycle.running) {
-        ctx.kenAutoAbort.abort();
-        ctx.kenAutoAbort = new AbortController();
-        ctx.kenAutoSession?.setSignal(ctx.kenAutoAbort.signal);
-      }
-
-      const generation = ctx.runLifecycle.generation;
-      if (!ctx.pendingCancelDrain || ctx.pendingCancelDrain.generation !== generation) {
-        ctx.pendingCancelDrain = { generation, text: ctx.session.drainQueue() };
-        ctx.broadcast("queued", { count: 0, messages: [] });
-      }
-      const result = await ctx.runLifecycle.cancel(ctx.CANCEL_TIMEOUT_MS);
-      const drained = ctx.pendingCancelDrain.text;
+      // Stop also ends an in-flight Auto routing decision (it can wait seconds on the decider).
+      ctx.autoRoute.routeAbort?.abort();
+      const { result, drained } = await cancelActiveRun(ctx);
       if (result.status === "failed") {
         ctx.broadcast("cancel_failed", {
           error: "cancel_failed",

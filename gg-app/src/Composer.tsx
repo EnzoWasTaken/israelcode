@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { fl } from "./flavor";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
-import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon, MicrophoneIcon, PaperclipIcon, SquareIcon } from "./phosphor-icons";
 import { ShellCommandMenu } from "./ShellCommandMenu";
 import type { ShellSuggestion } from "./agent";
 import {
@@ -304,6 +304,7 @@ export function Composer({
         />
         <button
           className="icon-circle"
+          aria-label="Attach files"
           title={fl("Attach files", "Attach files. Screenshots, PDFs, your grandmother's recipe")}
           onClick={() => fileInputRef.current?.click()}
         >
@@ -392,6 +393,7 @@ export function Composer({
           )}
           <textarea
             ref={setTextarea}
+            aria-label="Message"
             // AskBand's number keys still pick an option while this is empty.
             data-composer-input=""
             className={`input${enhanceAnim ? " input-anim" : ""}${kenActive ? " input-ken" : ""}${

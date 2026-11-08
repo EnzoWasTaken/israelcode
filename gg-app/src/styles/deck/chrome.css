@@ -1,0 +1,419 @@
+/* ── Alloy: the workspace chrome ─────────────────────────────────────────────
+   One title row on top, one deck at the bottom, and keys in between. Loaded
+   after App.css, so a rule here wins over the older one it replaces at equal
+   specificity. Every colour comes from the theme tokens, so both light and
+   dark follow from :root[data-theme]. */
+
+/* ── Keys ──
+   The controls of the title bar and deck. A lit top edge and a dark lip below
+   make them read as raised; a pressed or open key sinks into a well. */
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 28px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--key);
+  color: var(--text-secondary);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.key:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.key:is([aria-expanded="true"], [aria-pressed="true"], [aria-checked="true"]) {
+  background: var(--well);
+  color: var(--text);
+  box-shadow: inset 0 1px 2px var(--well-shadow);
+}
+.key:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.key-sm {
+  height: 24px;
+  padding: 0 var(--space-4);
+  font-size: 11.5px;
+}
+.key-icon {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+.key.primary {
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+}
+.key.primary:hover:not(:disabled) {
+  background: var(--primary-fill-hi);
+  color: var(--on-primary-fill);
+}
+.key-group {
+  display: inline-flex;
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+}
+
+/* A value read out on a key, sunk into the key's face. */
+.well {
+  display: inline-block;
+  padding: 3px var(--space-3);
+  border-radius: 5px;
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.key:is([aria-expanded="true"], [aria-pressed="true"], [aria-checked="true"]) .well {
+  background: var(--key);
+  box-shadow: inset 0 1px 0 var(--key-hi);
+}
+.trunc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.led {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--led-off);
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.25);
+}
+.led[data-state="on"] {
+  background: var(--primary-fill);
+  box-shadow: 0 0 5px var(--primary);
+}
+.led[data-state="ok"] {
+  background: var(--success);
+}
+.led[data-state="bad"] {
+  background: var(--error);
+}
+.led[data-state="warn"] {
+  background: var(--warning);
+}
+.led[data-state="run"] {
+  background: var(--warning);
+  animation: led-blink 0.9s steps(2, jump-none) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes led-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Thinking: one dot per level the model supports, lit up to the current one. */
+.tdots {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex: none;
+}
+.tdots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--led-off);
+}
+.tdots i[data-on] {
+  background: var(--text-muted);
+}
+.tdots[data-tone="medium"] i[data-on] {
+  background: var(--primary-fill);
+}
+.tdots[data-tone="high"] i[data-on] {
+  background: var(--warning);
+}
+.tdots[data-tone="max"] i[data-on] {
+  background: var(--critter);
+}
+
+/* ── Title bar: one row, frosted ──
+   The title bar floats over the conversation: text scrolls up beneath it and
+   stays faintly readable through a frost that fades out downward, with no
+   hard line at its edge. (The same frost the Goal farm already used.) */
+.chat-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  border-bottom: 0;
+  background: transparent;
+}
+.chat-head::before,
+.chat-head::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 -28px;
+  z-index: -1;
+  pointer-events: none;
+}
+.chat-head::before {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg) 82%, transparent),
+    color-mix(in srgb, var(--bg) 45%, transparent) 55%,
+    transparent
+  );
+  -webkit-backdrop-filter: blur(2px) saturate(140%);
+  backdrop-filter: blur(2px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0) 45%, transparent);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0) 45%, transparent);
+}
+.chat-head::after {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0) 20%, transparent 65%);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0) 20%, transparent 65%);
+}
+/* The conversation starts below the title bar and scrolls up under it. */
+.app:has(> .chat-head) .transcript {
+  padding-top: calc(40px + var(--space-4));
+  scroll-padding-top: 48px;
+  /* The dock floats over the bottom edge (below): reserve its height, so the
+     newest message rests just above it when scrolled to the end. */
+  padding-bottom: calc(var(--dock-h, 0px) + var(--space-4));
+  scroll-padding-bottom: var(--dock-h, 0px);
+}
+
+/* ── The dock: everything below the conversation, floating over it ──
+   The live region, sub-agent lane, deck and update banner sit over the
+   conversation's bottom edge. Messages scroll on behind them through the
+   title bar's frost, mirrored: rising from the window's bottom, starting a
+   little above the deck so text softens before it reaches it, with no hard
+   edge anywhere. --dock-h (set in App.tsx) is its live height. */
+.app > .dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  pointer-events: none;
+}
+.app > .dock > * {
+  pointer-events: auto;
+}
+/* The sub-agent lane walks the same column as the deck below it, with the
+   terrain's ends rounded off to match, rather than the window's full width. */
+/* The sub-agent lane walks the conversation's width (the chat's gutters,
+   a touch wider than the deck below), and its terrain fades out at both
+   ends instead of stopping on a hard edge. */
+.app > .dock > .critter-lane {
+  margin: 0 var(--gutter-chat);
+}
+.app > .dock > .critter-lane > .critter-terrain {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    rgb(0 0 0) var(--space-12),
+    rgb(0 0 0) calc(100% - var(--space-12)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    rgb(0 0 0) var(--space-12),
+    rgb(0 0 0) calc(100% - var(--space-12)),
+    transparent
+  );
+}
+.app > .dock::before,
+.app > .dock::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: calc(-1 * var(--dock-rise));
+  z-index: -1;
+  pointer-events: none;
+}
+.app > .dock {
+  --dock-rise: var(--space-12);
+}
+.app > .dock::before {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--bg) 82%, transparent),
+    color-mix(in srgb, var(--bg) 60%, transparent) 70%,
+    transparent
+  );
+  -webkit-backdrop-filter: blur(2px) saturate(140%);
+  backdrop-filter: blur(2px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to top, rgb(0 0 0) 75%, transparent);
+  mask-image: linear-gradient(to top, rgb(0 0 0) 75%, transparent);
+}
+.app > .dock::after {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to top, rgb(0 0 0) 60%, transparent 95%);
+  mask-image: linear-gradient(to top, rgb(0 0 0) 60%, transparent 95%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app > .dock::before {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+    top: 0;
+  }
+  .app > .dock::after {
+    display: none;
+  }
+}
+
+.app:has(> .chat-head) .transcript-frame {
+  margin-top: 0;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .chat-head::before {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+    inset: 0;
+  }
+  .chat-head::after {
+    display: none;
+  }
+}
+.chat-head-strip {
+  display: grid;
+  /* Two equal sides around the title, so it sits on the window's own centre
+     line, not between whatever the sides hold. Each side is at least as wide
+     as its controls (a Goal's tally, view switch, pause and Commit); when the
+     row is too tight for both, the title gives way and ends in "…". */
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content) minmax(max-content, 1fr);
+  align-items: center;
+  gap: var(--space-5);
+  height: 40px;
+  padding: 0 var(--space-4) 0 var(--space-4);
+}
+/* The traffic lights sit in the left side; matching room on the right keeps
+   the two sides equal, so the title still lands on the window's centre. */
+.platform-macos .chat-head-strip {
+  height: 38px;
+  padding: 0 var(--space-4) 1.5px var(--space-4);
+}
+/* The traffic lights end at about 68px; the back key starts a clear gap past
+   them, so it never reads as a fourth light. */
+.platform-macos .chat-head-lead {
+  padding-left: 80px;
+}
+.chat-head-lead {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.chat-head-lead > .btn-icon {
+  width: 26px;
+  height: 24px;
+}
+.chat-head-title {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  max-width: 100%;
+  container: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.chat-head-accent-dot {
+  width: 12px;
+  height: 6px;
+  margin: 0;
+  border-radius: 1.5px;
+  transform: none;
+}
+.chat-head-title .chat-head-cwd,
+.chat-head-title .chat-head-link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.chat-head-title .chat-head-link:hover:not(:disabled) {
+  color: var(--text);
+}
+.chat-head-sub {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.chat-head-trail {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+  white-space: nowrap;
+}
+.commit-key {
+  padding: 0 3px 0 var(--space-5);
+  gap: var(--space-4);
+}
+.clean-mark {
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* The tally is plain text beside a row of keys: the keys' 6px gap glued it to
+   the Chat / Workers switch. Extra room on both sides sets it apart from the
+   title and the controls (18px to the switch, 22px from the title at its
+   tightest). */
+.chat-head-trail .goal-tally {
+  margin: 0 var(--space-6);
+  font-size: var(--fs-xs);
+}
+.chat-head-trail .rank-xp-chip-layer {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  pointer-events: none;
+}
+.goal-view-option[data-attention="true"]::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+}

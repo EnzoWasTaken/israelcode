@@ -180,20 +180,46 @@ pub(crate) async fn setup_windows(app: tauri::AppHandle, count: usize) -> Result
 /// focus it. Unlike `setup_windows`, this never re-tiles existing windows — it's
 /// the Cmd/Ctrl+N "new window" shortcut. Project selection happens per-window.
 ///
+/// With a `target` (the session browser's "New window"), the window opens
+/// straight into that workspace and session: the target is registered as the
+/// window's restore target before its webview is built, exactly like a
+/// restored window at boot, so the webview skips Home.
+///
 /// `async` for the same reason as `setup_windows`: a synchronous window-building
 /// command deadlocks WebView2 on Windows.
 #[tauri::command]
-pub(crate) async fn new_window(app: tauri::AppHandle) -> Result<(), String> {
+pub(crate) async fn new_window(
+    app: tauri::AppHandle,
+    target: Option<RestoreEntry>,
+) -> Result<(), String> {
     let label = next_window_label(&app);
-    let win = build_app_window(&app, &label)?;
-    start_window_session(
-        app.clone(),
-        label,
-        WorkspaceMode::Code,
-        ChatAgent::General,
-        default_cwd(),
-        None,
-    );
+    let (mode, chat_agent, cwd, session_path) = match &target {
+        Some(t) => (
+            t.mode,
+            t.chat_agent,
+            PathBuf::from(&t.cwd),
+            t.session_path.clone(),
+        ),
+        None => (WorkspaceMode::Code, ChatAgent::General, default_cwd(), None),
+    };
+    if let Some(entry) = target {
+        register_restore_target(
+            &mut app.state::<RestoreTargets>().map.lock_or_recover(),
+            label.clone(),
+            entry,
+        );
+    }
+    let win = match build_app_window(&app, &label) {
+        Ok(win) => win,
+        Err(error) => {
+            remove_restore_target(
+                &mut app.state::<RestoreTargets>().map.lock_or_recover(),
+                &label,
+            );
+            return Err(error);
+        }
+    };
+    start_window_session(app.clone(), label, mode, chat_agent, cwd, session_path);
     let _ = win.set_focus();
     broadcast_window_order(&app);
     Ok(())
@@ -376,13 +402,16 @@ pub(crate) async fn select_project(
         map.get_mut(&label)
             .and_then(|window| window.session_id.take())
     };
-    // Dispose the old session on the daemon (best-effort, off-thread).
+    // Detach the old session: the daemon keeps it running in the background if
+    // busy, else disposes it. Awaited (bounded) so the new POST /session for the
+    // same conversation cannot arrive first and open a second live context.
     if let Some(id) = old_id {
         if let Some(port) = port_for(&webview) {
-            let app2 = app.clone();
-            tauri::async_runtime::spawn(async move {
-                daemon_delete_session(&app2, port, &id).await;
-            });
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                daemon_detach_session(&app, port, &id),
+            )
+            .await;
         }
     }
 

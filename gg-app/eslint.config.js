@@ -31,7 +31,23 @@ export default tseslint.config(
       // analysis can't see that, so it false-positives. Keep the genuinely
       // valuable hook rules (rules-of-hooks, exhaustive-deps) on.
       "react-hooks/set-state-in-effect": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@phosphor-icons/react",
+              message:
+                'Import icons from "./phosphor-icons" (src/phosphor-icons/), which ships only the weights the app uses. To add an icon or weight, import it from "./phosphor-icons", use it, then run: node scripts/gen-icons.mjs',
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ["src/phosphor-icons/*.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
   {
     ignores: ["dist/", "node_modules/", "src-tauri/", "**/*.js", "**/*.mjs"],

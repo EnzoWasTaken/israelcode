@@ -358,6 +358,9 @@ pub(crate) async fn daemon_create_session(
         .and_then(|session_id| session_id.as_str())
         .map(|session_id| session_id.to_string())
         .ok_or_else(|| "agent daemon returned no session id".to_string())?;
+    if value.get("reattached").and_then(|v| v.as_bool()) == Some(true) {
+        log::info!("daemon reattached live background session daemon_session_id={id}");
+    }
     Ok((id, json_session_path(&value)))
 }
 
@@ -381,6 +384,162 @@ pub(crate) async fn daemon_delete_session(app: &tauri::AppHandle, port: u16, id:
         ))
         .send()
         .await;
+}
+
+/// POST /session/:id/detach: the window is going away (closed or re-pointed).
+/// The daemon keeps busy/awaiting-input sessions running and disposes idle
+/// ones. Best-effort; a daemon without the route (404) gets the old DELETE.
+pub(crate) async fn daemon_detach_session(app: &tauri::AppHandle, port: u16, id: &str) {
+    let client = app.state::<reqwest::Client>().inner().clone();
+    let url = format!("{}/session/{}/detach", sidecar_base(port), urlencoding(id));
+    match client.post(url).send().await {
+        Ok(res) if res.status() == reqwest::StatusCode::NOT_FOUND => {
+            log::info!("daemon has no detach route; deleting session daemon_session_id={id}");
+            daemon_delete_session(app, port, id).await;
+        }
+        Ok(res) if !res.status().is_success() => {
+            log::warn!(
+                "session detach failed daemon_session_id={id} status={}",
+                res.status()
+            );
+        }
+        Ok(_) => {}
+        Err(e) => log::warn!(
+            "session detach failed daemon_session_id={id} error={}",
+            e.without_url()
+        ),
+    }
+}
+
+/// Number of background sessions still working (`running` or
+/// `awaiting_input`) in a `GET /background-sessions` body.
+#[cfg(any(target_os = "macos", windows, test))]
+pub(crate) fn count_active_background(value: &serde_json::Value) -> usize {
+    value
+        .get("sessions")
+        .and_then(|s| s.as_array())
+        .map(|rows| {
+            rows.iter()
+                .filter(|row| {
+                    matches!(
+                        row.get("status").and_then(|s| s.as_str()),
+                        Some("running" | "awaiting_input")
+                    )
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+/// Ask the daemon how many sessions are active; `None` on any error/timeout.
+#[cfg(any(target_os = "macos", windows))]
+pub(crate) async fn active_background_count(app: &tauri::AppHandle, port: u16) -> Option<usize> {
+    let client = app.state::<reqwest::Client>().inner().clone();
+    let res = client
+        .get(format!("{}/background-sessions", sidecar_base(port)))
+        .timeout(std::time::Duration::from_millis(1500))
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let value = res.json::<serde_json::Value>().await.ok()?;
+    Some(count_active_background(&value))
+}
+
+/// What the windowless background poller should do after one observation.
+#[cfg(any(target_os = "macos", windows, test))]
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum PollStep {
+    /// Keep polling; tray count becomes `count`.
+    Continue {
+        count: usize,
+        finished: bool,
+        failures: u32,
+    },
+    /// Stop the poller (a workspace window is back).
+    Stop,
+}
+
+/// Pure transition: `prev` is the last known count, `observed` the new poll
+/// (`None` = daemon unreachable). `failures` counts consecutive unreachable
+/// polls; after `POLL_MAX_FAILURES` the count drops to 0 (no daemon, no work).
+#[cfg(any(target_os = "macos", windows, test))]
+pub(crate) fn poll_step(
+    prev: usize,
+    observed: Option<usize>,
+    windows: usize,
+    failures: u32,
+) -> PollStep {
+    if windows > 0 {
+        return PollStep::Stop;
+    }
+    let (count, failures) = match observed {
+        Some(n) => (n, 0),
+        None => {
+            let f = failures.saturating_add(1);
+            (if f >= POLL_MAX_FAILURES { 0 } else { prev }, f)
+        }
+    };
+    PollStep::Continue {
+        count,
+        finished: prev > 0 && count == 0,
+        failures,
+    }
+}
+
+#[cfg(any(target_os = "macos", windows, test))]
+pub(crate) const POLL_MAX_FAILURES: u32 = 3;
+
+#[cfg(any(target_os = "macos", windows))]
+static BG_POLLER_RUNNING: AtomicBool = AtomicBool::new(false);
+
+/// Keep the tray's background-task line fresh while the app lives windowless.
+/// At most one poller runs. The app has no notification mechanism, so
+/// completion is only logged and shown by the tray line disappearing.
+#[cfg(any(target_os = "macos", windows))]
+pub(crate) fn start_background_poller(app: tauri::AppHandle, initial: usize) {
+    if BG_POLLER_RUNNING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    tauri::async_runtime::spawn(async move {
+        let mut prev = initial;
+        let mut failures = 0u32;
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            if app.state::<AppExiting>().0.load(Ordering::SeqCst) {
+                break;
+            }
+            // Re-read the port: the daemon may have restarted on a new one.
+            let port = *app.state::<Daemon>().port.lock_or_recover();
+            let observed = match port {
+                Some(port) => active_background_count(&app, port).await,
+                None => None,
+            };
+            match poll_step(prev, observed, workspace_window_count(&app), failures) {
+                PollStep::Stop => {
+                    update_tray_status(&app, |s| s.background_tasks = 0);
+                    break;
+                }
+                PollStep::Continue {
+                    count,
+                    finished,
+                    failures: f,
+                } => {
+                    failures = f;
+                    if count != prev {
+                        update_tray_status(&app, |s| s.background_tasks = count);
+                    }
+                    if finished {
+                        log::info!("background tasks finished");
+                    }
+                    prev = count;
+                }
+            }
+        }
+        BG_POLLER_RUNNING.store(false, Ordering::SeqCst);
+    });
 }
 
 pub(crate) fn publish_window_session(
@@ -525,7 +684,8 @@ pub(crate) async fn finish_window_session(
             cwd.display(),
             started_at.elapsed().as_millis()
         );
-        daemon_delete_session(&app, port, &id).await;
+        // Detach, not delete: POST /session may have reattached a live background run.
+        daemon_detach_session(&app, port, &id).await;
         return Err("session selection was superseded".to_string());
     }
 
@@ -1003,5 +1163,67 @@ mod tests {
             json_session_path(&serde_json::json!({ "sessionId": "x", "sessionPath": "" })),
             None
         );
+    }
+}
+
+#[cfg(test)]
+mod background_tests {
+    use super::count_active_background;
+    use super::{poll_step, PollStep::*};
+
+    #[test]
+    fn poll_step_transitions() {
+        assert_eq!(
+            poll_step(2, Some(0), 0, 0),
+            Continue {
+                count: 0,
+                finished: true,
+                failures: 0
+            }
+        );
+        assert_eq!(poll_step(2, Some(1), 2, 0), Stop);
+        // Unreachable: keep the count until the third consecutive failure.
+        assert_eq!(
+            poll_step(2, None, 0, 0),
+            Continue {
+                count: 2,
+                finished: false,
+                failures: 1
+            }
+        );
+        assert_eq!(
+            poll_step(2, None, 0, 2),
+            Continue {
+                count: 0,
+                finished: true,
+                failures: 3
+            }
+        );
+        assert_eq!(
+            poll_step(2, Some(2), 0, 2),
+            Continue {
+                count: 2,
+                finished: false,
+                failures: 0
+            }
+        );
+        assert_eq!(
+            poll_step(0, Some(0), 0, 0),
+            Continue {
+                count: 0,
+                finished: false,
+                failures: 0
+            }
+        );
+    }
+
+    #[test]
+    fn counts_only_running_and_awaiting_input() {
+        let v = serde_json::json!({ "sessions": [
+            { "status": "running" }, { "status": "awaiting_input" },
+            { "status": "completed" }, { "status": "idle" }, {}
+        ]});
+        assert_eq!(count_active_background(&v), 2);
+        assert_eq!(count_active_background(&serde_json::json!({})), 0);
     }
 }

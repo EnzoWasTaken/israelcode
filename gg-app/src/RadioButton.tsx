@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PauseIcon, PlayIcon, RadioIcon, SpeakerHighIcon } from "@phosphor-icons/react";
+import { PauseIcon, PlayIcon, RadioIcon, SpeakerHighIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
 import { Dropdown } from "./Dropdown";
@@ -22,6 +22,7 @@ export function RadioButton(): React.ReactElement {
     <>
       <button
         className="btn btn-ghost btn-sm btn-nav-icon"
+        aria-label="Internet radio"
         title={playing ? "Radio playing" : "Internet radio"}
         style={playing ? { color: theme.accent } : undefined}
         onClick={() => setOpen(true)}

@@ -748,6 +748,8 @@ export interface RecentSession {
   preview: string;
   /** Relative "3h ago" string from last activity. */
   lastActiveDisplay: string;
+  /** Last activity as epoch ms, so a client can group and sort by date. */
+  lastActiveMs: number;
   messageCount: number;
   /**
    * Which store this row came from. Absent means `ggcoder` — a session that is
@@ -783,7 +785,8 @@ export async function listRecentSessions(
     if (seenConversationIds.has(parsed.conversationId)) continue;
     seenConversationIds.add(parsed.conversationId);
     const { conversationId: _conversationId, ...session } = parsed;
-    out.push(session);
+    // A file with no timestamped entries falls back to its modified time.
+    out.push(session.lastActiveMs > 0 ? session : { ...session, lastActiveMs: f.mtime });
   }
   return out;
 }
@@ -811,8 +814,7 @@ export async function listForeignSessions(
   ]);
   return [...claude, ...codex]
     .sort((left, right) => right.lastActiveMs - left.lastActiveMs)
-    .slice(0, limit)
-    .map(({ lastActiveMs: _lastActiveMs, ...session }) => session);
+    .slice(0, limit);
 }
 
 /** A foreign row plus the raw mtime the caller sorts on before discarding it. */
@@ -886,7 +888,7 @@ async function collectMatchingForeignSessions(
 async function readForeignSessionSummary(
   file: string,
   source: ProjectSource,
-): Promise<Omit<RecentSession, "lastActiveDisplay"> | null> {
+): Promise<Omit<RecentSession, "lastActiveDisplay" | "lastActiveMs"> | null> {
   let text: string;
   try {
     text = await fs.readFile(file, "utf-8");
@@ -977,6 +979,7 @@ async function readSessionSummary(file: string): Promise<ParsedRecentSession | n
           path: resolvedPath,
           preview: label || headerPreview || preview,
           lastActiveDisplay: rel(lastActivity),
+          lastActiveMs: Date.parse(lastActivity) || 0,
           messageCount,
         }
       : null;

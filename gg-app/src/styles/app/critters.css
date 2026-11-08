@@ -1,0 +1,444 @@
+/* ── Alive critters: reaction wrapper, props, particles, overlays ── */
+/* Jolts, props and overlays live on .critter-react; .critter-body inside it is
+   what the behaviour scripts squash and tilt. */
+.critter-react {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  transition:
+    opacity var(--t-out),
+    filter var(--t-out);
+}
+.critter {
+  z-index: 2;
+}
+/* Passing behind a busy critter instead of through it reads as depth. */
+.critter.behind {
+  z-index: 1;
+}
+.critter.behind .critter-react {
+  opacity: 0.72;
+  filter: brightness(0.75);
+}
+.critter.phasing .critter-react {
+  opacity: 0.3;
+}
+.critter.sooty .critter-flip img {
+  filter: brightness(0.35) saturate(0.3);
+}
+.critter.sitting .critter-body {
+  transform: translateY(var(--critter-px)) scale(1.08, 0.86);
+}
+
+.critter-prop {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+.critter-prop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Particles are positioned by their centre; scripts animate `transform`. */
+.critter-pt {
+  position: absolute;
+  z-index: 3;
+  translate: -50% 50%;
+  pointer-events: none;
+}
+.critter-pt-dot {
+  width: var(--critter-px);
+  height: var(--critter-px);
+  background: var(--critter-pc, #fff);
+  box-shadow: 0 0 3px var(--critter-pc, #fff);
+}
+.critter-pt-txt {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: calc(var(--critter-px) * 5);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--critter-pc, #fff);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--critter-pc, #fff) 55%, transparent);
+}
+.critter-pt-small {
+  font-size: calc(var(--critter-px) * 4);
+}
+.critter-pt-puff {
+  width: calc(var(--critter-px) * 2);
+  height: calc(var(--critter-px) * 2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+}
+.critter-pt-steam {
+  background: rgba(225, 232, 245, 0.5);
+  filter: blur(0.5px);
+}
+.critter-pt-drop {
+  width: 3px;
+  height: 4px;
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  background: #7fd8ff;
+}
+.critter-pt-blub {
+  width: calc(var(--critter-px) * 2);
+  height: calc(var(--critter-px) * 2);
+  border-radius: 50%;
+  border: 1px solid #a8e9ff;
+  background: rgba(168, 233, 255, 0.15);
+}
+
+/* Thought cloud: "…" dots bobbing in a bubble, with two trail puffs. */
+.critter-thought {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 62%;
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  pointer-events: none;
+  animation: critter-pop-plain 200ms var(--ease-pop) both;
+}
+.critter-thought::before,
+.critter-thought::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+}
+.critter-thought::before {
+  width: 5px;
+  height: 5px;
+  left: 2px;
+  bottom: -6px;
+}
+.critter-thought::after {
+  width: 3px;
+  height: 3px;
+  left: -2px;
+  bottom: -10px;
+}
+.critter-thought span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: critter-think-dot 1.1s ease-in-out infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-thought span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.critter-thought span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+@keyframes critter-think-dot {
+  0%,
+  60%,
+  100% {
+    transform: none;
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+@keyframes critter-pop-plain {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Dizzy stars circling the head. */
+.critter-dizzy {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - var(--critter-px) * 3);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.critter-dizzy i {
+  position: absolute;
+  font-style: normal;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: calc(var(--critter-px) * 4.5);
+  line-height: 1;
+  translate: -50% 50%;
+  color: #ffe14d;
+  text-shadow: 0 0 4px rgba(255, 225, 77, 0.6);
+  animation: critter-circle-head 0.9s linear infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-dizzy i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.critter-dizzy i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+@keyframes critter-circle-head {
+  0% {
+    transform: translate(calc(var(--critter-px) * -7), 0) scale(0.8);
+    opacity: 0.7;
+  }
+  25% {
+    transform: translate(0, calc(var(--critter-px) * 1.5)) scale(1.1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--critter-px) * 7), 0) scale(0.8);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(0, calc(var(--critter-px) * -1.5)) scale(0.6);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(calc(var(--critter-px) * -7), 0) scale(0.8);
+    opacity: 0.7;
+  }
+}
+
+/* Signal arcs radiating from the head (web tools). */
+.critter-arcs,
+.critter-arcs::before,
+.critter-arcs::after {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - var(--critter-px) * 2);
+  width: calc(var(--critter-px) * 8);
+  height: calc(var(--critter-px) * 8);
+  margin-left: calc(var(--critter-px) * -4);
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #8fdcff;
+  pointer-events: none;
+  animation: critter-arc-out 1.2s ease-out infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-arcs::before,
+.critter-arcs::after {
+  content: "";
+  bottom: auto;
+  top: -2px;
+  margin-left: calc(var(--critter-px) * -4 - 2px);
+}
+.critter-arcs::before {
+  animation-delay: 0.4s;
+}
+.critter-arcs::after {
+  animation-delay: 0.8s;
+}
+@keyframes critter-arc-out {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Hamster wheel behind the critter (run tools). */
+.critter-wheel {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--critter-px) * -1);
+  width: calc(var(--critter-px) * 20);
+  height: calc(var(--critter-px) * 20);
+  margin-left: calc(var(--critter-px) * -10);
+  border-radius: 50%;
+  border: var(--critter-px) solid #8c93ab;
+  background: repeating-conic-gradient(rgba(140, 147, 171, 0.35) 0 5deg, transparent 5deg 45deg);
+  pointer-events: none;
+  animation: critter-wheel-spin 0.7s linear infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes critter-wheel-spin {
+  to {
+    rotate: -360deg;
+  }
+}
+
+/* Robot scan beam: a red fan from the eye down to the floor, sweeping. */
+.critter-scan {
+  position: absolute;
+  left: calc(var(--critter-px) * 10);
+  bottom: 0;
+  width: calc(var(--critter-px) * 9);
+  height: calc(var(--critter-px) * 9);
+  background: linear-gradient(to right, rgba(255, 90, 80, 0.55), rgba(255, 90, 80, 0.1));
+  clip-path: polygon(0 0, 100% 75%, 100% 100%, 0 12%);
+  transform-origin: 0 0;
+  pointer-events: none;
+  animation: critter-scan-sweep 0.7s ease-in-out infinite alternate;
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-scan.left {
+  left: auto;
+  right: calc(var(--critter-px) * 10);
+  transform-origin: 100% 0;
+  scale: -1 1;
+}
+@keyframes critter-scan-sweep {
+  from {
+    transform: rotate(-6deg);
+  }
+  to {
+    transform: rotate(10deg);
+  }
+}
+
+/* Frog tongue: scripts stretch it with scaleX from the mouth. */
+.critter-tongue {
+  position: absolute;
+  left: calc(var(--critter-px) * 12);
+  bottom: calc(var(--critter-px) * 6.5);
+  width: calc(var(--critter-px) * 9);
+  height: var(--critter-px);
+  border-radius: 0 var(--critter-px) var(--critter-px) 0;
+  background: #ff7aa8;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+.critter-tongue.left {
+  left: auto;
+  right: calc(var(--critter-px) * 12);
+  transform-origin: 100% 50%;
+  border-radius: var(--critter-px) 0 0 var(--critter-px);
+}
+
+/* Knight sword swoosh. */
+.critter-slash {
+  position: absolute;
+  left: calc(var(--critter-px) * 6);
+  bottom: var(--critter-px);
+  width: calc(var(--critter-px) * 18);
+  height: calc(var(--critter-px) * 18);
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.critter-slash.left {
+  left: auto;
+  right: calc(var(--critter-px) * 6);
+  scale: -1 1;
+}
+
+/* Hover card with the stats the old in-chat feed showed. */
+.critter-tooltip {
+  position: absolute;
+  left: 0;
+  /* Just above the critters' heads (hovering bee included). */
+  bottom: calc(var(--critter-size) + 14px);
+  z-index: 3;
+  min-width: 190px;
+  max-width: 320px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-md);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.critter-tooltip[hidden] {
+  display: none;
+}
+.critter-tooltip-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+  color: var(--text);
+}
+.critter-tooltip-swatch {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.critter-tooltip-dim {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.critter-tooltip-activity {
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .critter-lane {
+    transition: none;
+  }
+  .critter-bubble,
+  .critter-badge {
+    animation: none;
+  }
+  .critter.fallen .critter-body {
+    transform: none;
+    transition: none;
+  }
+  .critter-react {
+    transition: none;
+  }
+  .critter-thought,
+  .critter-thought span,
+  .critter-dizzy i,
+  .critter-arcs,
+  .critter-arcs::before,
+  .critter-arcs::after,
+  .critter-wheel,
+  .critter-scan {
+    animation: none;
+  }
+}
+
+/* The current tool: one floating key-shaped pill, centred over the deck. Its
+   words fade across as calls change (.fade-swap); the pill itself only
+   appears once per run and stays put. */
+.livetoolpanel {
+  display: flex;
+  justify-content: center;
+  /* Clear space above as well as below: under the critters' terrain the pill
+     sat right against the ground. */
+  padding: var(--space-4) var(--gutter) var(--space-4);
+  pointer-events: none;
+}
+.tool-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(100%, 36em);
+  height: 30px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-button);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--fs-sm);
+  pointer-events: auto;
+  animation: fade-in var(--dur-pop-in) var(--ease-out) backwards;
+}
+.tool-pill .tool-line {
+  flex: 1 1 auto;
+}

@@ -80,13 +80,13 @@ pub(crate) struct AppExiting(pub(crate) AtomicBool);
 
 /// One window's active target (mode, cwd, and optional session), returned by
 /// `window_restore_target` so the webview can recover without showing Home.
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RestoreEntry {
     pub(crate) mode: WorkspaceMode,
-    #[serde(rename = "chatAgent")]
+    #[serde(rename = "chatAgent", default)]
     pub(crate) chat_agent: ChatAgent,
     pub(crate) cwd: String,
-    #[serde(rename = "sessionPath")]
+    #[serde(rename = "sessionPath", default)]
     pub(crate) session_path: Option<String>,
 }
 

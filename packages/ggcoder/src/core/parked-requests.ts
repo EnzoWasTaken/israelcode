@@ -36,6 +36,8 @@ export interface ParkedRequestsOptions<Req, Res> {
   timeoutMs: number;
   /** Called when a request auto-cancels on timeout, for logging. */
   onTimeout?: (prompt: Req & { id: string }) => void;
+  /** While true the timeout re-arms instead of firing (nobody is watching). */
+  isSuspended?: () => boolean;
 }
 
 export function createParkedRequests<Req extends object, Res>(
@@ -60,12 +62,21 @@ export function createParkedRequests<Req extends object, Res>(
     park: (request) =>
       new Promise<Res>((resolve) => {
         const prompt = { ...request, id: `${opts.idPrefix}-${++seq}` };
-        const timer = setTimeout(() => {
-          opts.onTimeout?.(prompt);
-          settle(prompt.id, opts.cancelValue());
-        }, opts.timeoutMs);
-        timer.unref?.();
-        pending.set(prompt.id, { resolve, timer });
+        const arm = (): ReturnType<typeof setTimeout> => {
+          const t = setTimeout(() => {
+            const entry = pending.get(prompt.id);
+            if (!entry) return;
+            if (opts.isSuspended?.()) {
+              entry.timer = arm();
+              return;
+            }
+            opts.onTimeout?.(prompt);
+            settle(prompt.id, opts.cancelValue());
+          }, opts.timeoutMs);
+          t.unref?.();
+          return t;
+        };
+        pending.set(prompt.id, { resolve, timer: arm() });
         opts.broadcast(prompt);
       }),
     settle,

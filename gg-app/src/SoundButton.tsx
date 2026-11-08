@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SpeakerHighIcon, SpeakerSlashIcon } from "@phosphor-icons/react";
+import { SpeakerHighIcon, SpeakerSlashIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { isSoundEnabled, setSoundEnabled, playSound } from "./sounds";
 

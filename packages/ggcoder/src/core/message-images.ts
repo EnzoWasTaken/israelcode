@@ -32,9 +32,13 @@ function imageBlocks(message: Message): ImageContent[] {
  */
 export async function normalizeMessageImages(messages: Message[]): Promise<number> {
   let normalizedCount = 0;
-
-  for (const message of messages) {
-    for (const block of imageBlocks(message)) {
+  const blocks = messages.flatMap(imageBlocks);
+  // Each block is checked on its own, so a few run at once (sharp works off
+  // the main thread); a long chat with many screenshots loads that much faster.
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < blocks.length) {
+      const block = blocks[next++]!;
       try {
         const original = Buffer.from(block.data, "base64");
         const resized = await shrinkToFit(original, block.mediaType);
@@ -47,7 +51,10 @@ export async function normalizeMessageImages(messages: Message[]): Promise<numbe
         // A bad historical image should not make the entire session unloadable.
       }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(NORMALIZE_CONCURRENCY, blocks.length) }, worker));
 
   return normalizedCount;
 }
+
+const NORMALIZE_CONCURRENCY = 4;

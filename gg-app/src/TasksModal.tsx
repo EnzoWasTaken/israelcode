@@ -1,5 +1,5 @@
 import { theme } from "./theme";
-import { CheckCircleIcon, CircleIcon, RecordIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, CircleIcon, RecordIcon, XIcon } from "./phosphor-icons";
 import { Modal } from "./Modal";
 import type { ProjectTask } from "./agent";
 

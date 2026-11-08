@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import deckCss from "./Deck.css?raw";
+import deckEntry from "./Deck.css?raw";
+
+// Deck.css only `@import`s its partials (./styles/deck/*.css); inline them in order.
+const PARTIALS = import.meta.glob<string>("./styles/deck/*.css", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+const deckCss = deckEntry.replace(/^@import "([^"]+)";\n/gm, (_, path: string) => {
+  const partial = PARTIALS[path];
+  if (partial === undefined) throw new Error(`missing partial ${path}`);
+  return partial;
+});
 
 function ruleBody(css: string, selector: string): string | undefined {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

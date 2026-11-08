@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from "@testing-library/react";
 import { Activity } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./agent", () => ({
   openProjectPath: vi.fn(),
@@ -10,6 +10,12 @@ vi.mock("./agent", () => ({
 }));
 
 import { StreamingMarkdown } from "./StreamingMarkdown";
+import { preloadMarkdown } from "./LazyMarkdown";
+
+// The renderer loads lazily in the app (main.tsx preloads it on idle).
+beforeAll(async () => {
+  await preloadMarkdown();
+});
 
 // The reveal runs on requestAnimationFrame and reads performance.now(); fake
 // timers drive both, so advancing time plays the stream forward.

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 
 const VIEWPORT_MARGIN = 8;
 const ANCHOR_GAP = 8;
+const FLIP_PX = 260;
 
 export type PopoverSide = "above" | "below";
 
@@ -70,6 +71,7 @@ export function useAnchoredPopover<A extends HTMLElement, P extends HTMLElement>
     edge: number;
     originX: number;
     room: number;
+    side: PopoverSide;
   } | null>(null);
   const closeRef = useRef(close);
   useLayoutEffect(() => {
@@ -84,22 +86,24 @@ export function useAnchoredPopover<A extends HTMLElement, P extends HTMLElement>
       const width = popoverRef.current?.offsetWidth ?? 0;
       const maxLeft = window.innerWidth - width - VIEWPORT_MARGIN;
       const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft));
+      // Flip toward whichever edge has more room when the asked-for side is
+      // cramped (the deck sits at the window's bottom, so "below" often is).
+      const below = window.innerHeight - rect.bottom - ANCHOR_GAP - VIEWPORT_MARGIN;
+      const above = rect.top - ANCHOR_GAP - VIEWPORT_MARGIN;
+      const wanted = side === "below" ? below : above;
+      const other = side === "below" ? above : below;
+      const used: PopoverSide =
+        wanted < FLIP_PX && other > wanted ? (side === "below" ? "above" : "below") : side;
       setPlace({
+        side: used,
         left,
         edge:
-          side === "below" ? rect.bottom + ANCHOR_GAP : window.innerHeight - rect.top + ANCHOR_GAP,
+          used === "below" ? rect.bottom + ANCHOR_GAP : window.innerHeight - rect.top + ANCHOR_GAP,
         // The panel grows out of the trigger's centre.
         originX: Math.round(rect.left + rect.width / 2 - left),
         // Height left between the trigger and the window edge it opens toward,
         // so the panel never runs off-screen (its list scrolls instead).
-        room: Math.max(
-          120,
-          Math.floor(
-            side === "below"
-              ? window.innerHeight - rect.bottom - ANCHOR_GAP - VIEWPORT_MARGIN
-              : rect.top - ANCHOR_GAP - VIEWPORT_MARGIN,
-          ),
-        ),
+        room: Math.max(120, Math.floor(used === "below" ? below : above)),
       });
     };
     measure();
@@ -143,8 +147,8 @@ export function useAnchoredPopover<A extends HTMLElement, P extends HTMLElement>
   const edge = place?.edge ?? 0;
   const style: React.CSSProperties & Record<"--pop-origin-x" | "--pop-room", string> = {
     left: place?.left ?? 0,
-    top: side === "below" ? edge : undefined,
-    bottom: side === "above" ? edge : undefined,
+    top: (place?.side ?? side) === "below" ? edge : undefined,
+    bottom: (place?.side ?? side) === "above" ? edge : undefined,
     visibility: place ? "visible" : "hidden",
     "--pop-origin-x": `${place?.originX ?? 24}px`,
     "--pop-room": place ? `${place.room}px` : "100vh",

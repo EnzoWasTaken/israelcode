@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { ProjectWorktrees } from "./ProjectWorktrees";
 import {
@@ -13,6 +13,7 @@ import {
   getSettings,
   focusWindowByOffset,
   arrangeAllWindows,
+  newWindow,
   type DiscoveredProject,
   type RecentSession,
 } from "./agent";
@@ -23,8 +24,10 @@ import { useCachedList } from "./useCachedList";
 import { BackButton } from "./BackButton";
 import { WindowLayoutButton } from "./WindowLayoutButton";
 import { RadioButton } from "./RadioButton";
-import { NewProjectModal } from "./NewProjectModal";
+import { LazyNewProjectModal } from "./lazy-surfaces";
 import { toast } from "./toast";
+import { EmptyState } from "./EmptyState";
+import { SessionBrowser } from "./SessionBrowser";
 
 /**
  * Does this row point at another tool's transcript rather than a GG Coder
@@ -33,6 +36,9 @@ import { toast } from "./toast";
 function isForeignSession(session: RecentSession): boolean {
   return session.source === "claude-code" || session.source === "codex";
 }
+
+/** Fewer projects than this leaves room for a hint under the list. */
+const SHORT_LIST = 8;
 
 interface Props {
   /** Called after the agent has been re-pointed at `cwd` (+ optional session). */
@@ -239,37 +245,166 @@ export function ProjectPicker({
       .catch((e: unknown) => toast(`Couldn't open the folder picker: ${String(e)}`, "error"));
   }
 
+  /**
+   * Open a session in a NEW window (the browser's "New window" / Ctrl+Enter).
+   * A foreign row is imported first, like a click, then opened by its new path.
+   */
+  function openInNewWindow(cwd: string, session: RecentSession): void {
+    if (busy) return;
+    setResumeError(null);
+    const openTarget = (sessionPath: string): Promise<void> =>
+      newWindow({ mode: "code", chatAgent: "general", cwd, sessionPath });
+    const fail = (reason: unknown): void => {
+      const message = reason instanceof Error ? reason.message : String(reason);
+      setResumeError(`Couldn't open that in a new window: ${message}`);
+    };
+    if (!isForeignSession(session)) {
+      void openTarget(session.path).catch(fail);
+      return;
+    }
+    setBusy(true);
+    void importTranscript(session.path, cwd)
+      .then((result) => {
+        if (!result.ok) throw new Error(result.error);
+        return openTarget(result.sessionPath);
+      })
+      .catch(fail)
+      .finally(() => setBusy(false));
+  }
+
+  if (selected) {
+    return (
+      <SessionBrowser
+        title={selected.name}
+        noun={{ one: "session", many: "sessions" }}
+        sessions={sessions}
+        loading={sessionsLoading}
+        busy={busy}
+        newLabel="+ New session"
+        onNew={() => choose(selected.path)}
+        onBack={() => setSelected(null)}
+        backLabel="All projects"
+        onOpen={(s) => chooseSession(selected.path, s)}
+        onOpenInNewWindow={(s) => openInNewWindow(selected.path, s)}
+        filterBy="source"
+        rowNote={(s) =>
+          isForeignSession(s)
+            ? `From ${sourceStyle(s.source ?? "").label} — opens as an Israel Code session`
+            : undefined
+        }
+        headActions={
+          <>
+            <RadioButton />
+            <WindowLayoutButton />
+          </>
+        }
+        notices={
+          <>
+            {resumeError && (
+              <div className="picker-error" role="alert">
+                {resumeError}
+              </div>
+            )}
+            {sessionsError && (
+              <div className="picker-error" role="alert">
+                <span>Couldn't load this project's sessions.</span>{" "}
+                <button type="button" className="btn btn-sm btn-ghost" onClick={sessionList.reload}>
+                  Try again
+                </button>
+              </div>
+            )}
+          </>
+        }
+        empty={
+          sessionsError ? null : (
+            <div className="picker-empty">
+              <span style={{ color: theme.textMuted }}>No previous sessions yet.</span>
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={busy}
+                onClick={() => choose(selected.path)}
+              >
+                {"+ New session"}
+              </button>
+            </div>
+          )
+        }
+        footer={
+          <ProjectWorktrees
+            projectPath={selected.path}
+            busy={busy}
+            onOpen={(worktreePath) => choose(worktreePath)}
+          />
+        }
+      />
+    );
+  }
+
   return (
     <div className="picker">
       <div className="picker-head" data-tauri-drag-region>
-        {selected ? (
-          <BackButton label="All projects" onClick={() => setSelected(null)} />
-        ) : onClose ? (
-          <BackButton label="Back" onClick={onClose} />
-        ) : null}
-        <span className="picker-title">{selected ? selected.name : "Choose a project"}</span>
-        {!selected && !loading && !loadError && <Badge>{projects.length}</Badge>}
-        {!selected && !loading && projects.length > 0 && (
+        {onClose ? <BackButton label="Back" onClick={onClose} /> : null}
+        <span className="picker-title">Choose a project</span>
+        {!loading && !loadError && <Badge>{projects.length}</Badge>}
+        {!loading && projects.length > 0 && (
           <input
             className="picker-search"
             type="text"
             placeholder={"Search projects\u2026"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter opens the top match; Escape clears the search first
+              // (and only goes Back once there's nothing left to clear).
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                const top = filteredProjects[0];
+                if (top && query.trim()) {
+                  e.preventDefault();
+                  openProject(top);
+                }
+              } else if (e.key === "Escape" && query) {
+                e.preventDefault();
+                e.stopPropagation();
+                setQuery("");
+              }
+            }}
             aria-label="Search projects"
+            title="Enter opens the top match · Esc clears"
           />
         )}
         <span className="picker-head-actions">
-          {selected ? (
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={busy}
-              onClick={() => choose(selected.path)}
-            >
-              {"+ New session"}
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={busy}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={openExisting}
+          >
+            {"Open existing"}
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
+            {"+ New project"}
+          </button>
+          <RadioButton />
+          <WindowLayoutButton />
+        </span>
+      </div>
+
+      <div className="picker-list">
+        {loading && <ListSkeleton rows={6} />}
+        {!loading && loadError && (
+          <div className="picker-empty" role="alert">
+            <span style={{ color: theme.textMuted }}>Couldn't load your projects.</span>
+            <button type="button" className="btn btn-sm btn-ghost" onClick={projectList.reload}>
+              Try again
             </button>
-          ) : (
-            <>
+          </div>
+        )}
+        {!loading && !loadError && projects.length === 0 && (
+          <div className="picker-empty">
+            <span style={{ color: theme.textMuted }}>
+              No projects yet. Open a folder you already work in, or start a new one.
+            </span>
+            <span style={{ display: "flex", gap: "var(--space-4)" }}>
               <button
                 className="btn btn-ghost btn-sm"
                 disabled={busy}
@@ -281,165 +416,94 @@ export function ProjectPicker({
               <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
                 {"+ New project"}
               </button>
-            </>
-          )}
-          <RadioButton />
-          <WindowLayoutButton />
-        </span>
+            </span>
+          </div>
+        )}
+        {!loading && projects.length > 0 && filteredProjects.length === 0 && (
+          <EmptyState
+            message={`No projects match \u201c${query.trim()}\u201d. Open its folder or start a new one.`}
+          >
+            <button className="btn btn-ghost btn-sm" onClick={() => setQuery("")}>
+              {"Clear search"}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={busy}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={openExisting}
+            >
+              {"Open existing"}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
+              {"+ New project"}
+            </button>
+          </EmptyState>
+        )}
+        {!loading && filteredProjects.length > 0 && (
+          <div className="picker-reveal">
+            {filteredProjects.map((p) => (
+              <div key={p.path} className="picker-item-wrap">
+                <button className="picker-item" onClick={() => openProject(p)} title={p.path}>
+                  <span className="picker-row">
+                    <span className="picker-name" style={{ color: theme.text }}>
+                      {p.name}
+                    </span>
+                    <Badge>{p.lastActiveDisplay}</Badge>
+                  </span>
+                  {/* Where the project comes from, as tinted glass pills. */}
+                  <span className="picker-sources">
+                    {p.sources.map((s) => {
+                      const { label, color } = sourceStyle(s);
+                      return (
+                        <Badge key={s} color={color}>
+                          {label}
+                        </Badge>
+                      );
+                    })}
+                  </span>
+                </button>
+                <button
+                  className="picker-hide"
+                  aria-label={`Hide ${p.name}`}
+                  title="Hide from this list"
+                  onClick={() => hideProject(p)}
+                >
+                  {/* The same drawn X as the modal close buttons: a text ×
+                        sits low and off-centre in a round button. */}
+                  <XIcon size={12} weight="bold" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && !query.trim() && projects.length > 0 && projects.length < SHORT_LIST && (
+          <EmptyState
+            className="picker-tail"
+            message="Missing a project? Open its folder and it joins this list."
+          >
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={busy}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={openExisting}
+            >
+              {"Open existing"}
+            </button>
+          </EmptyState>
+        )}
       </div>
 
-      {!selected ? (
-        <div className="picker-list">
-          {loading && <ListSkeleton rows={6} />}
-          {!loading && loadError && (
-            <div className="picker-empty" role="alert">
-              <span style={{ color: theme.textMuted }}>Couldn't load your projects.</span>
-              <button type="button" className="btn btn-sm btn-ghost" onClick={projectList.reload}>
-                Try again
-              </button>
-            </div>
-          )}
-          {!loading && !loadError && projects.length === 0 && (
-            <div className="picker-empty">
-              <span style={{ color: theme.textMuted }}>No projects yet.</span>
-              <span style={{ display: "flex", gap: "var(--space-4)" }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  disabled={busy}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={openExisting}
-                >
-                  {"Open existing"}
-                </button>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
-                  {"+ New project"}
-                </button>
-              </span>
-            </div>
-          )}
-          {!loading && projects.length > 0 && filteredProjects.length === 0 && (
-            <div className="picker-empty" style={{ color: theme.textMuted }}>
-              {`No projects match \u201c${query.trim()}\u201d`}
-            </div>
-          )}
-          {!loading && filteredProjects.length > 0 && (
-            <div className="picker-reveal">
-              {filteredProjects.map((p) => (
-                <div key={p.path} className="picker-item-wrap">
-                  <button className="picker-item" onClick={() => openProject(p)} title={p.path}>
-                    <span className="picker-row">
-                      <span className="picker-name" style={{ color: theme.text }}>
-                        {p.name}
-                      </span>
-                      <Badge>{p.lastActiveDisplay}</Badge>
-                    </span>
-                    {/* Where the project comes from, as tinted glass pills. */}
-                    <span className="picker-sources">
-                      {p.sources.map((s) => {
-                        const { label, color } = sourceStyle(s);
-                        return (
-                          <Badge key={s} color={color}>
-                            {label}
-                          </Badge>
-                        );
-                      })}
-                    </span>
-                  </button>
-                  <button
-                    className="picker-hide"
-                    aria-label={`Hide ${p.name}`}
-                    title="Hide from this list"
-                    onClick={() => hideProject(p)}
-                  >
-                    {/* The same drawn X as the modal close buttons: a text ×
-                        sits low and off-centre in a round button. */}
-                    <XIcon size={12} weight="bold" aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="picker-list">
-          {resumeError && (
-            <div className="picker-error" role="alert">
-              {resumeError}
-            </div>
-          )}
-          {sessionsError && (
-            <div className="picker-error" role="alert">
-              <span>Couldn't load this project's sessions.</span>{" "}
-              <button type="button" className="btn btn-sm btn-ghost" onClick={sessionList.reload}>
-                Try again
-              </button>
-            </div>
-          )}
-          {sessionsLoading && <ListSkeleton rows={4} />}
-          {!sessionsLoading && !sessionsError && sessions.length === 0 && (
-            <div className="picker-empty">
-              <span style={{ color: theme.textMuted }}>No previous sessions yet.</span>
-              <button
-                className="btn btn-primary btn-sm"
-                disabled={busy}
-                onClick={() => choose(selected.path)}
-              >
-                {"+ New session"}
-              </button>
-            </div>
-          )}
-          {!sessionsLoading && sessions.length > 0 && (
-            <div className="picker-reveal">
-              {sessions.map((s) => (
-                <button
-                  key={s.id}
-                  className="picker-item"
-                  disabled={busy}
-                  onClick={() => chooseSession(selected.path, s)}
-                  title={
-                    isForeignSession(s)
-                      ? `From ${sourceStyle(s.source ?? "").label} — opens as an Israel Code session`
-                      : undefined
-                  }
-                >
-                  <span className="picker-row">
-                    <span className="picker-name picker-preview" style={{ color: theme.text }}>
-                      {s.preview || "(no preview)"}
-                    </span>
-                    <Badge>{s.lastActiveDisplay}</Badge>
-                  </span>
-                  <span className="picker-meta" style={{ color: theme.textMuted }}>
-                    {isForeignSession(s) && (
-                      <Badge
-                        className="picker-source-tag"
-                        color={sourceStyle(s.source ?? "").color}
-                      >
-                        {sourceStyle(s.source ?? "").label}
-                      </Badge>
-                    )}
-                    <Badge>{`${s.messageCount} msgs`}</Badge>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          <ProjectWorktrees
-            projectPath={selected.path}
-            busy={busy}
-            onOpen={(worktreePath) => choose(worktreePath)}
-          />
-        </div>
-      )}
-
       {showNew && (
-        <NewProjectModal
-          projectsRoot={projectsRoot}
-          onClose={() => setShowNew(false)}
-          onCreated={(cwd) => {
-            setShowNew(false);
-            onChosen(cwd);
-          }}
-        />
+        <Suspense fallback={null}>
+          <LazyNewProjectModal.Component
+            projectsRoot={projectsRoot}
+            onClose={() => setShowNew(false)}
+            onCreated={(cwd) => {
+              setShowNew(false);
+              onChosen(cwd);
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

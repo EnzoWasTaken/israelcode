@@ -1,0 +1,721 @@
+/* ── Ken's dialogue box (KenDialogue) ──
+   Little Israel, bottom left of the Workers view, now and then saying a line
+   like a game's dialogue box: his portrait stands behind a parchment box
+   (cut corners, a fine double frame, faint swirls), his name plate (dark,
+   angled ends, gold caps) on its top edge, a purple ▼ once the line is out.
+   Art, not theme: the parchment and gold are literal like the farm's own
+   sign above. Frames are 9-slice SVGs, so corners stay crisp at any size.
+   Hidden most of the time; data-phase drives the entrance ("entering",
+   "talking" are up; "hidden", "leaving" down). Transitions, not keyframes,
+   so an interrupted line reverses from where it is. In: the box lifts and
+   opens, the name plate slides in, Israel rises from behind the box and
+   settles. Out, quicker: Israel sinks, then the box drops away. ENTER_MS /
+   EXIT_MS in KenDialogue.tsx match these timings. */
+/* Ken's signs, in GG Royale's look: square panels with a 1px ink outline,
+   a lighter top lip and a shaded bottom lip, a drop of ink under them; text in
+   m5x7 (body) and Alagard (names, titles, buttons), unsmoothed, sized on the
+   fonts' own pixel grid (16px = one m5x7 cap height at 2x). Art, not theme. */
+:is(.ken-dialogue, .goal-ask, .goal-finish, .ken-status) {
+  --ken-ink: #1e0c1f;
+  /* The panel: the game's dusky wine card. */
+  --ken-panel: #3a2433;
+  --ken-panel-hi: #5a3a4a;
+  --ken-panel-lo: #24141f;
+  --ken-text: #f0d2c4;
+  --ken-dim: #c9a08c;
+  --ken-gold: #f5bd63;
+  --ken-rule: #4e343f;
+  /* The name plate: the game's gold tooltip head. */
+  --ken-plate-bg: #e9af54;
+  --ken-plate-lo: #c47a3a;
+  --ken-panel-shadow:
+    0 0 0 2px #1e0c1f, inset 0 2px 0 var(--ken-panel-hi), inset 0 -3px 0 var(--ken-panel-lo),
+    0 4px 0 2px #1e0c1f, 0 10px 18px rgb(0 0 0 / 0.35);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+/* Young Serif: still the About page's display face (AboutPage.css). */
+@font-face {
+  font-family: "Young Serif";
+  src: url("../../assets/fonts/young-serif/young-serif-normal.woff2") format("woff2");
+  font-display: swap;
+}
+/* One pixel-grid body font, one title font. */
+:is(
+  .ken-dialogue-box,
+  .goal-ask-question,
+  .goal-ask-more,
+  .goal-finish-line,
+  .goal-finish-stat dt,
+  .goal-finish-note,
+  .ken-status-card,
+  .ken-status-detail,
+  .ken-status-note,
+  .ken-status-time
+) {
+  font-family: "m5x7", monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+:is(
+  .ken-dialogue-name,
+  .goal-ask-title,
+  .goal-ask-answer,
+  .goal-finish-close,
+  .goal-finish-stat dd
+) {
+  font-family: "Alagard", serif;
+  font-weight: 400;
+}
+/* The name plate on a panel's top edge: a gold tab with an ink outline and
+   the game's two-step drop, the name in Alagard ink. */
+:is(.ken-dialogue-name, .goal-ask-title) {
+  height: 30px;
+  padding: 0 var(--space-6);
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  background: var(--ken-plate-bg);
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 -3px 0 var(--ken-plate-lo),
+    inset 0 2px 0 #f8d488,
+    0 4px 0 2px #1e0c1f;
+  color: #1e0c1f;
+  font-size: var(--fs-4xl);
+  line-height: 26px;
+  letter-spacing: 0;
+  text-shadow: 0 2px 0 #f8d488;
+}
+/* The buttons: the game's raised slate key (Answer, Read summary) and a quiet
+   wine one beside it (Close). Pressing sinks them a pixel. */
+:is(.goal-ask-answer, .goal-finish-close) {
+  height: 32px;
+  padding: 0 var(--space-7) 3px;
+  border: 0;
+  border-radius: 0;
+  font-size: var(--fs-4xl);
+  line-height: 29px;
+  letter-spacing: 0;
+  filter: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-hover),
+    translate var(--dur-press) var(--ease-hover);
+}
+.goal-ask-answer {
+  background: #688e50;
+  color: #1e2a33;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 2px 0 #8ab070,
+    inset 0 -3px 0 #4c7b53,
+    0 4px 0 2px #1e0c1f;
+}
+.goal-ask-answer:hover {
+  background: #7aa25e;
+  color: #f2ead2;
+  border-color: transparent;
+  filter: none;
+}
+.goal-finish-close {
+  background: #593139;
+  color: #f2d8c8;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 2px 0 #7a4650,
+    inset 0 -3px 0 #4c0b2f,
+    0 4px 0 2px #1e0c1f;
+}
+.goal-finish-close:hover {
+  background: #6a3a44;
+  border-color: transparent;
+}
+:is(.goal-ask-answer, .goal-finish-close):active {
+  translate: 0 2px;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 2px 0 rgb(0 0 0 / 0.2),
+    0 2px 0 2px #1e0c1f;
+  filter: none;
+}
+:is(.goal-ask-answer, .goal-finish-close):focus-visible {
+  outline: 2px solid var(--ken-gold);
+  outline-offset: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.goal-ask-answer, .goal-finish-close) {
+    transition: none;
+  }
+}
+.ken-dialogue {
+  position: absolute;
+  left: var(--space-8);
+  bottom: var(--space-8);
+  z-index: 2;
+  width: min(400px, calc(100% - 2 * var(--space-8)));
+  padding-top: 118px;
+}
+.ken-dialogue-portrait {
+  position: absolute;
+  left: 104px;
+  top: 0;
+  height: 120px;
+  overflow: hidden; /* Israel rises from behind the box's top edge */
+}
+.ken-dialogue-portrait canvas {
+  display: block;
+  width: 108px;
+  height: 132px;
+  image-rendering: pixelated;
+}
+.ken-dialogue-box {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 26px 34px var(--space-7) var(--space-9);
+  border: 0;
+  background: var(--ken-panel);
+  box-shadow: var(--ken-panel-shadow);
+  color: var(--ken-text);
+  font-size: 32px;
+  line-height: 22px;
+  text-align: start;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+}
+.ken-dialogue-box:focus-visible {
+  outline: 2px solid var(--ken-gold);
+  outline-offset: 4px;
+}
+.ken-dialogue-name {
+  position: absolute;
+  left: 14px;
+  top: -17px;
+  z-index: 2;
+  min-width: 70px;
+  text-align: center;
+}
+.ken-dialogue-text {
+  display: block;
+  /* Room for three lines, so the box never grows as a line types out. */
+  min-height: calc(3 * 22px);
+}
+/* The game's "more" mark: a gold pixel arrow with an ink drop. */
+.ken-dialogue-more {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 10px;
+  height: 6px;
+  background: var(--ken-gold);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 34%,
+    80% 34%,
+    80% 67%,
+    60% 67%,
+    60% 100%,
+    40% 100%,
+    40% 67%,
+    20% 67%,
+    20% 34%,
+    0 34%
+  );
+  filter: drop-shadow(0 2px 0 #1e0c1f);
+  opacity: 0;
+}
+.ken-dialogue-more[data-on] {
+  opacity: 1;
+  animation: ken-more-bob 900ms steps(2, jump-none) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-more-bob {
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+/* Down: nothing shows or takes a click; each part waits where it comes from. */
+.ken-dialogue:is([data-phase="hidden"], [data-phase="leaving"]) {
+  pointer-events: none;
+}
+.ken-dialogue[data-phase="hidden"] :is(.ken-dialogue-portrait, .ken-dialogue-box) {
+  visibility: hidden;
+}
+.ken-dialogue:is([data-phase="hidden"], [data-phase="leaving"]) .ken-dialogue-box {
+  opacity: 0;
+  transform: translateY(12px) scaleY(0.9);
+  transition:
+    opacity 180ms var(--ease-in) 100ms,
+    transform 200ms var(--ease-in) 100ms;
+}
+.ken-dialogue:is([data-phase="entering"], [data-phase="talking"]) .ken-dialogue-box {
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 300ms var(--ease-out);
+}
+.ken-dialogue:is([data-phase="hidden"], [data-phase="leaving"]) .ken-dialogue-name {
+  opacity: 0;
+  transform: translateX(-14px);
+  transition:
+    opacity 120ms var(--ease-in),
+    transform 140ms var(--ease-in);
+}
+.ken-dialogue:is([data-phase="entering"], [data-phase="talking"]) .ken-dialogue-name {
+  transition:
+    opacity 200ms var(--ease-out) 90ms,
+    transform 260ms var(--ease-out) 90ms;
+}
+.ken-dialogue:is([data-phase="hidden"], [data-phase="leaving"]) .ken-dialogue-portrait canvas {
+  transform: translateY(100%);
+  transition: transform 160ms var(--ease-in);
+}
+.ken-dialogue:is([data-phase="entering"], [data-phase="talking"]) .ken-dialogue-portrait canvas {
+  transition: transform var(--duration-spring) var(--ease-spring) 130ms;
+}
+/* Less motion: a short fade, nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  .ken-dialogue :is(.ken-dialogue-box, .ken-dialogue-name, .ken-dialogue-portrait canvas) {
+    transform: none !important;
+    transition: opacity 120ms linear !important;
+  }
+  .ken-dialogue:is([data-phase="hidden"], [data-phase="leaving"]) .ken-dialogue-portrait canvas {
+    opacity: 0;
+  }
+  .ken-dialogue-more[data-on] {
+    animation: none;
+  }
+}
+@keyframes goal-ask-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* ── What Ken is doing (KenStatus.tsx) ──────────────────────────────────
+   Bottom right of the Workers view: a panel in GG Royale's style, his
+   face in a recessed square with the kind of work as a badge, one line, and how
+   long he's been at it. It grows on hover to show one more line, and steps
+   aside (a dissolve) while Israel talks or a sign is up: one thing at a time.
+   Royale's square panel; the tone shows on the badge and the sweep, in the
+   game's own badge colours (white glyphs on each meet 3:1 or better). */
+.ken-status {
+  --status-ink: #3f8a7a;
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  max-width: calc(100% - 2 * var(--space-8));
+  pointer-events: none;
+  transition:
+    opacity 220ms var(--ease-out),
+    filter 220ms var(--ease-out),
+    transform 260ms var(--ease-out);
+}
+.ken-status[data-tone="ask"] {
+  --status-ink: #c88a3c;
+}
+.ken-status[data-tone="error"] {
+  --status-ink: #c2444d;
+}
+.ken-status[data-tone="done"] {
+  --status-ink: #4c7b53;
+}
+.ken-status:is([data-tone="paused"], [data-tone="idle"]) {
+  --status-ink: #6a5a74;
+}
+.ken-status[data-away] {
+  opacity: 0;
+  filter: blur(3px);
+  transform: translateY(6px);
+  transition:
+    opacity 160ms var(--ease-in),
+    filter 160ms var(--ease-in),
+    transform 180ms var(--ease-in);
+}
+.ken-status-card {
+  position: relative;
+  overflow: hidden;
+  max-width: min(320px, 100%);
+  padding: var(--space-3) var(--space-7) var(--space-4) var(--space-3);
+  border: 0;
+  /* The game's panels are square; a pixel cut at each corner. */
+  border-radius: 0;
+  background: var(--ken-panel);
+  box-shadow: var(--ken-panel-shadow);
+  color: var(--ken-text);
+  font-size: 32px;
+  line-height: 20px;
+  pointer-events: auto;
+  cursor: default;
+}
+.ken-status[data-away] .ken-status-card {
+  pointer-events: none;
+}
+.ken-status[data-open] .ken-status-card {
+  width: 312px;
+}
+/* Size changes are driven from KenStatus (MORPH_MS there): width, height and
+   corners ease together on one curve. */
+.ken-status-card.is-sizing {
+  transition:
+    width 400ms var(--ease-expo),
+    height 400ms var(--ease-expo);
+}
+.ken-status-head {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  /* Room for the badge, which hangs off the face's lower right. */
+  column-gap: var(--space-9);
+  align-items: start;
+}
+/* His face at one CSS pixel per art pixel, centred (the head is 26 of the
+   circle's 32px), the brass ring just outside so all of it is his. */
+/* His face in a recessed square, like the game's character card. */
+.ken-status-face {
+  grid-area: 1 / 1;
+  display: block;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #251c22;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 0 0 2px var(--ken-rule);
+}
+/* His whole head, ear to ear, in the square: the portrait's head is 32 of
+   its 36 cells, drawn at 1px per cell and pulled up so his crown meets the
+   top. The badge sits outside, at the square's lower right. */
+.ken-status-face canvas {
+  display: block;
+  width: 36px;
+  height: 44px;
+  margin: calc(-1 * var(--space-1)) 0 0 0;
+  image-rendering: pixelated;
+}
+.ken-status-face.is-hopping canvas {
+  animation: ken-status-hop 380ms var(--ease-pop);
+}
+@keyframes ken-status-hop {
+  35% {
+    transform: translateY(-3px);
+  }
+}
+/* The kind of work, pinned to the medallion's lower right. */
+.ken-status-badge {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  align-self: start;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: var(--space-10) -17px 0 0;
+  border-radius: 0;
+  background: var(--status-ink);
+  color: #fff8e8;
+  box-shadow:
+    0 0 0 2px #1e0c1f,
+    inset 0 -2px 0 rgb(0 0 0 / 0.3);
+  transition: background-color 420ms var(--ease-in-out);
+}
+.ken-status-badge-icon {
+  display: grid;
+  animation: ken-status-icon-in 440ms var(--ease-pop) 60ms both;
+}
+@keyframes ken-status-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-25deg);
+  }
+}
+/* Each kind of work has its own small motion. */
+.ken-status-badge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ken-status[data-icon="think"] .ken-status-badge::after {
+  animation: ken-status-breathe var(--dur-breathe) var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-status-breathe {
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-ink) 30%, transparent);
+  }
+}
+.ken-status[data-icon="edit"] .ken-status-badge svg {
+  transform-origin: 20% 80%;
+  animation: ken-status-scribble 0.9s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-status-scribble {
+  30% {
+    transform: translate(-0.5px, 0) rotate(-9deg);
+  }
+  70% {
+    transform: translate(0.5px, -0.5px) rotate(6deg);
+  }
+}
+.ken-status[data-icon="search"] .ken-status-badge svg {
+  animation: ken-status-scan 1.6s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-status-scan {
+  25% {
+    transform: translate(1px, -0.5px);
+  }
+  50% {
+    transform: translate(0, -1px);
+  }
+  75% {
+    transform: translate(-1px, -0.5px);
+  }
+}
+.ken-status[data-icon="wait"] .ken-status-badge svg {
+  animation: ken-status-turn 2.6s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ken-status-turn {
+  0%,
+  70% {
+    transform: rotate(0);
+  }
+  88%,
+  100% {
+    transform: rotate(180deg);
+  }
+}
+/* The text, which dissolves out and back in between moments. */
+.ken-status-main {
+  grid-area: 1 / 2;
+  min-width: 0;
+  transition:
+    opacity 200ms var(--ease-out),
+    filter 200ms var(--ease-out);
+}
+.ken-status[data-fading] .ken-status-main {
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity 90ms var(--ease-in),
+    filter 90ms var(--ease-in);
+}
+.ken-status[data-open] .ken-status-main {
+  padding-bottom: var(--space-2);
+}
+.ken-status-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 32px;
+}
+.ken-status-headline {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ken-status-time {
+  flex: none;
+  margin-left: auto;
+  padding-left: var(--space-4);
+  font-size: 32px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ken-dim);
+}
+/* Three dots after "Thinking", one lit at a time. */
+.ken-status-dots {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-1);
+  margin-left: -2px;
+  color: var(--status-ink);
+}
+.ken-status-dots i {
+  width: 2px;
+  height: 2px;
+  border-radius: 0;
+  background: currentColor;
+  opacity: 0.3;
+  animation: ken-status-dot 1.2s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.ken-status-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ken-status-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes ken-status-dot {
+  30% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: none;
+  }
+}
+/* The extra lines: laid out only when shown, so the pill's size is exact. */
+.ken-status-row {
+  display: none;
+}
+.ken-status[data-open] .ken-status-detail-row {
+  display: block;
+  animation: ken-status-row-in 240ms var(--ease-out) 60ms both;
+}
+.ken-status[data-collapsing] .ken-status-detail-row {
+  animation: ken-status-row-out 160ms var(--ease-in) forwards;
+}
+.ken-status[data-slow] .ken-status-note-row {
+  display: block;
+  animation: ken-status-row-in 240ms var(--ease-out) 60ms both;
+}
+@keyframes ken-status-row-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ken-status-row-out {
+  to {
+    opacity: 0;
+  }
+}
+.ken-status-detail {
+  display: -webkit-box;
+  margin: var(--space-2) 0 0;
+  overflow: hidden;
+  font-size: 32px;
+  line-height: 20px;
+  color: var(--ken-dim);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+.ken-status-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font-size: 32px;
+  line-height: 20px;
+  color: var(--ken-dim);
+}
+.ken-status-note svg {
+  flex: none;
+}
+/* A thin sweep along the bottom edge while a command or the critters run. */
+.ken-status-bar {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 3px;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out);
+  pointer-events: none;
+}
+.ken-status-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--status-ink), transparent);
+  animation: ken-status-sweep 1.3s var(--ease-in-out) infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.ken-status[data-bar="run"] .ken-status-bar {
+  opacity: 1;
+}
+.ken-status[data-bar="wait"] .ken-status-bar {
+  opacity: 0.55;
+}
+.ken-status[data-bar="wait"] .ken-status-bar::before {
+  animation-duration: 2.8s;
+}
+@keyframes ken-status-sweep {
+  to {
+    left: 100%;
+  }
+}
+/* Less motion: changes still happen, as short fades; nothing loops or moves. */
+@media (prefers-reduced-motion: reduce) {
+  .ken-status,
+  .ken-status[data-away] {
+    transform: none;
+    filter: none;
+    transition: opacity 120ms linear;
+  }
+  .ken-status-main,
+  .ken-status[data-fading] .ken-status-main {
+    filter: none;
+    transition: none;
+  }
+  .ken-status-card.is-sizing,
+  .ken-status-badge {
+    transition: none;
+  }
+  .ken-status-face.is-hopping canvas,
+  .ken-status-badge-icon,
+  .ken-status-badge::after,
+  .ken-status-badge svg,
+  .ken-status-dots i,
+  .ken-status-row,
+  .ken-status[data-open] .ken-status-detail-row,
+  .ken-status[data-slow] .ken-status-note-row {
+    animation: none !important;
+  }
+  .ken-status-dots i {
+    opacity: 0.8;
+  }
+  .ken-status-bar::before {
+    left: 0;
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
+  }
+}
+/* High contrast drops the frame art: a plain system outline instead. */
+@media (forced-colors: active) {
+  .ken-status-card {
+    border: 2px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .goal-ask-board,
+  .ken-dialogue-box {
+    border-image: none;
+    border: 2px solid CanvasText;
+    background: Canvas;
+  }
+  .goal-ask-title,
+  .ken-dialogue-name {
+    border-image: none;
+  }
+  .goal-ask-answer,
+  .goal-finish-close {
+    border: 2px solid ButtonText;
+  }
+}

@@ -1,4 +1,4 @@
-import { SunHorizonIcon } from "@phosphor-icons/react";
+import { SunHorizonIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { setHomeBackgroundEnabled, useHomeBackgroundEnabled } from "./home-background";
 

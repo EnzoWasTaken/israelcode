@@ -1,0 +1,286 @@
+/* ── Alloy across the app ──
+   The pickers, settings and smaller controls take the same parts as the
+   workspace: one title row level with the traffic lights, keys instead of
+   pills, wells instead of glossy badges. */
+
+/* Pickers (projects, chats, goals): one row beside the traffic lights. */
+.picker-head {
+  min-height: 40px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--page-pad);
+  gap: var(--space-5);
+  border-bottom: 1px dashed var(--border);
+}
+.platform-macos .picker-head {
+  padding: var(--space-3) var(--space-4) var(--space-3) 84px;
+}
+.picker-head > .btn-icon {
+  width: 26px;
+  height: 24px;
+}
+.picker-title {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.picker-head-actions {
+  gap: var(--space-3);
+}
+.picker-head-actions > .btn,
+.picker-head-actions .btn {
+  height: 26px;
+}
+.picker-search {
+  height: 26px;
+  border: 0;
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  font-size: var(--fs-sm);
+}
+.picker-search:focus {
+  background: var(--well);
+  box-shadow:
+    inset 0 1px 1.5px var(--well-shadow),
+    0 0 0 2px var(--primary);
+}
+.picker-item {
+  border-radius: 10px;
+}
+.picker-item:hover {
+  background: var(--surface-1);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+}
+
+/* Settings → General: cards in an even grid, two side by side from 760px, so
+   short cards pair up instead of one long column beside an empty one. The
+   two column wrappers dissolve into the grid (display: contents). Each card
+   fills its cell, so a row's cards share a height and their keys line up. */
+.settings-page .settings-cols.settings-grid {
+  grid-auto-flow: row dense;
+  align-items: stretch;
+  row-gap: var(--space-8);
+}
+.settings-page .settings-grid > .settings-col {
+  display: contents;
+}
+.settings-page .settings-grid .settings-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.settings-page .settings-grid .settings-card > .modal-row:last-child {
+  margin-top: auto;
+}
+/* The folder path wants the width: it takes the whole last row. */
+.settings-page .settings-grid .settings-card[aria-label="Project folder"] {
+  grid-column: 1 / -1;
+}
+
+/* Badges: a well, never a glossy pill. A source's colour is the dot. */
+.badge {
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4);
+  border: 0;
+  border-radius: 5px;
+  background: var(--well);
+  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  color: var(--text-secondary);
+}
+.badge-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.picker-row > .badge {
+  box-shadow: none;
+}
+
+/* Tabs and segmented controls: a well holding keys. */
+/* Segmented controls: keys inside a well. The well's corner is the keys'
+   corner plus the gap around them, so the two curves run parallel instead of
+   a round pill wrapped around squarer keys. Only the chosen key is raised. */
+.settings-tabs,
+.brain-tabs,
+.goal-view-switch {
+  --seg-inset: var(--space-1);
+  gap: var(--space-1);
+  padding: var(--seg-inset);
+  border: 0;
+  border-radius: calc(var(--radius-button) + var(--seg-inset));
+  background: var(--well);
+  box-shadow: inset 0 1px 2px var(--well-shadow);
+}
+/* Settings' tab bar keeps its height: 54px around 42px tabs. */
+.settings-tabs {
+  --seg-inset: var(--space-3);
+}
+.goal-view-switch .key {
+  height: 24px;
+  background: transparent;
+  box-shadow: none;
+}
+.goal-view-switch .key:hover:not([aria-pressed="true"]) {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.goal-view-switch .key[aria-pressed="true"] {
+  background: var(--key);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+}
+.settings-tab,
+.brain-tabs button {
+  border-radius: var(--radius-button);
+}
+.settings-tabs-pill {
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+}
+.brain-tabs button[aria-selected="true"],
+.brain-tabs button[aria-pressed="true"] {
+  background: var(--key);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge);
+}
+
+/* Small actions that were outlined pills become keys. */
+.pop-item-action,
+.schedule-preset,
+.motion-starter,
+.transcript-to-bottom,
+.memory-category {
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--key);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    0 1px 0 var(--key-edge),
+    0 2px 4px -2px var(--key-shadow);
+}
+.modal-close {
+  border-radius: var(--radius-button);
+}
+.home-update {
+  border-radius: var(--radius-button);
+  background: var(--primary-fill);
+  color: var(--on-primary-fill);
+}
+
+/* Dialogs and menus: the deck's surface and edge. */
+.modal,
+.pop-panel,
+.dropdown-menu,
+.winlayout-menu,
+.slash-menu,
+.model-menu {
+  border-color: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 var(--key-hi),
+    var(--deck-shadow);
+}
+
+/* ── Small windows ── */
+@container deck (max-width: 560px) {
+  .rail-label {
+    max-width: 9ch;
+  }
+  .ctx-key .cbar,
+  .onair-key .rail-label,
+  .thinking-keys .lb {
+    display: none;
+  }
+  .deck .plan-steps-bar {
+    display: none;
+  }
+}
+@container deck (max-width: 420px) {
+  .branch-key .rail-label {
+    max-width: 6ch;
+  }
+  .deck-hint {
+    display: none;
+  }
+}
+/* The tally is the first thing to go when the row gets tight: the Workers
+   view shows the same counts. */
+@media (max-width: 760px) {
+  .chat-head-trail .goal-tally {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .chat-head-sub {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-main,
+  .deck-panel-host {
+    animation: none;
+    transition: none;
+  }
+  .led[data-state="run"],
+  .onair-key .eq i {
+    animation: none;
+  }
+}
+
+/* Light theme: the modal scrim is a cool wash, not a black one. */
+:root[data-theme="light"] .modal-backdrop {
+  background: rgb(var(--ink-rgb) / 0.32);
+}
+
+/* ── Night scenes keep their palette ──
+   Home's moonlit forest and a Goal's farm are art, painted dark whatever the
+   theme. Inside them the dark tokens stay in force, so their text, links and
+   buttons read on the scene (the light theme turned them dark on dark). */
+/* The title bar floats over the farm while Workers is open, so it takes the
+   farm's night palette too (its frost already does, see App.css). */
+:root[data-theme="light"] :is(.home, .goal-world, .app.goal-world-open > .chat-head) {
+  --bg: var(--night-bg);
+  --surface-1: var(--night-surface-1);
+  --surface-2: var(--night-surface-2);
+  --surface-3: var(--night-surface-3);
+  --border: var(--night-border);
+  --border-strong: var(--night-border-strong);
+  --ink-rgb: var(--night-ink-rgb);
+  --text: var(--night-text);
+  --text-secondary: var(--night-text-secondary);
+  --text-muted: var(--night-text-muted);
+  --text-dim: var(--night-text-dim);
+  --primary: var(--night-primary);
+  --primary-hi: var(--night-primary-hi);
+  --on-primary: var(--night-on-primary);
+  --success: var(--night-success);
+  --warning: var(--night-warning);
+  --error: var(--night-error);
+  --key: var(--night-key);
+  --key-hi: var(--night-key-hi);
+  --key-edge: var(--night-key-edge);
+  --key-shadow: var(--night-key-shadow);
+  --well: var(--night-well);
+  --well-shadow: var(--night-well-shadow);
+  color: var(--text);
+}
+/* The logo's moving highlight is a dark-scene effect; on a light page it read
+   as a grey smear, so the light theme gets the letters solid. */
+:root[data-theme="light"] .ascii-logo-glitch {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  animation-name: none, gg-glitch-shake;
+}

@@ -129,14 +129,20 @@ import { createAskUserTool } from "./tools/ask-user.js";
 import { createTodoWriteTool } from "./tools/todo-write.js";
 import { createApprovalBridge } from "./app-sidecar/approvals.js";
 import { createUsageService } from "./app-sidecar/usage.js";
-import { daemonReadBody, daemonJson, json } from "./app-sidecar/http.js";
+import { daemonReadBody, daemonJson, json, readBody } from "./app-sidecar/http.js";
 import { runJsonModeIfRequested } from "./app-sidecar/json-mode.js";
 import {
   type SseClient,
   type WorkspaceMode,
   parseWorkspaceMode,
   type SessionContext,
+  type ContextStatus,
 } from "./app-sidecar/session-types.js";
+import {
+  createBackgroundSessionRegistry,
+  handleBackgroundSessionRoutes,
+  makeTitle,
+} from "./app-sidecar/background-sessions.js";
 import {
   ALL_PROVIDERS,
   loadProjectModelPrefs,
@@ -180,7 +186,7 @@ import { createHooksController, type HooksController } from "./app-sidecar/hooks
 import { loadHooksConfig } from "./core/hook-presets.js";
 import { readDayUsage } from "./core/budget-guard.js";
 import { resolveWorkerPick } from "./app-sidecar/orchestration.js";
-import { readGitState, resolveGitCwd } from "./app-sidecar/git-target.js";
+import { readGitState, resolveGitCwd, settleDeferredGit } from "./app-sidecar/git-target.js";
 import {
   goalPhase,
   goalsRoot,
@@ -202,7 +208,14 @@ import { handleBranchRoutes, type BranchRouteContext } from "./app-sidecar/branc
 import { resolveResumeCheckout } from "./app-sidecar/git-branches.js";
 import { mainCheckoutOf, resolveSetupCommand, setupNote } from "./app-sidecar/worktrees.js";
 import { readCheckoutRecord } from "./core/checkout-record.js";
-import { handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
+import { cancelActiveRun, handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
+import { createRoutingRuntime, type RoutingRuntime } from "./app-sidecar/routing-runtime.js";
+import { handleRoutingRoutes, handleRoutingSessionRoute } from "./app-sidecar/routing-routes.js";
+import {
+  autoRoutePayload,
+  followSavedAutoDefault,
+  type AutoRouteSessionState,
+} from "./app-sidecar/session-routing.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
 import { handleIntegrationRoutes } from "./app-sidecar/integration-routes.js";
 import { handleMcpRoutes } from "./app-sidecar/mcp-routes.js";
@@ -341,12 +354,26 @@ async function main(): Promise<void> {
 
   const auth = new AuthStorage(paths.authFile);
   await auth.load();
+  // Auto routing engine: one shared config, decision cache and diagnostics log per daemon.
+  const routing = await createRoutingRuntime({ auth, agentDir: paths.agentDir });
 
   // Every window's session lives here as an in-process object, keyed by the id
   // the daemon hands back from POST /session. The Rust shell routes each proxy
   // request to its window's session via the `x-gg-session` header (and the
   // `?session=` query for the SSE /events stream).
   const sessions = new Map<string, SessionContext>();
+  // Tracks every context so a window that goes away can leave its work running
+  // (see POST /session/:id/detach) and so finished background runs stay listed.
+  const backgroundSessions = createBackgroundSessionRegistry({
+    file: path.join(paths.agentDir, "background-sessions.json"),
+    disposeContext: async (ctx) => {
+      sessions.delete(ctx.id);
+      await ctx.dispose();
+      log("INFO", "app-sidecar", "session disposed", { id: ctx.id });
+    },
+    onRows: (rows) => broadcastAll("background_sessions", { sessions: rows }),
+  });
+  await backgroundSessions.load();
   // A window that moved into a worktree resumes its conversation in a new
   // session there; this note (keyed by that conversation file) tells its agent.
   const pendingMoveNotes = new Map<string, string>();
@@ -527,6 +554,22 @@ async function main(): Promise<void> {
             : (process.env.GG_APP_CWD ?? process.cwd());
         const sessionPath =
           typeof body.sessionPath === "string" && body.sessionPath ? body.sessionPath : undefined;
+        // A conversation whose window went away while it worked is still live in
+        // this daemon: hand it back instead of starting a second one on the file.
+        if (sessionPath) {
+          const live = backgroundSessions.findDetached(sessionPath, mode, chatAgent);
+          if (live) {
+            backgroundSessions.attach(live.id);
+            log("INFO", "app-sidecar", "session reattached", { id: live.id });
+            daemonJson(res, 200, {
+              sessionId: live.id,
+              sessionPath: live.session.getState().sessionPath ?? sessionPath,
+              cwd: live.cwd,
+              reattached: true,
+            });
+            return;
+          }
+        }
         const id = randomUUID();
         try {
           // A resumed conversation comes back on the branch it was last on,
@@ -579,10 +622,13 @@ async function main(): Promise<void> {
               pendingMoveNotes,
               pendingSetups,
               pendingCheckoutNotices,
+              routing,
+              onStatusChange: (sessionId) => backgroundSessions.refresh(sessionId),
             },
             { id, mode, chatAgent, cwd: sessionCwd, sessionPath },
           );
           sessions.set(id, ctx);
+          backgroundSessions.track(ctx);
           log("INFO", "app-sidecar", "session created", {
             id,
             mode,
@@ -612,10 +658,53 @@ async function main(): Promise<void> {
       const ctx = sessions.get(id);
       if (ctx) {
         sessions.delete(id);
+        backgroundSessions.untrack(id);
         void ctx.dispose().catch(() => {});
         log("INFO", "app-sidecar", "session disposed", { id });
       }
       daemonJson(res, 200, { ok: true });
+      return;
+    }
+
+    // The window is gone but its work may not be: POST /session/:id/detach.
+    // Busy or awaiting-input contexts stay alive in the daemon; idle ones are
+    // disposed exactly like DELETE.
+    if (method === "POST" && url.startsWith("/session/") && url.endsWith("/detach")) {
+      const id = decodeURIComponent(url.slice("/session/".length, -"/detach".length));
+      void backgroundSessions.detach(id).then((result) => {
+        if (result.kept) log("INFO", "app-sidecar", "session kept in background", { id });
+        const kept = result.kept;
+        daemonJson(res, 200, kept ? { ok: true, kept, status: result.status } : { ok: true, kept });
+      });
+      return;
+    }
+
+    if (
+      handleBackgroundSessionRoutes(
+        {
+          registry: backgroundSessions,
+          sessionsDir: paths.sessionsDir,
+          readBody: daemonReadBody,
+          json: daemonJson,
+        },
+        req,
+        res,
+        url,
+        method,
+      )
+    ) {
+      return;
+    }
+
+    if (
+      handleRoutingRoutes(
+        { runtime: routing, auth, readBody: daemonReadBody, json: daemonJson, broadcastAll },
+        req,
+        res,
+        url,
+        method,
+      )
+    ) {
       return;
     }
 
@@ -756,6 +845,9 @@ async function main(): Promise<void> {
       // teardown is still pending then, these would never be stopped.
       for (const c of sessions.values()) c.stopBackgroundProcesses();
       clearInterval(parentWatch);
+      // Rows first: work still running now is reported as interrupted next start.
+      await backgroundSessions.flush();
+      backgroundSessions.close();
       // Radio playback is app-wide (one stream across all windows), so it stops
       // at the daemon level, not per session.
       stopRadio();
@@ -832,6 +924,10 @@ async function createSession(
     pendingSetups: Set<string>;
     /** Chat rows for conversations that reopened somewhere new for their branch. */
     pendingCheckoutNotices: Map<string, string>;
+    /** A session's run state, approvals, questions or plan changed. */
+    onStatusChange?: (id: string) => void;
+    /** Daemon-level Auto routing engine. */
+    routing: RoutingRuntime;
   },
   opts: {
     id: string;
@@ -857,6 +953,7 @@ async function createSession(
     pendingMoveNotes,
     pendingSetups,
     pendingCheckoutNotices,
+    routing,
   } = deps;
   const paths = deps.paths;
   const mode = opts.mode;
@@ -921,6 +1018,72 @@ async function createSession(
     const safePayload = redactValue({ type, data }, { secrets: environmentSecrets(process.env) });
     const frame = `data: ${JSON.stringify(safePayload)}\n\n`;
     for (const c of clients) c.res.write(frame);
+    if (STATUS_EVENTS.has(type)) notifyStatus();
+  }
+
+  // ── Background-session status ──────────────────────────────
+  // The daemon's registry reads status() whenever one of these changes.
+  const STATUS_EVENTS = new Set([
+    "approval_request",
+    "approval_resolved",
+    "ask_user",
+    "ask_user_deferred",
+    "ask_user_closed",
+    "plan_review",
+    "run_end",
+    "error",
+  ]);
+  let detached = false;
+  let runStartedAt: number | null = null;
+  let statusUpdatedAt = Date.now();
+  let lastOutcome: "completed" | "failed" | "cancelled" | null = null;
+  let lastErrorHeadline: string | null = null;
+  function notifyStatus(): void {
+    statusUpdatedAt = Date.now();
+    deps.onStatusChange?.(opts.id);
+  }
+  // Every kind of in-flight work: a detach or status read must not see a
+  // run-all sweep, review, stranded-queue drain or queued prompts as idle.
+  function contextWorking(): boolean {
+    return (
+      running ||
+      runClaim.active ||
+      autopilotActive ||
+      autopilotReviewing ||
+      drainingStrandedQueue ||
+      taskRunAll ||
+      session.getQueuedCount() > 0
+    );
+  }
+  function contextStatus(): ContextStatus {
+    const firstUser = session.getMessages().find((m) => m.role === "user");
+    const text =
+      typeof firstUser?.content === "string"
+        ? firstUser.content
+        : Array.isArray(firstUser?.content)
+          ? firstUser.content.map((b) => (b.type === "text" ? b.text : "")).join(" ")
+          : "";
+    const base = { title: makeTitle(text), startedAt: runStartedAt, updatedAt: statusUpdatedAt };
+    if (approvals.list().length > 0) {
+      return { ...base, state: "awaiting_input", detail: "Waiting for your approval" };
+    }
+    if (asks.pendingCount > 0) {
+      return { ...base, state: "awaiting_input", detail: "Asked you a question" };
+    }
+    if (elicitations.pendingCount > 0) {
+      return { ...base, state: "awaiting_input", detail: "Waiting for your input" };
+    }
+    if (pendingPlanPath !== null && !running && !runClaim.active && !autopilotActive) {
+      return { ...base, state: "awaiting_input", detail: "Plan ready for review" };
+    }
+    if (contextWorking()) {
+      return { ...base, state: "running", detail: null };
+    }
+    if (lastOutcome === "failed") {
+      return { ...base, state: "failed", detail: lastErrorHeadline ?? "The run failed" };
+    }
+    if (lastOutcome) return { ...base, state: lastOutcome, detail: null };
+    return { ...base, state: "idle", detail: null };
   }
 
   // Replace CLI-specific guidance (slash commands, CLI tool names) with
@@ -1015,6 +1178,7 @@ async function createSession(
       ...(payload.statusCode != null ? { statusCode: String(payload.statusCode) } : {}),
       ...(payload.requestId ? { requestId: payload.requestId } : {}),
     });
+    if (type !== "ken_error") lastErrorHeadline = payload.headline;
     broadcast(type, payload);
     // Same sanitized snapshot for live and restored rows, including reset metadata.
     void session.persistAppMarker("error", payload).catch(() => {});
@@ -1026,6 +1190,8 @@ async function createSession(
   // when the webview POSTs /mcp/elicit/:id.
   const elicitations = createElicitationBridge({
     broadcast: (prompt) => broadcast("mcp_elicit", prompt),
+    // Nobody is watching a detached session: the form waits for the user.
+    isSuspended: () => detached,
     onTimeout: (prompt) =>
       log("WARN", "app-sidecar", "MCP elicitation timed out", {
         id: prompt.id,
@@ -1049,6 +1215,8 @@ async function createSession(
     broadcast: (prompt) => broadcast("ask_user", prompt),
     timeoutMs: () =>
       askSoftDeadlineMs(autopilot || autopilotActive || taskRunAll || scheduledRunActive),
+    // Nobody is watching a detached session: the question waits for the user.
+    isSuspended: () => detached,
     onTimeout: (prompt) => {
       log("WARN", "app-sidecar", "ask_user deadline passed; agent proceeding", { id: prompt.id });
       broadcast("ask_user_deferred", { id: prompt.id });
@@ -1114,7 +1282,7 @@ async function createSession(
     rememberAlways: (command) => allowCommandAlways(cwd, command),
   });
   const askUserTool = createAskUserTool(async (request) => {
-    const result = await asks.park(request);
+    const result = await asks.park(request).finally(notifyStatus);
     await startGoalFrom(result, request.questions);
     return result;
   });
@@ -1536,20 +1704,22 @@ async function createSession(
   // follows the active model. A Goal window reads git from its attached
   // project folder, not the goal folder (see resolveGitCwd), and re-targets
   // when the goal's folders change (`retargetGit`).
+  // Only the footer shows these (none feed the prompt or tools), so the slow
+  // parts, the uncommitted-file count (`git status` walks the tree) and the
+  // worktree's main folder, follow once the window is ready
+  // (`settleInitialGit`); reopening a chat doesn't wait for them.
   const initialTarget = await resolveGitCwd(cwd, goal?.record ?? null);
   let gitCwd = initialTarget.dir;
-  const initialGit = await readGitState(gitCwd);
+  const initialGit = await readGitState(gitCwd, {}, { dirtyCount: false });
   // Which repository this checkout belongs to when it is a linked worktree,
   // so Home opens on the project rather than the worktree folder.
-  const worktreeOf: string | null = initialGit.isRepo
-    ? await Promise.all([mainCheckoutOf(gitCwd), checkoutRoot(gitCwd)]).then(([main, own]) =>
-        main && own && main !== own ? main : null,
-      )
-    : null;
+  let worktreeOf: string | null = null;
   let gitBranch: string | null = initialGit.branch;
   /** The repository's main folder when this window works in a linked worktree. */
   let gitIsRepo: boolean = initialGit.isRepo;
   let gitDirtyFileCount = initialGit.dirtyFileCount;
+  /** Set once any read (poll, run end, retarget) has filled in gitDirtyFileCount. */
+  let gitDirtyCountKnown = false;
   // Open issue/PR counts for the origin repo's GitHub slug, via the `gh` CLI's
   // auth. null = unknown (gh missing/unauthed, non-GitHub origin) → chips hidden.
   let gitHubSlug: string | null = initialGit.gitHubSlug;
@@ -1874,7 +2044,14 @@ async function createSession(
   const runClaim = new RunClaim();
   const runLifecycle = new RunLifecycle(
     (runState) => {
+      const wasRunning = running;
       running = runState !== "idle";
+      if (running && !wasRunning) {
+        runStartedAt = Date.now();
+        lastOutcome = null;
+        lastErrorHeadline = null;
+      }
+      notifyStatus();
       if (running) {
         releaseRunAwake ??= keepAwake.acquire("run");
       } else {
@@ -1956,6 +2133,7 @@ async function createSession(
     pendingPlanPath = null;
     pendingPlanContent = "";
     planGeneration++;
+    notifyStatus();
   }
 
   // Plan feedback (Ken's or the user's) is revised back in read-only plan
@@ -2227,6 +2405,13 @@ async function createSession(
     const cancelled = runLifecycle.isCancellationRequested(generation);
     const settlement = runLifecycle.settle(generation, outcome);
     if (!settlement.settled) return cancelled;
+    lastOutcome =
+      cancelled || outcome === "aborted"
+        ? "cancelled"
+        : outcome === "failed"
+          ? "failed"
+          : "completed";
+    notifyStatus();
     // A replacement signal is safe only after the provider-backed owner settled.
     installFreshRunControllers();
     if (cancelled && emitCancelledFallback && !cancelledRunEndGenerations.has(generation)) {
@@ -2318,6 +2503,7 @@ async function createSession(
         isGitRepo(gitCwd).catch(() => gitIsRepo),
         getGitDirtyFileCount(gitCwd).catch(() => gitDirtyFileCount),
       ]);
+      gitDirtyCountKnown = true;
       // A run may have opened/closed issues or PRs — refresh fire-and-forget so
       // teardown isn't delayed by the network. Broadcasts itself on change.
       repoWatch.gitHubCounts?.refresh();
@@ -2436,7 +2622,9 @@ async function createSession(
       return autopilotReviewing;
     },
     set autopilotReviewing(v) {
+      const changed = autopilotReviewing !== v;
       autopilotReviewing = v;
+      if (changed) notifyStatus();
     },
     get broadcast() {
       return broadcast;
@@ -2562,7 +2750,9 @@ async function createSession(
       return drainingStrandedQueue;
     },
     set drainingStrandedQueue(v) {
+      const changed = drainingStrandedQueue !== v;
       drainingStrandedQueue = v;
+      if (changed) notifyStatus();
     },
     get running() {
       return running;
@@ -2580,7 +2770,9 @@ async function createSession(
       return taskRunAll;
     },
     set taskRunAll(v) {
+      const changed = taskRunAll !== v;
       taskRunAll = v;
+      if (changed) notifyStatus();
     },
   });
 
@@ -2763,6 +2955,7 @@ async function createSession(
         .catch(() => {});
     });
     const dirtyFiles = repoPolls.dirtyFiles.subscribe(repoKey, (next) => {
+      gitDirtyCountKnown = true;
       if (next === gitDirtyFileCount) return;
       gitDirtyFileCount = next;
       broadcast("extras", footerExtras());
@@ -2830,6 +3023,7 @@ async function createSession(
     gitBranch = state.branch;
     gitIsRepo = state.isRepo;
     gitDirtyFileCount = state.dirtyFileCount;
+    gitDirtyCountKnown = true;
     gitHubSlug = state.gitHubSlug;
     if (moved) {
       // The old repo's numbers don't apply; the new watchers fill these in.
@@ -2845,19 +3039,72 @@ async function createSession(
   // Git missed its 2 s limit at startup (a busy machine): the titlebar would
   // show "not a repo" until the next run. Read again in the background with
   // more time; window creation doesn't wait for it.
-  if (!initialTarget.settled || !initialGit.settled) {
+  function slowGitReread(): void {
     retargetGit({ reread: true, timeoutMs: SLOW_GIT_READ_TIMEOUT_MS }).catch((err: unknown) => {
       log("WARN", "app-sidecar", "slow git re-read failed", {
         message: err instanceof Error ? err.message : String(err),
       });
     });
   }
+  if (!initialTarget.settled || !initialGit.settled) slowGitReread();
+  // The footer-only reads startup skipped, in the background; arrive as `extras`.
+  async function settleInitialGit(): Promise<void> {
+    if (!initialGit.isRepo) return;
+    const { update, dirtyFailed } = await settleDeferredGit(
+      gitCwd,
+      {
+        dirtyCount: (dir) => getGitDirtyFileCount(dir),
+        worktreeOf: (dir) =>
+          Promise.all([mainCheckoutOf(dir), checkoutRoot(dir)]).then(([main, own]) =>
+            main && own && main !== own ? main : null,
+          ),
+      },
+      () => ({
+        gitCwd,
+        stopped: repoWatchStopped,
+        dirtyCountKnown: gitDirtyCountKnown,
+        dirtyFileCount: gitDirtyFileCount,
+        worktreeOf,
+      }),
+    );
+    if (repoWatchStopped) return;
+    if (update) {
+      worktreeOf = update.worktreeOf;
+      if (update.dirtyFileCount !== undefined) {
+        gitDirtyFileCount = update.dirtyFileCount;
+        gitDirtyCountKnown = true;
+      }
+      broadcast("extras", footerExtras());
+    }
+    // Git missed its limit (a busy machine): same slow re-read as above.
+    if (dirtyFailed && initialGit.settled && initialTarget.settled) slowGitReread();
+  }
+  void settleInitialGit().catch((err: unknown) => {
+    log("WARN", "app-sidecar", "initial git read failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  });
 
   const shell = new ShellRunner({
     emit: (type, data) => broadcast(type, data),
     onEnd: (run) => finishShellRun(routeCtx, run),
   });
+  // Auto routing state for this window; follows the saved on/off until the user flips it here.
+  const autoRoute: AutoRouteSessionState = {
+    enabled: routing.config().enabled,
+    pins: {},
+    lastDecision: null,
+    savedEnabled: routing.config().enabled,
+  };
+  const unsubscribeRouting = routing.onConfigChange((config) => {
+    // The saved value is the default for new windows; see followSavedAutoDefault.
+    void followSavedAutoDefault(routeCtx, config.enabled)
+      .catch((err: unknown) => log("WARN", "routing", "Auto toggle failed", { err: String(err) }))
+      .finally(() => broadcast("route_state", autoRoutePayload({ mode, goal, autoRoute })));
+  });
   const routeCtx: SessionRouteContext = {
+    routing,
+    autoRoute,
     shell,
     get session() {
       return session;
@@ -3036,13 +3283,17 @@ async function createSession(
       return autopilotReviewing;
     },
     set autopilotReviewing(v) {
+      const changed = autopilotReviewing !== v;
       autopilotReviewing = v;
+      if (changed) notifyStatus();
     },
     get taskRunAll() {
       return taskRunAll;
     },
     set taskRunAll(v) {
+      const changed = taskRunAll !== v;
       taskRunAll = v;
+      if (changed) notifyStatus();
     },
     get kenAutoAbort() {
       return kenAutoAbort;
@@ -3104,9 +3355,7 @@ async function createSession(
   };
 
   const isBusy = (): boolean =>
-    running ||
-    runClaim.active ||
-    autopilotActive ||
+    contextWorking() ||
     session.listSubAgents().some((w) => w.state === "running" || w.state === "starting");
   const branchCtx: BranchRouteContext = {
     gitDir: () => gitCwd,
@@ -3183,6 +3432,7 @@ async function createSession(
     if (handlePromptRoutes(routeCtx, req, res, url, method)) return;
     if (handleTaskRoutes(routeCtx, req, res, url, method)) return;
     if (handleBranchRoutes(branchCtx, req, res, url, method)) return;
+    if (handleRoutingSessionRoute(routeCtx, req, res, url, method, readBody, json)) return;
     if (handleRunControlRoutes(routeCtx, req, res, url, method)) return;
     if (handleAuthRoutes(routeCtx, req, res, url, method)) return;
     if (handleIntegrationRoutes(routeCtx, req, res, url, method)) return;
@@ -3199,6 +3449,7 @@ async function createSession(
     // run-all sweep or autopilot turn, and a model download this window
     // started. Otherwise they keep streaming tokens and running tools on a
     // session that is being torn down.
+    unsubscribeRouting();
     abortOwnedWork();
     shell.stopAll();
     idleWake?.dispose();
@@ -3245,6 +3496,11 @@ async function createSession(
     dispose,
     stopBackgroundProcesses,
     isBusy,
+    status: contextStatus,
+    setDetached: (value) => {
+      detached = value;
+    },
+    stop: async () => (await cancelActiveRun(routeCtx)).result.status,
     gitDir: () => gitCwd,
   };
 }

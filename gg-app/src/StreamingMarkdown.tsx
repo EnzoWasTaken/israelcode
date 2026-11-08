@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { Markdown } from "./Markdown";
+import { Markdown } from "./LazyMarkdown";
 import { displayStreamingMarkdown } from "./streaming-markdown";
 import { useSmoothText } from "./useSmoothText";
 

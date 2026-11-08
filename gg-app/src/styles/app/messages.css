@@ -1,0 +1,466 @@
+/* ── User message chip (the TUI's UserMessage bubble; fill is --user-bg) ── */
+.user-msg {
+  /* Hug the text, but never span the whole pane: the same reading measure as
+     a reply (about 72 characters), narrower on small windows. */
+  width: fit-content;
+  max-width: min(36em, 82%);
+  /* Push the bubble to the right edge (user on right, assistant on left). */
+  background: var(--user-bg);
+  color: var(--user-text);
+  border-radius: var(--radius-bubble);
+  padding: var(--space-5) var(--space-7);
+  /* Each message starts a new turn: a clear gap above it (margins collapse
+     with the reply before), a smaller one before Israel Code's answer. */
+  margin: var(--space-12) 0 var(--space-7) auto;
+  font-size: var(--fs-read);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* Reserved, invisible border. The queued state only recolors it, so leaving
+     the queue never changes the bubble's box by 2px — which otherwise nudges
+     the text and every bubble below it at the moment the message is sent. */
+  border: 1px solid transparent;
+}
+/* ── Turn diff: what a turn changed on disk, with revert ── */
+.turn-diff {
+  margin: var(--space-3) 0 var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.turn-diff-head,
+.turn-diff-file-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+}
+.turn-diff-summary,
+.turn-diff-path {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.turn-diff-path {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-diff-path:disabled {
+  cursor: default;
+}
+.turn-diff-summary:focus-visible,
+.turn-diff-path:focus-visible,
+.turn-diff-revert:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.turn-diff-status {
+  margin-left: var(--space-2);
+  color: var(--text-dim);
+}
+.turn-diff-revert {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.turn-diff-revert:hover:not(:disabled) {
+  color: var(--text);
+}
+.turn-diff-files {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.turn-diff-file[data-reverted] .turn-diff-path {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+.turn-diff-patch {
+  max-height: 360px;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  white-space: pre;
+}
+.diff-add {
+  color: var(--success);
+}
+.diff-del {
+  color: var(--error);
+}
+.diff-hunk {
+  color: var(--text-dim);
+}
+.diff-file {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Permission modes: the composer pill and the approval card ── */
+.permission-pill {
+  align-self: center;
+  padding: var(--space-1) var(--space-4);
+  /* The default mode rests borderless; only a mode that changes what the
+     agent may do wears a coloured edge (rules below). */
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.permission-pill[data-mode="ask"],
+.permission-pill[data-mode="accept-edits"] {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.permission-pill[data-mode="plan"] {
+  border-color: var(--success);
+  color: var(--text);
+}
+.permission-pill:hover:not([data-mode="ask"], [data-mode="accept-edits"], [data-mode="plan"]) {
+  border-color: var(--border);
+}
+.permission-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.approval-card {
+  max-width: min(var(--column), 100%);
+  margin: 0 auto var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  font-family: var(--sans);
+  font-size: var(--fs-base);
+}
+.approval-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.approval-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.approval-agent,
+.approval-count {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.approval-count {
+  margin-left: auto;
+}
+.approval-subject {
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
+}
+.approval-preview {
+  max-height: 220px;
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.approval-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+.approval-note {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+/* Rewind on a sent message: shows beside the bubble on hover or keyboard focus. */
+.user-msg:has(> .user-rewind) {
+  position: relative;
+}
+.user-rewind {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  margin-right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+}
+.user-msg:hover > .user-rewind,
+.user-rewind:focus-visible {
+  opacity: 1;
+}
+.user-rewind:hover {
+  color: var(--text);
+  background: var(--surface-1);
+}
+.user-rewind:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.rewind-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 320px;
+  margin: var(--space-4) 0;
+  overflow-y: auto;
+}
+.rewind-point {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+}
+.rewind-point[data-selected] {
+  border-color: var(--primary);
+}
+.rewind-prompt {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rewind-meta {
+  grid-column: 2;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+/* `@Ken` prompt bubble: solid in Ken's teal, so the transcript shows at a
+   glance this message went to the mentor, not Israel Code. */
+.user-msg.user-ken {
+  background: var(--ken-fill);
+  color: var(--on-ken-fill);
+}
+/* "Sent to GG Coder" bubble (from a Ken prompt-block button): same Ken border
+   as a @Israel bubble, with the shimmer label carrying Israel's color. */
+.user-msg.user-ken-sent {
+  border-color: color-mix(in srgb, var(--ken) 45%, transparent);
+}
+
+/* ── Queued steering message: still waiting to be injected mid-run. Dim it
+   and pulse a soft "queued" pill so it reads as not-yet-sent vs a live send.
+
+   The pulse lives on the PILL, not the bubble. Pulsing the bubble left its
+   opacity at an arbitrary point in the cycle (measured 0.43–0.62), so the
+   promote keyframe's hard start at 0.5 jumped by up to 0.12 in one frame — a
+   snap at exactly the moment this animation exists to smooth. A static 0.5 hands
+   the promote a continuous start, and composites a 14px label instead of the
+   whole bubble on every frame for as long as the message sits in the queue. ── */
+.user-msg.queued {
+  position: relative;
+  opacity: 0.5;
+  border-style: dashed;
+  border-color: var(--border);
+}
+/* Queued → sent. The agent taking a message off the queue used to swap three
+   things in a single frame (dim→solid, dashed→none, pill gone), which read as a
+   pop mid-transcript. This plays them as one motion, paced to overlap the
+   composer strip's own 220ms exit so the message reads as moving from the input
+   into the thread. `border-style` stays dashed for the whole beat while the
+   color fades out under it, so the discrete style flip lands on an already
+   invisible border. */
+.user-msg.promoted {
+  border-style: dashed;
+  animation: ggqueuedpromote 300ms var(--ease-out);
+}
+/* The dissolve language of the rest of the transcript: the dimmed draft comes
+   into focus as it is sent, rather than only brightening. */
+@keyframes ggqueuedpromote {
+  from {
+    opacity: 0.5;
+    filter: blur(3px);
+    border-color: var(--border);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    border-color: transparent;
+  }
+}
+.queued-pill {
+  display: block;
+  font-family: var(--sans);
+  font-size: var(--fs-xs);
+  /* Explicit line-height so the collapse below starts at the pill's REAL height.
+     `max-height: 2em` overshot the rendered 13.9px by 22%, and that slack is
+     dead time: the label sits still through the first fifth of the beat, then
+     drops. Pinning both to the same number makes the collapse start moving on
+     frame one. Unitless (1.28 x 11px = 14px) so the label still fits when the
+     user enlarges text; the max-heights below use the same 1.28em. */
+  line-height: 1.28;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+  /* Resting value under the pulse, so the label still reads as secondary when
+     the animation is suppressed for reduced motion. */
+  opacity: 0.52;
+  /* Collapsed by height (not unmounted) on promotion, so the bubble shrinks
+     over the beat instead of losing a whole line in one frame. */
+  overflow: hidden;
+  max-height: 1.28em;
+  animation: ggqueuedpulse 2s ease-in-out infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+.user-msg.promoted .queued-pill {
+  animation: ggqueuedpillout 300ms var(--ease-out) forwards;
+}
+@keyframes ggqueuedpillout {
+  from {
+    /* Midpoint of the pulse it takes over from, so the handoff is at worst half
+       an amplitude rather than a jump to full brightness. */
+    opacity: 0.52;
+    max-height: 1.28em;
+    margin-bottom: var(--space-3);
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+  }
+}
+@keyframes ggqueuedpulse {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/* ── Shimmer sweep: a bright spot rides across text (mirrors TUI ShimmerLabel).
+   Drives both the workflow-command chip and footer "full power" labels (plan
+   mode, max-tier thinking) via two color vars. The bright spot defaults to
+   --shimmer-peak; it is a fallback rather than a declaration on .shimmer-text
+   so a parent (.ask-answered-bubble) can still pass its own through. ── */
+.shimmer-text,
+.command-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 38%,
+    var(--shimmer-bright, var(--shimmer-peak)) 50%,
+    var(--shimmer-base) 62%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ggshimmer 2.4s linear infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes ggshimmer {
+  0% {
+    background-position: 180% 0;
+  }
+  100% {
+    background-position: -80% 0;
+  }
+}
+
+/* ── Workflow command chip: highlighted + shimmer sweep ── */
+.user-msg.command {
+  font-family: var(--sans);
+  font-weight: 600;
+}
+.user-msg.command.labelled,
+.user-msg.command.labelled .command-shimmer {
+  font-family: var(--sans);
+}
+.command-shimmer {
+  font-family: var(--sans);
+  /* Resting color comes from inline `color`; the bright spot is the peak. */
+  --shimmer-base: currentColor;
+  --shimmer-bright: var(--shimmer-peak);
+}
+
+/* Footer shimmer label (plan mode, max-power thinking). */
+.shimmer-text {
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No sweep, just the resting color — applies to every ShimmerText user
+     (footer labels, "Hook engaged", the CI chip's in-flight state). */
+  .shimmer-text,
+  .command-shimmer {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* ── Assistant message: the text alone, no lead marker ── */
+.assistant-msg {
+  display: flex;
+  padding: var(--space-2) 0;
+  align-items: flex-start;
+}
+/* Replies, set for easy reading (the "Steps" treatment): about 72 characters
+   a line (most of the column; your messages take the right side), generous
+   line height, a clear gap between paragraphs, and numbered steps as rows.
+   Every paragraph is plain body text in full ink at a regular weight: one
+   reply is often several short messages between tool calls, so "make the
+   first paragraph bigger" made every line look bold.
+   The reply itself spans the whole conversation column so a table can use all
+   of it (like the ask_user band); the reading measure is applied per block
+   below instead. */
+.assistant-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 400;
+  word-break: break-word;
+  font-size: var(--fs-read);
+  line-height: 1.7;
+}

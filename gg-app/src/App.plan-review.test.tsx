@@ -9,6 +9,10 @@ mockWindows("main");
 mockIPC(() => new Promise(() => {}));
 const { default: App } = await import("./App");
 const agent = await import("./agent");
+// The plan review dialog and the markdown renderer load on demand (the app warms
+// them on idle); load them up front so a loaded machine cannot outrun findBy*.
+await (await import("./LazyMarkdown")).preloadMarkdown();
+await (await import("./lazy-surfaces")).preloadLazySurfaces();
 
 const scrollToDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");
 const matchMediaDescriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");

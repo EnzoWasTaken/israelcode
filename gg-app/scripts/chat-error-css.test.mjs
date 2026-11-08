@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
+import { readSheet } from "./read-sheet.mjs";
 import { describe, expect, it } from "vitest";
 
 // Match the other CSS tests: Vite stubs stylesheets in browser-environment tests.
 const noticeStyles = readFileSync(new URL("../src/ChatErrorNotice.css", import.meta.url), "utf8");
 const noticeSource = readFileSync(new URL("../src/ChatErrorNotice.tsx", import.meta.url), "utf8");
-const appStyles = readFileSync(new URL("../src/App.css", import.meta.url), "utf8");
+const appStyles = readSheet(new URL("../src/App.css", import.meta.url));
 
 const ruleBody = (css, selector) => {
   const at = css.indexOf(`${selector} {`);

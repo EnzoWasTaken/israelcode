@@ -6,6 +6,7 @@ import type { KenModelPref } from "../core/ken-model.js";
 import { SettingsManager, type Settings } from "../core/settings-manager.js";
 import { log } from "../core/logger.js";
 import { normalizeCompactionPref, type CompactionPref } from "../core/compaction-control.js";
+import { parseAutoRouteConfig, type AutoRouteConfig } from "../core/routing/config.js";
 import { atomicWrite } from "../core/session-storage.js";
 import { withFileLock, withoutPaidTier, APP_DIR_NAME } from "@kenkaiiii/gg-core";
 
@@ -83,6 +84,9 @@ export interface AppSettings {
   /** Worktree-isolated workers (Orchestrate children edit in their own git worktree) per
    *  normalized project cwd. Absent → on in a git repo, never auto-merged. */
   worktreeWorkers?: Record<string, WorktreeWorkersPref>;
+  /** Auto routing config (global, not per project). Stored loosely and parsed
+   *  with `parseAutoRouteConfig`, so a missing or malformed value means defaults (Auto off). */
+  autoRoute?: unknown;
 }
 
 export function stringArray(value: unknown): string[] | undefined {
@@ -616,4 +620,17 @@ export async function saveWorktreeWorkersPref(
     s.worktreeWorkers = Object.keys(next).length > 0 ? next : undefined;
   });
   return result;
+}
+
+/** The Auto routing config; missing or invalid values yield the defaults (Auto off). */
+export async function loadAutoRouteConfig(): Promise<AutoRouteConfig> {
+  return parseAutoRouteConfig((await loadAppSettings()).autoRoute);
+}
+
+/** Persist the Auto routing config (re-parsed so only known fields are written). */
+export async function saveAutoRouteConfig(config: AutoRouteConfig): Promise<void> {
+  const clean = parseAutoRouteConfig(config);
+  await updateAppSettings((s) => {
+    s.autoRoute = clean;
+  });
 }

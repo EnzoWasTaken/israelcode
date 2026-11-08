@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import {
   getSettings,
   listSessions,
+  newWindow,
   selectWorkspace,
   waitForReady,
   type RecentSession,
@@ -13,6 +14,9 @@ import { ChatPicker } from "./ChatPicker";
 vi.mock("./agent", () => ({
   arrangeAllWindows: vi.fn(),
   focusWindowByOffset: vi.fn(),
+  listBackgroundSessions: vi.fn(() => Promise.resolve([])),
+  newWindow: vi.fn(() => Promise.resolve()),
+  onBackgroundSessions: vi.fn(() => () => undefined),
   getSettings: vi.fn(),
   listSessions: vi.fn(),
   selectWorkspace: vi.fn(),
@@ -118,7 +122,7 @@ describe("ChatPicker", () => {
 
     render(<ChatPicker mode="motion" onChosen={onChosen} />);
 
-    expect(await screen.findByText("No motion sessions yet.")).toBeDefined();
+    expect(await screen.findByText(/No videos yet/)).toBeDefined();
     expect(listSessionsMock).toHaveBeenCalledWith("/workspaces/Israel Motion", "motion");
     fireEvent.click(screen.getAllByRole("button", { name: "+ New video" })[0]);
     await waitFor(() => {
@@ -146,8 +150,8 @@ describe("ChatPicker", () => {
     expect(alert.textContent).toContain("agent not ready");
     expect(onChosen).not.toHaveBeenCalled();
     // `busy` is released, so the row works again.
-    const row = screen.getByText("Plan my week").closest("button");
-    expect(row?.hasAttribute("disabled")).toBe(false);
+    const row = screen.getByText("Plan my week").closest("[role=option]");
+    expect(row?.hasAttribute("aria-disabled")).toBe(false);
   });
 
   it("retries a failed session load", async () => {
@@ -173,5 +177,89 @@ describe("ChatPicker", () => {
     ).toBeDefined();
     expect(waitForReadyMock).not.toHaveBeenCalled();
     expect(selectWorkspaceMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChatPicker session browser", () => {
+  const chats: RecentSession[] = [
+    { ...session, lastActiveMs: Date.now() - 60_000 },
+    {
+      ...session,
+      id: "chat-2",
+      path: "/sessions/chat-2.jsonl",
+      preview: "Read up on tides",
+      chatAgent: "research",
+      lastActiveMs: Date.now() - 120_000,
+    },
+    {
+      ...session,
+      id: "chat-3",
+      path: "/sessions/chat-3.jsonl",
+      preview: "Weekly check-in",
+      chatAgent: "therapist",
+      lastActiveMs: Date.now() - 180_000,
+    },
+  ];
+
+  async function renderChats(onClose = vi.fn()): Promise<void> {
+    getSettingsMock.mockResolvedValue({ projectsRoot: "/workspaces", configured: true });
+    waitForReadyMock.mockResolvedValue();
+    listSessionsMock.mockResolvedValue(chats);
+    selectWorkspaceMock.mockResolvedValue();
+    render(<ChatPicker onChosen={vi.fn()} onClose={onClose} />);
+    await screen.findByText("Plan my week");
+    // The projects folder is read on its own; opening waits for it.
+    await waitFor(() => expect(getSettingsMock).toHaveBeenCalled());
+  }
+
+  it("filters chats by agent display name", async () => {
+    await renderChats();
+    const chips = screen.getByRole("group", { name: "Filter chats" });
+    expect(chips.textContent).toBe("All3Therapist2Research1");
+    fireEvent.click(screen.getByRole("button", { name: /^Research/ }));
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      expect.stringContaining("Read up on tides"),
+    ]);
+  });
+
+  it("opens the arrow-selected chat with its agent on Enter", async () => {
+    await renderChats();
+    fireEvent.keyDown(document.body, { key: "ArrowDown" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fireEvent.keyDown(document.body, { key: "Enter" });
+    await waitFor(() =>
+      expect(selectWorkspaceMock).toHaveBeenCalledWith(
+        "chat",
+        "/workspaces",
+        "/sessions/chat-2.jsonl",
+        "research",
+      ),
+    );
+  });
+
+  it("searches, and Esc clears the search before going back", async () => {
+    const onClose = vi.fn();
+    await renderChats(onClose);
+    const search = screen.getByRole("combobox", { name: "Search chats" });
+    fireEvent.change(search, { target: { value: "TIDES" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("opens a chat in a new window from its row action", async () => {
+    await renderChats();
+    fireEvent.click(screen.getByRole("button", { name: "Open Weekly check-in in a new window" }));
+    await waitFor(() =>
+      expect(vi.mocked(newWindow)).toHaveBeenCalledWith({
+        mode: "chat",
+        chatAgent: "therapist",
+        cwd: "/workspaces",
+        sessionPath: "/sessions/chat-3.jsonl",
+      }),
+    );
   });
 });

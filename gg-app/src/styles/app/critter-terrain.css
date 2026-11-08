@@ -1,0 +1,692 @@
+/* ── Critter terrain (critter-terrain.ts, CritterTerrain.tsx) ──
+   A little pixel world inside the critter lane, drawn at the critters' pixel
+   size. It fills the lane and is clipped to it, so the land rises out of the
+   floor line rather than sliding over whatever sits below. Paint order:
+     sky   weather particles and passing travelers (gull, tumbleweed…)
+     land  the repeating ground strip, plus props sunk into it (craters)
+     props everything standing on the ground or floating in the sky
+
+   Choreography, keyed off the lane's classes (critter-floor.ts):
+   .open (scenery comes out, ground up):
+        0ms  the land starts rising (440ms)
+      220ms  ground props sprout, a wave sweeping left to right (~650ms)
+      360ms  the first critter beams in (TERRAIN_LAND_MS)
+      420ms  sky props drift down into place, same wave
+      700ms  weather fades in; travelers start passing a little later
+   .closing (the last critter has left; the exact reverse, top down):
+        0ms  weather and travelers fade out
+       60ms  sky props lift away, right to left
+      140ms  ground props shrink back into the ground, right to left
+      520ms  the land sinks (240ms)
+      780ms  the lane collapses (TERRAIN_CLOSE_MS) and the terrain hides,
+             so the next one can be swapped in unseen
+   Entrances and exits are transitions, so a critter arriving mid-close just
+   turns everything around. Idle motion (sway, twinkle, bob…) and weather
+   only run while the lane is open. */
+.critter-terrain {
+  --terrain-px: 2px;
+  /* Ground depth: the floor the critters stand on. */
+  --terrain-floor: calc(var(--terrain-px) * 8);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+}
+.critter-lane.open > .critter-terrain {
+  visibility: visible;
+}
+.terrain-sky,
+.terrain-props,
+.terrain-weather {
+  position: absolute;
+  inset: 0;
+}
+.terrain-land {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--terrain-px) * 20);
+}
+.terrain-ground {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  background-size: calc(var(--terrain-px) * 64) 100%;
+  image-rendering: pixelated;
+}
+.terrain-prop {
+  position: absolute;
+  transform-origin: 50% 100%;
+}
+.terrain-prop-art {
+  position: absolute;
+  inset: 0;
+  background: var(--img) no-repeat 0 0 / 100% 100%;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+}
+
+/* With a terrain the lane opens taller by the ground's depth, and the
+   critters (and their hover card) stand on top of it. */
+.critter-lane.with-terrain {
+  --critter-ground: calc(var(--critter-px) * 8);
+}
+.critter-lane.with-terrain.open {
+  height: calc(var(--critter-size) + 48px + var(--critter-ground));
+}
+.critter-lane.with-terrain > .critter-floor {
+  bottom: var(--critter-ground);
+}
+.critter-lane.with-terrain > .critter-tooltip {
+  bottom: calc(var(--critter-size) + 14px + var(--critter-ground));
+}
+
+/* Packed away (shut or .closing), with the exit timings; then out (.open)
+   with the entrance timings. --wave is a prop's 0–1 place left to right. */
+.terrain-land {
+  transform: translateY(100%);
+  transition: transform 240ms var(--ease-in) 520ms;
+}
+.terrain-prop.on-ground {
+  opacity: 0;
+  transform: scale(0.4, 0);
+  transition:
+    transform 200ms var(--ease-in) calc(140ms + (1 - var(--wave)) * 280ms),
+    opacity 120ms linear calc(220ms + (1 - var(--wave)) * 280ms);
+}
+.terrain-prop.on-sky {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    transform 200ms var(--ease-in) calc(60ms + (1 - var(--wave)) * 160ms),
+    opacity 200ms var(--ease-in) calc(60ms + (1 - var(--wave)) * 160ms);
+}
+.terrain-weather,
+.terrain-traveler {
+  opacity: 0;
+  transition: opacity 180ms var(--ease-in);
+}
+.critter-lane.open:not(.closing) .terrain-land {
+  transform: none;
+  transition: transform 440ms var(--ease-out);
+}
+.critter-lane.open:not(.closing) .terrain-prop.on-ground {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 420ms var(--ease-pop) calc(220ms + var(--wave) * 360ms),
+    opacity 80ms linear calc(220ms + var(--wave) * 360ms);
+}
+.critter-lane.open:not(.closing) .terrain-prop.on-sky {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 520ms var(--ease-out) calc(420ms + var(--wave) * 360ms),
+    opacity 520ms var(--ease-out) calc(420ms + var(--wave) * 360ms);
+}
+.critter-lane.open:not(.closing) .terrain-weather,
+.critter-lane.open:not(.closing) .terrain-traveler {
+  opacity: 1;
+  transition: opacity 600ms var(--ease-out) 700ms;
+}
+
+/* Idle motion while the lane is open; each prop starts at a different point
+   (from --wave) so a row of flowers doesn't sway in lockstep. */
+.critter-lane.open .terrain-prop-art {
+  animation-delay: calc(var(--wave) * -7s);
+}
+.critter-lane.open .m-sway > .terrain-prop-art {
+  animation-name: terrain-sway;
+  animation-duration: 3.4s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-lane.open .m-twinkle > .terrain-prop-art {
+  animation: terrain-twinkle 1.9s ease-in-out infinite alternate;
+  animation-delay: calc(var(--wave) * -5s);
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-lane.open .m-bob > .terrain-prop-art {
+  animation: terrain-bob 2.6s ease-in-out infinite alternate;
+  animation-delay: calc(var(--wave) * -5s);
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-lane.open .m-glow > .terrain-prop-art {
+  animation: terrain-glow 2.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--wave) * -4s);
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-lane.open .m-scuttle > .terrain-prop-art {
+  animation: terrain-scuttle 6s ease-in-out infinite;
+  animation-delay: calc(var(--wave) * -6s);
+  animation-play-state: var(--loop-play-state, running);
+}
+.critter-lane.open .m-wave > .terrain-prop-art {
+  transform-origin: 0 30%;
+  animation: terrain-flag 1.3s ease-in-out infinite alternate;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes terrain-sway {
+  from {
+    rotate: -3deg;
+  }
+  to {
+    rotate: 3deg;
+  }
+}
+@keyframes terrain-twinkle {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0.25;
+    scale: 0.7;
+  }
+}
+@keyframes terrain-bob {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -4px;
+  }
+}
+@keyframes terrain-glow {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.45);
+  }
+}
+/* A crab: shuffle right, pause, shuffle back. */
+@keyframes terrain-scuttle {
+  0%,
+  15%,
+  100% {
+    translate: 0 0;
+  }
+  30%,
+  50% {
+    translate: 8px 0;
+  }
+  65%,
+  85% {
+    translate: -6px 0;
+  }
+}
+@keyframes terrain-flag {
+  from {
+    transform: skewY(-5deg);
+  }
+  to {
+    transform: skewY(5deg);
+  }
+}
+
+/* Weather: one dot per particle, placed and timed by weatherParticles().
+   --fall is how far snow drops: from the top of the open lane down to the
+   ground's surface (the lane is critter-size + 48px of air over the ground). */
+.terrain-weather {
+  --fall: calc(var(--critter-size) + 48px - 2px);
+}
+.wx {
+  position: absolute;
+  top: 0;
+  opacity: 0;
+}
+.critter-lane.open .wx {
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-play-state: var(--loop-play-state, running);
+}
+/* Snow falls the lane's full height and melts into the ground, wobbling. */
+.critter-lane.open .wx-snow .wx {
+  animation-name: wx-fall;
+}
+@keyframes wx-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+  8% {
+    opacity: 1;
+  }
+  35% {
+    translate: calc(var(--drift) * 0.6) calc(var(--fall) * 0.35);
+  }
+  70% {
+    translate: calc(var(--drift) * -0.3) calc(var(--fall) * 0.7);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--drift) var(--fall);
+  }
+}
+/* Pollen drifts lazily through the air above the flowers. */
+.wx-pollen .wx {
+  top: calc(25% + var(--y) * 55%);
+}
+.critter-lane.open .wx-pollen .wx {
+  animation-name: wx-float;
+  animation-timing-function: ease-in-out;
+}
+@keyframes wx-float {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    translate: calc(var(--drift) * 0.5) -6px;
+  }
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--drift) 2px;
+  }
+}
+/* Dust skims along just above the sand on the wind. */
+.wx-dust .wx {
+  top: calc(62% + var(--y) * 22%);
+}
+.critter-lane.open .wx-dust .wx {
+  animation-name: wx-blow;
+}
+@keyframes wx-blow {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--drift) -5px;
+  }
+}
+/* Space: far-off stars glinting on and off. */
+.wx-sparkle .wx {
+  top: calc(var(--y) * 70%);
+}
+.critter-lane.open .wx-sparkle .wx {
+  animation-name: wx-twinkle;
+  animation-timing-function: ease-in-out;
+}
+@keyframes wx-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  50% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* Travelers cross the lane now and then, then wait off-stage for the rest of
+   their loop (--period), starting --start after the scenery is out. */
+.terrain-traveler {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.terrain-traveler-art {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--from);
+  background: no-repeat 0 0 / 100% 100%;
+  image-rendering: pixelated;
+}
+.critter-lane.open .terrain-traveler-art {
+  animation:
+    terrain-cross var(--period) linear calc(var(--start) + 900ms) infinite both,
+    var(--hop) var(--hop-time) ease-in-out infinite alternate;
+  animation-play-state: var(--loop-play-state, running), var(--loop-play-state, running);
+}
+.tr-flutter {
+  --hop: terrain-flutter;
+  --hop-time: 0.45s;
+}
+.tr-glide {
+  --hop: terrain-glide;
+  --hop-time: 1.6s;
+}
+.tr-roll {
+  --hop: terrain-roll;
+  --hop-time: 0.32s;
+}
+.critter-lane.open .tr-roll > .terrain-traveler-art {
+  animation:
+    terrain-cross var(--period) linear calc(var(--start) + 900ms) infinite both,
+    terrain-roll 0.32s ease-out infinite alternate,
+    terrain-spin 0.9s linear infinite;
+  animation-play-state:
+    var(--loop-play-state, running), var(--loop-play-state, running),
+    var(--loop-play-state, running);
+}
+.critter-lane.open .tr-streak > .terrain-traveler-art {
+  animation: terrain-streak var(--period) var(--ease-in) calc(var(--start) + 900ms) infinite both;
+  animation-play-state: var(--loop-play-state, running);
+}
+@keyframes terrain-cross {
+  0% {
+    left: var(--from, -20px);
+  }
+  55%,
+  100% {
+    left: 100%;
+  }
+}
+@keyframes terrain-flutter {
+  from {
+    translate: 0 0;
+    scale: 1 1;
+  }
+  to {
+    translate: 0 -7px;
+    scale: 1 0.55;
+  }
+}
+@keyframes terrain-glide {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 4px;
+  }
+}
+@keyframes terrain-roll {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -5px;
+  }
+}
+@keyframes terrain-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+/* A shooting star: a quick dash down-right, then a long wait. */
+@keyframes terrain-streak {
+  0% {
+    left: var(--from, -20px);
+    translate: 0 0;
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 1;
+  }
+  16%,
+  100% {
+    left: 100%;
+    translate: 0 26px;
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: the scenery just appears and disappears, standing still,
+   with no weather or travelers. */
+@media (prefers-reduced-motion: reduce) {
+  .terrain-land,
+  .terrain-prop,
+  .critter-lane.open:not(.closing) .terrain-land,
+  .critter-lane.open:not(.closing) .terrain-prop.on-ground,
+  .critter-lane.open:not(.closing) .terrain-prop.on-sky {
+    transition: none;
+  }
+  .critter-lane.open .terrain-prop-art {
+    animation: none;
+  }
+  .terrain-weather,
+  .terrain-traveler {
+    display: none;
+  }
+}
+.critter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: var(--critter-size);
+  height: var(--critter-size);
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: transform;
+}
+.critter.summoning,
+.critter.leaving {
+  pointer-events: none;
+}
+.critter-body,
+.critter-flip {
+  position: absolute;
+  inset: 0;
+}
+.critter-body {
+  transform-origin: 50% 100%;
+}
+.critter-flip img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+}
+.critter-f1,
+.critter.frame1 .critter-f0 {
+  visibility: hidden;
+}
+.critter.frame1 .critter-f1 {
+  visibility: visible;
+}
+.critter.left .critter-flip {
+  transform: scaleX(-1);
+}
+/* White silhouette over the sprite: lit during summon/teleport, else hidden. */
+.critter-flip .critter-sil {
+  opacity: 0;
+  filter: drop-shadow(0 0 3px var(--critter-color)) drop-shadow(0 0 6px var(--critter-color));
+}
+.critter-shadow {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  filter: blur(1px);
+}
+.critter.fallen .critter-body {
+  transform: rotate(-90deg) translateX(30%);
+  transition: transform 260ms var(--ease-pop);
+  filter: saturate(0.4) brightness(0.8);
+}
+.critter.fading {
+  opacity: 0;
+  transition: opacity 600ms var(--ease-in);
+}
+
+/* Summon / teleport light. */
+.critter-beam,
+.critter-beam-core {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  height: 120px;
+  pointer-events: none;
+}
+.critter-beam {
+  width: calc(var(--critter-px) * 10);
+  margin-left: calc(var(--critter-px) * -5);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--critter-color) 85%, white) 0%,
+    color-mix(in srgb, var(--critter-color) 45%, transparent) 45%,
+    transparent 100%
+  );
+  border-radius: 50% 50% 2px 2px / 12% 12% 2px 2px;
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+}
+.critter-beam-core {
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(to top, white, transparent);
+}
+.critter-ring {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: var(--critter-size);
+  height: 7px;
+  margin-left: calc(var(--critter-size) / -2);
+  border: 2px solid var(--critter-color);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--critter-color);
+  pointer-events: none;
+}
+/* Speech bubble (latest tool) and status badges (✓, ✗, !). */
+.critter-bubble,
+.critter-badge {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: critter-pop 180ms var(--ease-pop) both;
+}
+/* GG Royale's speech bubble, on the critters' pixel grid (--critter-px per
+   art pixel): m5x7 on blue-white paper, a 1-pixel ink outline, a shaded
+   bottom and a thick ink lip (the game's .t-say). Fixed art colours, the same
+   in both themes. Clipping lives on the inner text so the tail can sit
+   outside the box. */
+.critter-bubble {
+  --bp: var(--critter-px);
+  bottom: calc(100% + 7 * var(--bp));
+  font-family: "m5x7", monospace;
+  font-size: calc(16 * var(--bp));
+  font-weight: 400;
+  line-height: calc(11 * var(--bp));
+  -webkit-font-smoothing: none;
+  padding: var(--bp) calc(5 * var(--bp)) calc(4 * var(--bp));
+  border-radius: calc(3 * var(--bp));
+  background: #cedbf9;
+  color: #1e0c1f;
+  box-shadow:
+    0 0 0 var(--bp) #1e0c1f,
+    inset 0 calc(-2 * var(--bp)) 0 #a9b8e4,
+    0 calc(2 * var(--bp)) 0 var(--bp) #1e0c1f;
+}
+.critter-bubble-text {
+  display: block;
+  max-width: calc(144 * var(--bp));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The tail: a stepped ink point (7×5 art pixels) with the shade running down
+   its middle, like the Goal world's bubbles. */
+.critter-bubble::before,
+.critter-bubble::after,
+.wake-bubble::before,
+.wake-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: calc(7 * var(--bp));
+  height: calc(5 * var(--bp));
+  transform: translateX(-50%);
+}
+.critter-bubble::before,
+.wake-bubble::before {
+  background: #1e0c1f;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 20%,
+    85.71% 20%,
+    85.71% 60%,
+    71.43% 60%,
+    71.43% 80%,
+    57.14% 80%,
+    57.14% 100%,
+    42.86% 100%,
+    42.86% 80%,
+    28.57% 80%,
+    28.57% 60%,
+    14.29% 60%,
+    14.29% 20%,
+    0% 20%
+  );
+}
+.critter-bubble::after,
+.wake-bubble::after {
+  background: #a9b8e4;
+  clip-path: polygon(
+    14.29% 0%,
+    85.71% 0%,
+    85.71% 20%,
+    71.43% 20%,
+    71.43% 40%,
+    57.14% 40%,
+    57.14% 80%,
+    42.86% 80%,
+    42.86% 40%,
+    28.57% 40%,
+    28.57% 20%,
+    14.29% 20%
+  );
+}
+.critter-badge {
+  bottom: calc(100% + 2px);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+.critter-badge-ok {
+  color: var(--success);
+}
+.critter-badge-err {
+  color: var(--error);
+}
+.critter-badge-zz {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.critter-badge-yikes {
+  color: var(--warning);
+  font-size: var(--fs-base);
+}
+@keyframes critter-pop {
+  from {
+    transform: translateX(-50%) scale(0.4);
+    opacity: 0;
+  }
+}

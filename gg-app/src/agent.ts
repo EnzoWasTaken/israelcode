@@ -228,6 +228,8 @@ export interface AgentState {
   ultracode?: boolean;
   /** Native orchestration: the pinned Worker model (null: follows the main model) and the toggle. */
   orchestration?: OrchestrationState;
+  /** Auto routing for this window: on/off, pins and the last decision. */
+  autoRoute?: AutoRouteSessionState;
   /** Token caps and the meter (coding sessions); null elsewhere. */
   budget?: BudgetState | null;
   /** The verify loop: switch, commands and whether checks run now (coding sessions); null elsewhere. */
@@ -505,6 +507,8 @@ export interface DiscoveredProject {
   name: string;
   path: string;
   lastActiveDisplay: string;
+  /** Last activity as epoch ms (absent from an older sidecar). */
+  lastActiveMs?: number;
   sources: string[];
 }
 
@@ -516,6 +520,8 @@ export interface RecentSession {
   path: string;
   preview: string;
   lastActiveDisplay: string;
+  /** Last activity as epoch ms (absent from an older sidecar). */
+  lastActiveMs?: number;
   messageCount: number;
   chatAgent?: ChatAgentId;
   /**
@@ -2713,10 +2719,14 @@ export async function setRemoteActive(active: boolean): Promise<void> {
   }
 }
 
-/** Open a single new project window (Cmd/Ctrl+N). Never re-tiles existing ones. */
-export async function newWindow(): Promise<void> {
+/**
+ * Open a single new project window (Cmd/Ctrl+N). Never re-tiles existing ones.
+ * With a `target`, the window opens straight into that workspace/session
+ * (the session browser's "New window") instead of Home.
+ */
+export async function newWindow(target?: RestoreTarget): Promise<void> {
   try {
-    await invoke("new_window");
+    await invoke("new_window", { target: target ?? null });
   } catch (e) {
     await logError(`new_window failed: ${String(e)}`);
     throw e;
@@ -3017,6 +3027,111 @@ export async function installSteroids(): Promise<SteroidsStatus> {
 export function onSteroidsChange(cb: (status: SteroidsStatus) => void): () => void {
   return subscribe((e) => {
     if (e.type === "steroids_change") cb(e.data as SteroidsStatus);
+  });
+}
+
+// ── Persistent background sessions ───────────────────────────
+
+export type BackgroundSessionStatus =
+  "running" | "awaiting_input" | "completed" | "failed" | "cancelled" | "interrupted" | "idle";
+
+export interface BackgroundSessionRow {
+  id: string | null;
+  sessionPath: string | null;
+  cwd: string;
+  mode: "code" | "chat" | "motion";
+  chatAgent: string | null;
+  title: string;
+  status: BackgroundSessionStatus;
+  detail: string | null;
+  /** True while a window is showing this session. */
+  attached: boolean;
+  startedAt: number | null;
+  updatedAt: number;
+}
+
+const BACKGROUND_STATUSES: readonly BackgroundSessionStatus[] = [
+  "running",
+  "awaiting_input",
+  "completed",
+  "failed",
+  "cancelled",
+  "interrupted",
+  "idle",
+];
+
+const optString = (v: unknown): string | null => (typeof v === "string" ? v : null);
+const optNumber = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
+
+/** Defensively coerce a daemon row; returns null when it is not an object. */
+export function normalizeBackgroundRow(raw: unknown): BackgroundSessionRow | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const status = BACKGROUND_STATUSES.find((s) => s === r.status) ?? "idle";
+  const mode = r.mode === "chat" || r.mode === "motion" ? r.mode : "code";
+  return {
+    id: optString(r.id),
+    sessionPath: optString(r.sessionPath),
+    cwd: optString(r.cwd) ?? "",
+    mode,
+    chatAgent: optString(r.chatAgent),
+    title: optString(r.title) ?? "",
+    status,
+    detail: optString(r.detail),
+    attached: r.attached === true,
+    startedAt: optNumber(r.startedAt),
+    updatedAt: optNumber(r.updatedAt) ?? 0,
+  };
+}
+
+export function normalizeBackgroundSessions(raw: unknown): BackgroundSessionRow[] {
+  const list = raw && typeof raw === "object" ? (raw as { sessions?: unknown }).sessions : null;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((row) => normalizeBackgroundRow(row) ?? []);
+}
+
+/** Every session the daemon holds (running, finished, detached). */
+export async function listBackgroundSessions(): Promise<BackgroundSessionRow[]> {
+  await waitForReady();
+  return normalizeBackgroundSessions(await invoke("background_sessions_list"));
+}
+
+export async function stopBackgroundSession(id: string): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_stop", { id });
+}
+
+/** Remove a finished session from the list (the conversation file stays). */
+export async function dismissBackgroundSession(target: {
+  id?: string;
+  sessionPath?: string;
+}): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_dismiss", {
+    id: target.id ?? null,
+    sessionPath: target.sessionPath ?? null,
+  });
+}
+
+/** Stop, dispose and delete the conversation file. */
+export async function deleteBackgroundSession(target: {
+  id?: string;
+  sessionPath?: string;
+}): Promise<void> {
+  await waitForReady();
+  await invoke("background_session_delete", {
+    id: target.id ?? null,
+    sessionPath: target.sessionPath ?? null,
+  });
+}
+
+/** Fires with the daemon's full background-session list whenever it changes. */
+export function onBackgroundSessions(cb: (sessions: BackgroundSessionRow[]) => void): () => void {
+  return subscribe((e) => {
+    if (e.type === "background_sessions") {
+      cb(normalizeBackgroundSessions(e.data));
+    }
   });
 }
 
@@ -3573,4 +3688,173 @@ export async function worktreeMerge(
 export async function worktreeDiscard(branch: string): Promise<{ discarded: true }> {
   await waitForReady();
   return invoke("agent_worktree_discard", { branch });
+}
+
+// ── Auto routing ────────────────────────────────────────────────────────────
+
+export type ThinkingLevelName = "low" | "medium" | "high" | "xhigh" | "max" | "ultra";
+export type RouteExecutionMode = "standard" | "ultracode" | "orchestrate";
+
+/** The saved Auto routing settings (global, not per window). */
+export interface AutoRouteConfig {
+  enabled: boolean;
+  decider:
+    | { kind: "model"; provider: string; model: string }
+    | { kind: "decisions-api"; service: "openrouter" | "typesafe"; model: string }
+    | null;
+  confidenceThreshold: number;
+  allowUltracode: boolean;
+  allowOrchestrate: boolean;
+  allowPaidModels: false;
+  maxEffort: ThinkingLevelName | null;
+  maxCostTier: "low" | "medium" | "high";
+  candidateModels: string[] | null;
+  escalation: { enabled: boolean; maxAttempts: number };
+  timeoutMs: number;
+  cacheTtlMs: number;
+}
+
+/** Explicit choices the router must not override. */
+export interface RoutePins {
+  model?: { provider: string; model: string };
+  effort?: ThinkingLevelName;
+  executionMode?: RouteExecutionMode;
+}
+
+/** What Auto chose for a prompt (content-free). */
+export interface RouteDecisionInfo {
+  provider: string;
+  model: string;
+  modelName: string;
+  effort: string | null;
+  executionMode: RouteExecutionMode;
+  source: "router" | "fallback" | "pinned" | "cache";
+  reason: string;
+  explanation: string;
+  confidence: number;
+  fallbackReason: string | null;
+  latencyMs: number;
+}
+
+/** Per-window Auto state, as `/state`, the ready frame and `route_state` carry it. */
+export interface AutoRouteSessionState {
+  enabled: boolean;
+  pins: RoutePins;
+  lastDecision: RouteDecisionInfo | null;
+  /** False in Motion and Goal windows; `reason` says why. */
+  available: boolean;
+  reason?: string;
+}
+
+export interface RoutingCredentialStatus {
+  set: boolean;
+  /** `••••` plus the last four characters; never the key. */
+  masked: string | null;
+}
+
+export interface RoutingDeciderOption {
+  id: string;
+  label: string;
+  kind: "model" | "decisions-api";
+  provider?: string;
+  model: string;
+  service?: "openrouter" | "typesafe";
+  available: boolean;
+  note?: string;
+}
+
+export interface RoutingConfigResponse {
+  config: AutoRouteConfig;
+  problems: string[];
+  credentials: { openrouter: RoutingCredentialStatus; typesafe: RoutingCredentialStatus };
+  deciderOptions: RoutingDeciderOption[];
+}
+
+export interface RoutingTestResult {
+  ok: boolean;
+  latencyMs: number;
+  decider: string;
+  sample?: {
+    model: string;
+    effort: string | null;
+    executionMode: RouteExecutionMode;
+    confidence: number;
+  };
+  error?: { reason: string; message: string };
+}
+
+/** One content-free routing record (no task text, no secrets). */
+export interface RouteDiagnostic {
+  timestamp: number;
+  sessionHash: string;
+  provider: string;
+  model: string;
+  effort: string | null;
+  executionMode: RouteExecutionMode;
+  source: string;
+  reason: string;
+  fallbackReason?: string;
+  taskKind: string;
+  difficulty: string;
+  confidence: number;
+  decisionModel?: string;
+  latencyMs: number;
+  workspace: string;
+  attachmentKinds: string[];
+  textLength: number;
+  textHash: string;
+}
+
+export function getRoutingConfig(): Promise<RoutingConfigResponse> {
+  return invoke<RoutingConfigResponse>("routing_config_get");
+}
+
+/** Save the config; rejects with the sidecar's readable problems when it is invalid. */
+export function setRoutingConfig(config: AutoRouteConfig): Promise<RoutingConfigResponse> {
+  return invoke<RoutingConfigResponse>("routing_config_set", { config });
+}
+
+/** Store a decision-service key. Resolves with the masked value only. */
+export function setRoutingCredential(
+  service: "typesafe" | "openrouter",
+  apiKey: string,
+  replace = false,
+): Promise<{ ok: true; service: string; set: true; masked: string }> {
+  return invoke("routing_credential_set", { service, apiKey, replace });
+}
+
+export function clearRoutingCredential(service: "typesafe"): Promise<{ ok: true }> {
+  return invoke("routing_credential_clear", { service });
+}
+
+export function testRouting(): Promise<RoutingTestResult> {
+  return invoke<RoutingTestResult>("routing_test");
+}
+
+export async function getRoutingDiagnostics(): Promise<RouteDiagnostic[]> {
+  const res = await invoke<{ diagnostics: RouteDiagnostic[] }>("routing_diagnostics");
+  return res.diagnostics;
+}
+
+/** Turn Auto on/off for this window and/or set its pins (`null` clears them). */
+export async function setSessionRouting(opts: {
+  enabled?: boolean;
+  pins?: RoutePins | null;
+}): Promise<AutoRouteSessionState> {
+  await waitForReady();
+  return invoke<AutoRouteSessionState>("agent_routing_session", {
+    enabled: opts.enabled ?? null,
+    pins: opts.pins === undefined ? null : opts.pins === null ? {} : opts.pins,
+  });
+}
+
+/** `route_state` event: the window's Auto switch or pins changed. */
+export function applyRouteState(state: AgentState, payload: AutoRouteSessionState): AgentState {
+  return { ...state, autoRoute: payload };
+}
+
+/** `route_decision` event: what Auto chose for the prompt that is starting. */
+export function applyRouteDecision(state: AgentState, info: RouteDecisionInfo): AgentState {
+  const prev = state.autoRoute ?? { enabled: true, pins: {}, available: true, lastDecision: null };
+  return { ...state, autoRoute: { ...prev, lastDecision: info } };
 }

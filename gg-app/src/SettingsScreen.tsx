@@ -1,48 +1,17 @@
-import { useEffect, useState } from "react";
-import {
-  ShieldCheckIcon,
-  GearSixIcon,
-  InfoIcon,
-  KeyIcon,
-  PuzzlePieceIcon,
-  SparkleIcon,
-  PaperPlaneTiltIcon,
-  SyringeIcon,
-} from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
 import { BackButton } from "./BackButton";
-import { Badge } from "./Badge";
-import { EmbeddedModal } from "./modal-embed";
-import { SettingsModal } from "./SettingsModal";
-import { LoginScreen } from "./LoginScreen";
-import { TelegramSettingsModal } from "./TelegramSettingsModal";
-import { McpModal } from "./McpModal";
-import { SkillsModal } from "./SkillsModal";
-import { HooksPanel } from "./HooksPanel";
-import { SteroidsModal } from "./SteroidsModal";
-import { SettingsTabBar, type SettingsTab } from "./SettingsTabBar";
-import { AboutPage } from "./AboutPage";
-import { SettingsReadyProvider, useSettingsPageReady, useSettingsPageGate } from "./settings-ready";
+import { SettingsReadyProvider, useSettingsPageGate } from "./settings-ready";
+import { SettingsHeaderProvider } from "./settings-header";
 import {
-  SettingsHeaderAction,
-  SettingsHeaderProvider,
-  SettingsHeaderStatus,
-} from "./settings-header";
-import {
-  waitForReady,
-  hasModelSource,
-  getServeStatus,
-  startServe,
-  stopServe,
-  setRemoteActive,
-  getSteroidsStatus,
-  onSteroidsChange,
-  type SteroidsStatus,
-} from "./agent";
-import { theme } from "./theme";
-import { toast } from "./toast";
+  SETTINGS_GROUPS,
+  SETTINGS_SECTIONS,
+  type SettingsContext,
+  type SettingsTabId,
+} from "./settings-sections";
+import { waitForReady, getSteroidsStatus, onSteroidsChange, type SteroidsStatus } from "./agent";
+import "./SettingsScreen.css";
 
-export type SettingsTabId =
-  "general" | "providers" | "remote" | "mcp" | "skills" | "hooks" | "steroids" | "about";
+export type { SettingsTabId } from "./settings-sections";
 
 interface Props {
   onClose: () => void;
@@ -50,13 +19,14 @@ interface Props {
   initialTab?: SettingsTabId;
 }
 
-const PANEL_ID = "settings-panel";
+const KEYS = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"];
 
 /**
- * Full-screen Settings, reached from the home screen's Settings button. One
- * page per section, switched with yaatuber's floating tab capsule at the
- * bottom. Each page is the same panel the app still opens as a dialog from the
- * tray and the chat view, drawn here in page form (see modal-embed.tsx).
+ * Full-screen Settings, reached from the home screen's Settings button: a
+ * grouped section list on the left and the open page on the right (a compact
+ * strip on top in narrow windows). Sections come from settings-sections.tsx.
+ * Each page is the same panel the app still opens as a dialog from the tray
+ * and the chat view, drawn here in page form (see modal-embed.tsx).
  */
 export function SettingsScreen({ onClose, initialTab = "general" }: Props): React.ReactElement {
   const [tab, setTab] = useState<SettingsTabId>(initialTab);
@@ -65,11 +35,11 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
   // (settings-header.tsx).
   const [statusSlot, setStatusSlot] = useState<HTMLSpanElement | null>(null);
   const [actionsSlot, setActionsSlot] = useState<HTMLSpanElement | null>(null);
-  // The first page rises in like the other screens' rows; later tab switches
-  // crossfade, as in yaatuber's settings.
+  // The first page rises in like the other screens' rows; later switches crossfade.
   const [switched, setSwitched] = useState(false);
   // Each page stays hidden until its first load lands (settings-ready.tsx).
   const gate = useSettingsPageGate(tab);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     void waitForReady()
@@ -79,30 +49,33 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
     return onSteroidsChange(setSteroids);
   }, []);
 
-  const tabs: SettingsTab<SettingsTabId>[] = [
-    { id: "general", label: "General", icon: GearSixIcon },
-    { id: "providers", label: "AI Providers", icon: KeyIcon },
-    { id: "remote", label: "Remote", icon: PaperPlaneTiltIcon },
-    { id: "mcp", label: "MCP", icon: PuzzlePieceIcon },
-    { id: "skills", label: "Skills", icon: SparkleIcon },
-    { id: "hooks", label: "Hooks", icon: ShieldCheckIcon },
-    {
-      id: "steroids",
-      label: "Steroids",
-      icon: SyringeIcon,
-      alert: steroids !== null && !steroids.connected,
-    },
-    { id: "about", label: "About", icon: InfoIcon },
-  ];
-
-  const current = tabs.find((t) => t.id === tab);
-
-  // Pages stay put after their own Save/Close (the Back button leaves).
-  const stay = (): void => {};
+  const current = SETTINGS_SECTIONS.find((s) => s.id === tab);
 
   function selectTab(id: SettingsTabId): void {
+    if (id === tab) return;
     setSwitched(true);
     setTab(id);
+  }
+
+  const ctx: SettingsContext = { steroids, setSteroids, stay: () => {}, goTo: selectTab };
+
+  // Arrow keys (and Home/End) move focus through the list; Enter/Space open
+  // the focused entry, as buttons do.
+  function onNavKeyDown(event: React.KeyboardEvent<HTMLElement>): void {
+    if (!KEYS.includes(event.key)) return;
+    const items = Array.from(
+      navRef.current?.querySelectorAll<HTMLButtonElement>("button[data-section-id]") ?? [],
+    );
+    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (at < 0) return;
+    event.preventDefault();
+    const last = items.length - 1;
+    let next: number;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") next = at === last ? 0 : at + 1;
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") next = at === 0 ? last : at - 1;
+    else if (event.key === "Home") next = 0;
+    else next = last;
+    items[next]?.focus();
   }
 
   return (
@@ -110,144 +83,92 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
       <div className="picker-head" data-tauri-drag-region>
         <BackButton label="Back" onClick={onClose} />
         {/* Names the open page; each page's own heading is hidden to match. */}
-        <h1 className="picker-title">{current?.label ?? "Settings"}</h1>
+        <h1 className="picker-title" id="settings-heading">
+          {current?.label ?? "Settings"}
+        </h1>
         <span className="settings-head-status" ref={setStatusSlot} />
         {/* The open page's buttons, right-aligned on the header's row. */}
         <span className="picker-head-actions settings-head-actions" ref={setActionsSlot} />
       </div>
 
-      <div
-        className="settings-scroll"
-        id={PANEL_ID}
-        role="tabpanel"
-        aria-labelledby={`settings-tab-${tab}`}
-        // Remount per tab so each page loads fresh and scroll starts at the top.
-        key={tab}
-      >
-        <SettingsReadyProvider hold={gate.hold}>
-          <SettingsHeaderProvider slots={{ status: statusSlot, actions: actionsSlot }}>
-            <div
-              className={`settings-page ${switched ? "is-switching" : "is-entering"}${
-                // The providers page fills the window: its brain sits in the middle.
-                tab === "providers" ? " is-fill" : ""
-              }`}
-            >
-              {tab === "general" && (
-                <EmbeddedModal>
-                  <SettingsModal
-                    onClose={stay}
-                    onSaved={() => toast("Project folder saved.", "success")}
-                  />
-                </EmbeddedModal>
-              )}
-              {tab === "providers" && <LoginScreen />}
-              {tab === "remote" && <RemotePage />}
-              {tab === "mcp" && (
-                <EmbeddedModal>
-                  <McpModal onClose={stay} />
-                </EmbeddedModal>
-              )}
-              {tab === "skills" && (
-                <EmbeddedModal>
-                  <SkillsModal onClose={stay} />
-                </EmbeddedModal>
-              )}
-              {tab === "hooks" && <HooksPanel />}
-              {tab === "steroids" && (
-                <EmbeddedModal>
-                  <SteroidsModal status={steroids} onStatus={setSteroids} onClose={stay} />
-                </EmbeddedModal>
-              )}
-              {tab === "about" && <AboutPage />}
-            </div>
-          </SettingsHeaderProvider>
-        </SettingsReadyProvider>
-      </div>
-
-      <SettingsTabBar tabs={tabs} selected={tab} onSelect={selectTab} panelId={PANEL_ID} />
-    </div>
-  );
-}
-
-/**
- * Remote: serve this machine to your Telegram bot (formerly the home screen's
- * Remote button). Start/stop sits in the header bar; the page is the bot's
- * setup.
- */
-function RemotePage(): React.ReactElement {
-  const [serving, setServing] = useState(false);
-  const [configured, setConfigured] = useState(false);
-  const [busy, setBusy] = useState(false);
-  // Live/Off and the start button would flip once the status lands.
-  const [loaded, setLoaded] = useState(false);
-  useSettingsPageReady(loaded);
-
-  async function refresh(): Promise<void> {
-    await waitForReady();
-    const serve = await getServeStatus();
-    setServing(serve.running);
-    setConfigured(serve.configured);
-  }
-
-  useEffect(() => {
-    void refresh()
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, []);
-
-  async function toggle(): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-    try {
-      if (!serving) {
-        // The bot hands messages to an agent, so serving needs a provider.
-        if (!(await hasModelSource())) {
-          toast("Connect an AI provider first.", "warning");
-          return;
-        }
-      }
-      if (serving) {
-        await stopServe();
-        setServing(false);
-        // Keep the macOS tray's Remote label in step.
-        void setRemoteActive(false);
-        toast("Stopped serving.", "success");
-      } else {
-        await startServe();
-        setServing(true);
-        void setRemoteActive(true);
-        toast("Serving on Telegram — message your bot.", "success");
-      }
-    } catch (e) {
-      toast(`Serve failed: ${e instanceof Error ? e.message : String(e)}`, "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    // Start/stop lives in the header bar and Live/Off beside the page name, so
-    // the page itself is just the bot's setup.
-    <>
-      <SettingsHeaderStatus>
-        <Badge color={serving ? theme.success : undefined}>{serving ? "Live" : "Off"}</Badge>
-      </SettingsHeaderStatus>
-      <SettingsHeaderAction>
-        <button
-          className={serving ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"}
-          type="button"
-          disabled={busy || (!serving && !configured)}
-          title={
-            !serving && !configured ? "Save your bot first" : "Message your agent from your phone"
-          }
-          onClick={() => void toggle()}
+      <div className="settings-body">
+        <nav
+          className="settings-nav"
+          aria-label="Settings sections"
+          ref={navRef}
+          onKeyDown={onNavKeyDown}
         >
-          {busy ? "Working\u2026" : serving ? "Stop serving" : "Start serving"}
-        </button>
-      </SettingsHeaderAction>
-      <EmbeddedModal>
-        <TelegramSettingsModal onClose={() => {}} onSaved={() => void refresh().catch(() => {})} />
-      </EmbeddedModal>
-    </>
+          {SETTINGS_GROUPS.map((group) => {
+            const sections = SETTINGS_SECTIONS.filter((s) => s.group === group.id);
+            if (sections.length === 0) return null;
+            return (
+              <div
+                className="settings-nav-group"
+                role="group"
+                aria-label={group.label || "Help"}
+                key={group.id}
+              >
+                {group.label && (
+                  <span className="settings-nav-heading" aria-hidden="true">
+                    {group.label}
+                  </span>
+                )}
+                {sections.map((section) => {
+                  const SectionIcon = section.icon;
+                  const active = section.id === tab;
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      className={active ? "settings-nav-item is-active" : "settings-nav-item"}
+                      data-section-id={section.id}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => selectTab(section.id)}
+                    >
+                      <span className="settings-nav-icon">
+                        <SectionIcon
+                          size={16}
+                          weight={active ? "fill" : "regular"}
+                          aria-hidden="true"
+                        />
+                        {section.alert?.(ctx) && (
+                          <span
+                            className="settings-nav-alert"
+                            role="img"
+                            aria-label="Needs attention"
+                          />
+                        )}
+                      </span>
+                      <span className="settings-nav-label">{section.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </nav>
+
+        <main className="settings-main" aria-labelledby="settings-heading">
+          {current && <p className="settings-intro">{current.description}</p>}
+          <div
+            className="settings-scroll"
+            // Remount per tab so each page loads fresh and scroll starts at the top.
+            key={tab}
+          >
+            <SettingsReadyProvider hold={gate.hold}>
+              <SettingsHeaderProvider slots={{ status: statusSlot, actions: actionsSlot }}>
+                <div
+                  className={`settings-page ${switched ? "is-switching" : "is-entering"}${
+                    current?.fill ? " is-fill" : ""
+                  }`}
+                >
+                  {current?.render(ctx)}
+                </div>
+              </SettingsHeaderProvider>
+            </SettingsReadyProvider>
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }

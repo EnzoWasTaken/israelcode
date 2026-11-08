@@ -22,6 +22,21 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.109.0",
+    date: "2026-11-08",
+    items: [
+      "A whole new look, `Tekhelet & Stone`: a deep ink-navy night theme and a warm `Jerusalem stone` light theme, flag-blue actions, sun-gold for everything Israel says, classic `Frank Ruhl Libre` titles and a double blue rule under every page header. Both themes, every screen, same layout you know.",
+      "Command palette: press `Ctrl+K` (`⌘K` on Mac) and type to run anything, open a project, jump back into a session, switch model or open any Settings page. `Ctrl+P` jumps straight to projects and sessions, `Ctrl+Shift+M` to models, and `Ctrl+/` shows every keyboard shortcut in one sheet.",
+      "Home is now a launchpad: type what you want to build and press `Enter` to start it in any project or as a chat, jump straight back into your latest sessions, and press `1` to `5` for Code, Goals, Chat, Motion and World. The forest and the critters stay.",
+      "Past sessions and chats are easy to browse: one line each, grouped by day, with search (`/`), filters by tool or chat agent, arrow keys, and `Ctrl+Enter` to open one in a new window. Lists now go back 200 sessions instead of 5.",
+      "Background sessions: closing a window no longer stops its work. Runs keep going, questions and approvals wait for you, and the title bar and Home show what's still working, with `Open`, `Stop task`, `Remove` and `Delete` for each.",
+      "Auto routing: switch it on and every prompt gets the right model, reasoning level and mode (`Standard`, `Ultracode` or `Orchestrate`) on its own. Pin what you want fixed, cap the cost, and read why each pick was made. It never blocks a prompt and falls back to clear rules if the decider is slow.",
+      "Israel has a new face: a pixel caricature of Benjamin Netanyahu, with blinks, grins and a proper sleepy look. It's parody and tribute, and the About page says so.",
+      "Faster everywhere: the app loads `46%` less code at start-up (Settings, the markdown renderer and most dialogs now load when you need them), streaming code blocks highlight once when they close instead of on every word, the agent engine starts faster, and long chats reopen sooner because git checks and image previews no longer hold them up.",
+      "Empty screens now tell you what belongs there and give you the next step, `Enter` opens the top match in the project and goal pickers, `Esc` clears the search, and every icon button has a name for screen readers.",
+    ],
+  },
+  {
     version: "0.108.0",
     date: "2026-11-07",
     items: [

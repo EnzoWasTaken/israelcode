@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircleIcon, XCircleIcon, LockIcon, XIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, XCircleIcon, LockIcon, XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
 import { ModalDismissButton, useModalEmbedState } from "./modal-embed";
@@ -21,6 +21,7 @@ import {
 } from "./agent";
 import { toast } from "./toast";
 import { McpMarketModal } from "./McpMarketModal";
+import { EmptyState } from "./EmptyState";
 
 interface Props {
   onClose: () => void;
@@ -266,9 +267,18 @@ export function McpModal({ onClose }: Props): React.ReactElement {
           </button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="mcp-empty" style={{ color: theme.textMuted }}>
-          No MCP servers yet.
-        </div>
+        <EmptyState
+          className="mcp-empty"
+          message="No MCP servers yet. They give the agent extra tools, like your docs or a browser."
+        >
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => setShowMarket(true)}
+          >
+            Browse marketplace
+          </button>
+        </EmptyState>
       ) : (
         <div className="mcp-list">
           {visible.map((s) => (
@@ -360,6 +370,7 @@ export function McpModal({ onClose }: Props): React.ReactElement {
               className="modal-input"
               style={{ color: theme.text, background: theme.inputBackground, width: "100%" }}
               value={line}
+              aria-label="MCP add command"
               placeholder="claude mcp add --transport http notion https://mcp.notion.com/mcp"
               // A dialog focuses its first field; a Settings page leaves focus on
               // the tab bar so the arrow keys keep switching tabs.
@@ -394,6 +405,7 @@ export function McpModal({ onClose }: Props): React.ReactElement {
                     marginTop: "var(--space-5)",
                   }}
                   value={projectPath}
+                  aria-label="Project path"
                   placeholder="Type a project path or pick below…"
                   list="mcp-project-paths"
                   onChange={(e) => setProjectPath(e.target.value)}

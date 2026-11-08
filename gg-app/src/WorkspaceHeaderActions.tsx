@@ -1,4 +1,5 @@
 import type {
+  BackgroundSessionRow,
   BudgetState,
   ProjectTask,
   VerifyState,
@@ -14,6 +15,7 @@ import { VerifyControl } from "./VerifyControl";
 import { fl } from "./flavor";
 import { Icon } from "./icons";
 import { WindowLayoutButton } from "./WindowLayoutButton";
+import { BackgroundIndicator } from "./BackgroundSessions";
 import { describeTally, type GoalTally } from "./goal-progress";
 
 /** A started goal shows either its conversation or its workers at work. */
@@ -56,6 +58,7 @@ export function TitleBarActions({
   onCommit,
   budget = null,
   onBudgetChange,
+  onOpenBackground,
 }: {
   workspaceMode: WorkspaceMode;
   isGoal?: boolean;
@@ -81,6 +84,8 @@ export function TitleBarActions({
   /** Token caps and meter (code windows); shown only while a cap is set. */
   budget?: BudgetState | null;
   onBudgetChange?: (next: BudgetState) => void;
+  /** Reopen a background conversation here; shows the quiet "N running" indicator when set. */
+  onOpenBackground?: (row: BackgroundSessionRow) => Promise<void> | void;
 }): React.ReactElement {
   const showGit = workspaceMode === "code" || isGoal;
   return (
@@ -92,6 +97,7 @@ export function TitleBarActions({
           </span>
         ))}
       </div>
+      {onOpenBackground && <BackgroundIndicator onOpen={onOpenBackground} />}
       {isGoal && goalView && goalTally && (
         <p className="goal-tally" role="status" aria-label={describeTally(goalTally)}>
           <span className="goal-tally-part" data-live={goalTally.working > 0 || undefined}>
@@ -188,12 +194,6 @@ export function DeckMenu({
   autopilot,
   autopilotReviewing,
   onAutopilotChange,
-  ultracode = false,
-  onUltracodeChange,
-  orchestrate = false,
-  onOrchestrateChange,
-  orchestratorName,
-  workerName,
   verify,
   onVerifyChange,
   worktreeWorkers,
@@ -223,14 +223,6 @@ export function DeckMenu({
   autopilot: boolean;
   autopilotReviewing: boolean;
   onAutopilotChange: (next: boolean) => void;
-  ultracode?: boolean;
-  onUltracodeChange?: (next: boolean) => void;
-  /** Native orchestration toggle (code windows); absent elsewhere. */
-  orchestrate?: boolean;
-  onOrchestrateChange?: (next: boolean) => void;
-  /** Display names for the toggle's tooltip: the main model and the Worker model. */
-  orchestratorName?: string;
-  workerName?: string;
   /** The verify loop (code windows): its switch, checks and cap; absent elsewhere. */
   verify?: VerifyState | null;
   onVerifyChange?: (next: VerifyState) => void;
@@ -294,32 +286,6 @@ export function DeckMenu({
         >
           Autopilot
           <span className="led" data-state={autopilot ? "on" : undefined} aria-hidden="true" />
-        </button>
-      )}
-      {code && onUltracodeChange && (
-        <button
-          type="button"
-          className="key"
-          role="switch"
-          aria-checked={ultracode}
-          title="Ultracode: big jobs are split into phases, run by parallel agents and checked by a reviewer. Applies from your next message."
-          onClick={() => onUltracodeChange(!ultracode)}
-        >
-          Ultracode
-          <span className="led" data-state={ultracode ? "on" : undefined} aria-hidden="true" />
-        </button>
-      )}
-      {code && onOrchestrateChange && (
-        <button
-          type="button"
-          className="key"
-          role="switch"
-          aria-checked={orchestrate}
-          title={`Plan with ${orchestratorName ?? "the main model"}, build with ${workerName ?? "the Worker model"}, review before replying`}
-          onClick={() => onOrchestrateChange(!orchestrate)}
-        >
-          Orchestrate
-          <span className="led" data-state={orchestrate ? "on" : undefined} aria-hidden="true" />
         </button>
       )}
       {code && verify && onVerifyChange && (

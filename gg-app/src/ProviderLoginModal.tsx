@@ -346,6 +346,7 @@ export function ProviderLoginModal({
             className="modal-input"
             style={{ color: theme.text, background: theme.inputBackground }}
             value={apiKey}
+            aria-label={`${apiKeyLabel} API key`}
             type="password"
             placeholder="Paste your API key"
             autoFocus
@@ -422,6 +423,7 @@ export function ProviderLoginModal({
                 className="modal-input"
                 style={{ color: theme.text, background: theme.inputBackground }}
                 value={code}
+                aria-label={codePrompt || "Sign-in code"}
                 placeholder="Paste the code"
                 autoFocus
                 onChange={(e) => setCode(e.target.value)}

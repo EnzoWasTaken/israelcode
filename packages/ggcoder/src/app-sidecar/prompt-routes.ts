@@ -9,8 +9,6 @@ import {
   isMechanicalOnlyTurn,
 } from "../core/autopilot-gate.js";
 import { turnWroteFiles } from "../core/verify-loop.js";
-import { hasUltracodeKeyword } from "../core/ultracode.js";
-import { hasOrchestrateKeyword } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { log } from "../core/logger.js";
 import { readBody, json } from "./http.js";
@@ -23,17 +21,17 @@ import {
 } from "@kenkaiiii/gg-core";
 
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
-import {
-  loadUltracodeDefault,
-  loadOrchestrateDefault,
-  saveAutopilot,
-  savePermissionModeDefault,
-  saveUltracodeDefault,
-} from "./app-settings.js";
+import { saveAutopilot, savePermissionModeDefault, saveUltracodeDefault } from "./app-settings.js";
 import { isPermissionMode } from "../core/permission-mode.js";
 import { lastAssistantText, buildKenContext } from "./ken-context.js";
 import { keepAwake } from "./keep-awake.js";
 import type { SessionRouteContext } from "./route-context.js";
+import {
+  runPromptWithRouting,
+  restoreRunModes,
+  ESCALATION_RETRY_NOTE,
+  type RunModeFlags,
+} from "./session-routing.js";
 import { mentionedPaths, slashCommandName } from "../core/trophies/engine.js";
 
 // 180 s of 16 kHz Int16 is 5.8 MB, about 7.7 MB once base64 encoded.
@@ -149,8 +147,7 @@ export function handlePromptRoutes(
     // prompt that queued) clear a claim another request is still holding.
     let claimedStart = false;
     // This run switched Ultracode on for one prompt; switch it back afterwards.
-    let promptUltracode = false;
-    let promptOrchestrate = false;
+    const modeFlags: RunModeFlags = { ultracode: false, orchestrate: false };
     void readBody(req, res, MAX_PROMPT_BODY_BYTES)
       .then(async (raw) => {
         if (raw === null) return;
@@ -312,38 +309,34 @@ export function handlePromptRoutes(
           async () => {
             // The review box's Feedback: revise read-only, like Ken's feedback.
             if (meta?.planRevision === true) await ctx.reenterPlanModeForRevision();
-            // "ultracode" typed in the prompt: Ultracode for this run only.
-            if (
-              meta?.ultracode === true &&
-              hasUltracodeKeyword(text) &&
-              ctx.mode === "code" &&
-              !ctx.goal
-            ) {
-              promptUltracode = !ctx.session.isUltracode();
-              ctx.session.setUltracode(true);
-            }
-            // "orchestrate" typed in the prompt (and flagged by the app): Orchestrate for this run only.
-            if (
-              meta?.orchestrate === true &&
-              hasOrchestrateKeyword(text) &&
-              ctx.mode === "code" &&
-              !ctx.goal
-            ) {
-              promptOrchestrate = !ctx.session.isOrchestrate();
-              ctx.session.setOrchestrate(true);
-            }
-            if (attachments.length > 0) {
-              // Persist each attachment under .gg/uploads so files are inspectable
-              // by the agent's tools, then prompt with the media as native blocks.
-              const prepared = await prepareAttachments(ctx.cwd, attachments);
-              await ctx.session.promptWithAttachments(text, prepared);
-            } else {
-              // Pass the raw text straight through. AgentSession.prompt() is the
-              // single source of truth for slash-command expansion (built-in +
-              // `.gg/commands/*.md` custom), so the agent gets the right body
-              // while the webview keeps showing the short `/name`.
-              await ctx.session.prompt(text);
-            }
+            const sendPrompt = async (): Promise<void> => {
+              if (attachments.length > 0) {
+                // Persist each attachment under .gg/uploads so files are inspectable
+                // by the agent's tools, then prompt with the media as native blocks.
+                const prepared = await prepareAttachments(ctx.cwd, attachments);
+                await ctx.session.promptWithAttachments(text, prepared);
+              } else {
+                // Pass the raw text straight through. AgentSession.prompt() is the
+                // single source of truth for slash-command expansion (built-in +
+                // `.gg/commands/*.md` custom), so the agent gets the right body
+                // while the webview keeps showing the short `/name`.
+                await ctx.session.prompt(text);
+              }
+            };
+            // The user's message is already in the transcript when a retry happens, so
+            // the retry only asks the new model to answer it (hidden runtime note).
+            const retryPrompt = async (): Promise<void> => {
+              await ctx.session.prompt(ESCALATION_RETRY_NOTE, {
+                source: "runtime",
+                kind: "continuation",
+                visibility: "hidden",
+              });
+            };
+            await runPromptWithRouting(
+              ctx,
+              { text, attachments, meta, send: sendPrompt, retry: retryPrompt },
+              modeFlags,
+            );
           },
           () => ctx.autopilot,
         );
@@ -413,8 +406,7 @@ export function handlePromptRoutes(
       })
       .finally(async () => {
         // Back to the user's own setting (their latest toggle, not this prompt's).
-        if (promptUltracode) ctx.session.setUltracode(await loadUltracodeDefault());
-        if (promptOrchestrate) ctx.session.setOrchestrate(await loadOrchestrateDefault());
+        await restoreRunModes(ctx, modeFlags);
         if (claimedStart) {
           ctx.scheduledRunActive = false;
           ctx.runClaim.release();

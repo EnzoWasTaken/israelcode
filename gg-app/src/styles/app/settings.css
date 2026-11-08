@@ -1,0 +1,386 @@
+/* ── Settings screen ──
+   Full-screen Settings: the shared picker header, a scrolling page, and
+   yaatuber's floating tab capsule over the bottom. The page reserves the
+   capsule's height as bottom padding so its last row scrolls clear of it. */
+.settings-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  /* Full width, with the header's 20px side padding so the page's edges line
+     up with the Back button and title above it. The bottom keeps the last row
+     scrollable clear of the tab capsule. */
+  padding: var(--space-10) var(--page-pad) 104px;
+}
+/* A panel: what a dialog shows, drawn in page form (modal-embed.tsx). Its
+   sections are cards, stacked with even gaps. */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+/* One card per section on every page: a head (title + one-line description),
+   then its fields. Page buttons live in the header bar, not here. */
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-9) var(--card-inset) var(--space-10);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+}
+.settings-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+/* Card titles: the display face (Frank Ruhl Libre); descriptions stay Sora. */
+.settings-section-title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+}
+.settings-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+}
+/* Inside a card the card's own gap spaces fields, so the dialog margins go. */
+.settings-card :is(.modal-row, .mcp-scope-toggle, .modal-hint, .modal-error, .mcp-list) {
+  margin: 0;
+}
+.settings-card .modal-input {
+  width: 100%;
+}
+/* Shared Settings/Checklist page arrival. A light defocus, no movement, and
+   a partially visible first frame avoid the full-page blank/reload flash. */
+@keyframes settings-page-dissolve {
+  from {
+    opacity: 0.35;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+/* A page that fills the window instead of scrolling (AI Providers): its own
+   regions scroll, and it keeps clear of the tab capsule itself. */
+.settings-page.is-fill {
+  height: 100%;
+  padding-bottom: 0;
+}
+.settings-panel.providers-page {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.settings-page.is-entering {
+  animation: reveal-up var(--dur-row) var(--ease-out) both;
+}
+.settings-page.is-switching {
+  animation: settings-page-dissolve var(--dur-dissolve) var(--ease-out) both;
+}
+/* A page still on its first load (settings-ready.tsx) stays hidden, along with
+   the header items it puts up, and its entrance waits: lifting the hold
+   restarts the animation, so the page arrives once, already loaded. */
+.settings-screen.is-waiting :is(.settings-page, .settings-head-status, .settings-head-actions) {
+  visibility: hidden;
+}
+.settings-screen.is-waiting .settings-page {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-page.is-entering,
+  .settings-page.is-switching {
+    animation: none;
+  }
+}
+/* Two columns where a page has two independent halves (General: effects |
+   project folder; Remote: serving | bot setup; MCP: servers | add one). In a
+   dialog the wrappers are transparent, so the same markup stays one column
+   there. On the page they sit side by side from 760px and stack below. */
+.settings-cols,
+.settings-col {
+  display: contents;
+}
+.settings-page .settings-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.settings-page .settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+@media (min-width: 760px) {
+  .settings-page .settings-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+}
+/* The page's status (e.g. "3 connected") beside its name in the header. */
+.settings-head-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.settings-head-status:empty {
+  display: none;
+}
+/* The open page's buttons sit in the shared .picker-head-actions group (the
+   same one "+ New project" uses), so they match it exactly; hidden when the
+   page has none. */
+.settings-head-actions:empty {
+  display: none;
+}
+
+/* The tab capsule. Sizes are yaatuber's (Glance's SettingsMetrics): bar 54
+   tall with 6 of inline padding, tabs 42 tall with 11 of padding (14 when
+   showing a label), a 19px glyph, a 13px label 7 from it. */
+.settings-tab-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.settings-screen {
+  position: relative;
+}
+/* The page name is an h1 here (the screen's heading); keep the picker look. */
+.settings-screen h1.picker-title {
+  margin: 0;
+}
+.settings-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+/* One element that travels between tabs, so a change reads as the pill
+   moving. Hidden until the first measurement places it. */
+.settings-tabs-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  pointer-events: none;
+  visibility: hidden;
+}
+.settings-tabs-pill.is-placed {
+  visibility: visible;
+}
+.settings-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--t-fast),
+    background-color var(--t-fast);
+}
+/* Hover only lightens a tab (yaatuber's `--overlay` wash); the pill moves
+   on selection, never on hover. */
+.settings-tab:hover:not(.is-active) {
+  background: rgb(var(--ink-rgb) / 0.06);
+  color: var(--text);
+}
+.settings-tab.is-active {
+  padding: 0 var(--space-7);
+  color: var(--text);
+}
+.settings-tab-icon {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+/* Only the selected tab shows its label. The others fold to zero width (the
+   7px gap from the icon lives inside the text, so it folds too), which lets
+   SettingsTabBar spring a label's width open and shut; every tab carries an
+   aria-label, so each is still announced by name. */
+.settings-tab-label {
+  display: block;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.settings-tab.is-active .settings-tab-label {
+  width: auto;
+  opacity: 1;
+}
+.settings-tab-label-text {
+  display: block;
+  padding-left: 7px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+/* Steroids not connected yet. */
+.settings-tab-alert {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--steroids);
+  box-shadow: 0 0 6px var(--steroids-glow);
+}
+.home-settings {
+  flex: 0 0 auto;
+}
+.btn.home-settings {
+  width: 36px;
+  height: 36px;
+}
+/* Dimmed (prerequisites unmet): muted but still clickable so it can toast.
+   Hold brightness flat on hover so it reads as inactive, not interactive. */
+.btn-primary.is-dimmed,
+.btn-primary.is-dimmed:hover {
+  filter: grayscale(0.4);
+}
+.is-dimmed {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+.is-dimmed:hover {
+  opacity: 0.55;
+}
+
+/* ── Login screen ──
+   The provider brain bay lives in ProvidersBay.css. On its own screen it
+   fills the space under the header; the logos keep this class so the light
+   theme's mono-mark rule (Deck.css) still applies. */
+.login-scroll {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 var(--page-pad);
+}
+.login-logo {
+  object-fit: contain;
+}
+
+/* ── Provider login modal ── */
+.login-modal-desc {
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  margin-bottom: var(--space-7);
+}
+.login-method-row {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.login-status {
+  font-size: var(--fs-base);
+  margin-top: var(--space-6);
+  word-break: break-word;
+}
+.login-status a {
+  color: var(--primary);
+}
+/* Method comparison for providers offering OAuth *and* an API key: one card per
+   method so billing and prerequisites are readable before committing, plus its
+   own state badge and disconnect (both can be connected at once). */
+.login-method-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  /* Two explained methods can outgrow a short app window — scroll the list
+     rather than pushing Connect/Close off screen. */
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+}
+.login-method-card {
+  border: 1px solid rgb(var(--ink-rgb) / 0.1);
+  border-radius: var(--radius-card);
+  background: rgb(var(--ink-rgb) / 0.03);
+  padding: var(--space-6) var(--space-7);
+}
+.login-method-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.login-method-card-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text);
+}
+.login-method-card-line {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.login-method-card-note {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: var(--space-2);
+}
+.login-method-card-actions {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+/* How the two methods interact once both are connected. */
+.login-method-note {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: var(--space-6);
+}
+/* ── Tekhelet & Stone: segmented choices inside Settings ──
+   The chosen key of a radio group (Appearance's Light / Dark / Auto and its
+   kin) carries a Tekhelet tint and Tekhelet ink instead of a plain well, so
+   "current" reads at a glance in both themes. */
+.settings-page .key-group > .key[aria-checked="true"],
+.settings-page .key-group > .key[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--primary) 18%, var(--well));
+  color: var(--primary);
+  font-weight: 600;
+}
+/* The floating tab bar: the travelling pill takes the same tint. */
+:root .settings-tabs-pill {
+  background: color-mix(in srgb, var(--primary) 16%, var(--key));
+}
+.settings-tab.is-active .settings-tab-icon {
+  color: var(--primary);
+}

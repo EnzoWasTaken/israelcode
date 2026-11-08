@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowsClockwiseIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon, XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
 import { ModalDismissButton } from "./modal-embed";
@@ -241,6 +241,7 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
                   <button
                     className="mcp-delete"
                     style={{ color: theme.textDim }}
+                    aria-label={`Remove ${endpoint.label}`}
                     title={`Remove "${endpoint.label}"`}
                     onClick={() => void remove(endpoint)}
                   >
@@ -283,6 +284,7 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
             className="modal-input"
             style={{ color: theme.text, background: theme.inputBackground, width: "100%" }}
             value={url}
+            aria-label="Endpoint URL"
             placeholder="http://127.0.0.1:1234/v1"
             autoFocus
             onChange={(e) => setUrl(e.target.value)}
@@ -297,6 +299,7 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
             className="modal-input"
             style={{ color: theme.text, background: theme.inputBackground, width: "100%" }}
             value={label}
+            aria-label="Endpoint name"
             placeholder="Workstation"
             onChange={(e) => setLabel(e.target.value)}
           />
@@ -307,6 +310,7 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
             className="modal-input"
             style={{ color: theme.text, background: theme.inputBackground, width: "100%" }}
             value={apiKey}
+            aria-label="Endpoint API key"
             type="password"
             placeholder="Only if your server requires one"
             onChange={(e) => setApiKey(e.target.value)}

@@ -11,67 +11,42 @@ import {
   type SetStateAction,
 } from "react";
 import { createChatLayoutMotion } from "./chat-layout-motion";
-import { open } from "@tauri-apps/plugin-dialog";
 import { theme } from "./theme";
 import { activeChatErrorId, readChatError } from "./chat-error";
 import { showScreen } from "./view-transition";
 import {
   waitForReady,
-  retryWindowSession,
   getState,
   kickoffGoal,
-  pauseGoal,
   resumeGoal,
-  setCritterModel,
   sendPrompt,
-  sendKenPrompt,
   setAutopilot,
-  setUltracode,
-  setOrchestrate,
-  setWorkerModel,
-  setPermissionMode,
-  respondApproval,
   cancel,
   newSession,
   selectProject,
+  selectWorkspace,
+  type BackgroundSessionRow,
   listModels,
-  switchModel,
-  isSwitchModelError,
-  switchKenModel,
   listCommands,
   cancelQueued,
-  type PromptMeta,
   type RewindMode,
   type QueuedMessage,
   listHistory,
-  listShellSuggestions,
-  type ShellSuggestion,
   listTasks,
   type ChecklistEntry,
   runTask,
   runAllTasks,
   deleteTask,
-  newWindow,
-  focusWindowByOffset,
-  arrangeAllWindows,
   restoreTarget,
-  acceptPlan as acceptPlanIPC,
   subscribe,
   isSecondaryWindow,
   windowLabel,
-  setWindowTitle,
-  workspaceProductName,
   type AgentState,
-  type VerifyState,
-  type WorktreeWorkersState,
-  type CompactionState,
   type WorkspaceMode,
   type ModelOption,
   type SlashCommand,
   type BackgroundTask,
   type ProjectTask,
-  type FileHit,
-  searchFiles,
   type PromptSegment,
   answerAskUser,
 } from "./agent";
@@ -84,10 +59,8 @@ import {
 } from "./ask-user";
 import { glowPlacement, glowStateFor, glowVars } from "./window-glow";
 import { ActivityBar } from "./ActivityBar";
-import { autosizeComposer } from "./composer-autosize";
-import { createEntranceLifetime, dissolveInVisible } from "./transcript-motion";
-import { TranscriptJumpControls } from "./TranscriptJumpControls";
-import { createLiveTextStore, LiveTextContext } from "./live-text";
+import { createEntranceLifetime } from "./transcript-motion";
+import { createLiveTextStore } from "./live-text";
 import { KenActivityBar } from "./KenActivityBar";
 import { useTaskActivity } from "./useTaskActivity";
 import { useKenMentor } from "./useKenMentor";
@@ -95,77 +68,39 @@ import { useAutopilot } from "./useAutopilot";
 import { useAgentEvents, type RunEnd } from "./useAgentEvents";
 import { LiveToolPanel, type LiveToolEntry } from "./LiveToolPanel";
 import { TodoPill } from "./TodoList";
-import { hasUltracodeKeyword, parseUltracodeCommand } from "./ultracode";
-import { hasOrchestrateKeyword } from "./orchestration";
 import { ultracodePhases, ultracodeTurns, type UltracodePhase } from "./ultracode-phases";
-import { UltracodePhases } from "./UltracodePhases";
-import { RewindModal } from "./RewindModal";
 import { ApprovalCard } from "./ApprovalCard";
-import { currentPill, nextPill } from "./permission-mode";
-import { CritterFloor, collectFloorAgents, type CritterGroup } from "./CritterFloor";
-import { COORDINATOR_KEY, goalViewFor } from "./goal-world-agents";
-import {
-  EMPTY_TALLY,
-  blockingAsk,
-  coordinatorAtWork,
-  floorPhase,
-  tallyGoal,
-  type GoalTally,
-} from "./goal-progress";
-import { latestKenLine } from "./goal-ken-talk";
-import { kenStatusOf, lastRunOf } from "./goal-ken-status";
-import {
-  FINISH_SETTLE_MS,
-  goalFinishOf,
-  goalIsQuiet,
-  openStretch,
-  recordRun,
-  type GoalFinish,
-  type GoalRun,
-} from "./goal-finish";
+import { currentPill } from "./permission-mode";
+import { CritterFloor, type CritterGroup } from "./CritterFloor";
+import { recordRun, type GoalRun } from "./goal-finish";
 // The farm (its art, map and simulation) loads on demand, so it adds nothing
 // to the app's start-up bundle; it is only needed once a goal has started.
 const GoalWorld = lazy(() =>
   import("./GoalWorld").then((module) => ({ default: module.GoalWorld })),
 );
-import { ModelSelect, loadModelsInto } from "./ModelSelect";
-import { modelDisplayName } from "./model-name";
-import {
-  describeSchedule,
-  isScheduleDraft,
-  parseScheduleCommand,
-  withInterval,
-} from "./scheduleCommand";
+import { loadModelsInto } from "./ModelSelect";
 import { useSchedules } from "./useSchedules";
-import { appendReferencedFiles, parseReferencedFiles } from "./ReferencedFiles";
-import { TasksModal } from "./TasksModal";
-import { ChecklistScreen } from "./ChecklistScreen";
 import { parseProjectHealth } from "./project-health";
-import { NotesModal } from "./NotesModal";
-import { MemoryModal } from "./MemoryModal";
-import { GoalSettingsModal } from "./GoalSettingsModal";
-import { isHiddenScroller } from "./transcript-pin";
-import { emptyTranscriptStatus } from "./transcript-status";
-import { WakeScreen } from "./WakeScreen";
 import { MotionStarters } from "./MotionStarters";
-import { ConfirmModal } from "./ConfirmModal";
-import { InitGitModal } from "./InitGitModal";
-import type { PlanDecision } from "./PlanDecisionNotice";
-import { KenPowerBanner } from "./KenPowerBanner";
-import { PlanReviewModal } from "./PlanReviewModal";
-import { McpElicitModal } from "./McpElicitModal";
 import { ProjectPicker } from "./ProjectPicker";
-import { type DraftEnhancement, followDraftEdit, rebaseSegments } from "./PromptEnhancement";
+import { type DraftEnhancement, followDraftEdit } from "./PromptEnhancement";
 import { ChatPicker } from "./ChatPicker";
-// The goal list and its New goal modal load on demand: they are only needed
-// once someone opens Goals.
-const GoalPicker = lazy(() =>
-  import("./GoalPicker").then((module) => ({ default: module.GoalPicker })),
-);
+import { GoalPicker } from "./LazyGoalPicker";
 import { BackButton } from "./BackButton";
-import { HomeScreen } from "./HomeScreen";
-import { WorldScreen } from "./WorldScreen";
-import { SettingsModal } from "./SettingsModal";
+import { noteBackgroundHandoff } from "./BackgroundSessions";
+import {
+  LazyGoalSettingsModal,
+  LazyMemoryModal,
+  LazyNotesModal,
+  LazySettingsModal,
+  LazyTasksModal,
+  LazyChecklistScreen,
+  LazyWorldScreen,
+  deckSurfacesReady,
+  preloadDeckSurfaces,
+  preloadLazySurfaces,
+} from "./lazy-surfaces";
+import { whenIdle } from "./idle-preload";
 import { initialEntryView, type EntryView } from "./app-entry-view";
 import {
   showsQueuedBubble,
@@ -177,35 +112,18 @@ import { Confetti } from "./Confetti";
 import { ScorecardPanel } from "./Scorecard";
 import { useWindowFocused } from "./useWindowFocused";
 import { WorkspaceHeader } from "./WorkspaceHeader";
-import { formatWorkspaceTitle } from "./workspace-title";
 import { useProgress } from "./useProgress";
 import { useTrophies } from "./useTrophies";
-import { TrophyUnlock } from "./TrophyUnlock";
-import { SettingsScreen, type SettingsTabId } from "./SettingsScreen";
-import { PromptSendProvider } from "./Markdown";
-import { TranscriptSkeleton } from "./Skeleton";
-import { recoverPromptLabel } from "./prompt-labels";
-import { playSound } from "./sounds";
-import { countPlanSteps } from "./plan-steps";
+import type { SettingsTabId } from "./settings-sections";
 import { toast } from "./toast";
 import { takeNewBlockedSkillMessages } from "./blocked-skills";
-import { collapseSecurityRows, takeNewSecurityNotices } from "./security-notices";
-import {
-  MAX_ATTACHMENT_BYTES,
-  attachmentBytes,
-  attachmentChips,
-  toWire,
-  type PendingAttachment,
-} from "./attachments";
-import { TranscriptRow } from "./TranscriptRow";
-import { nextId, lastIssuedId, verifyItemFromResult, type Item } from "./transcript-item";
+import { takeNewSecurityNotices } from "./security-notices";
+import { nextId, lastIssuedId, type Item } from "./transcript-item";
 import { useTranscriptScroll } from "./useTranscriptScroll";
 import { useTrayIntents } from "./useTrayIntents";
 import { useAttachments } from "./useAttachments";
 import { useDragOverlay, useWindowFileDrop } from "./useFileDrop";
 import { DeckMenu, TitleBarActions } from "./WorkspaceHeaderActions";
-import { nextDockHeight } from "./dock-height";
-import { finishEntrances } from "./finish-entrances";
 import { Deck, type DeckPanelId } from "./Deck";
 import { ProjectHealthPanel } from "./ProjectHealthBadge";
 import { useChecklist } from "./useChecklist";
@@ -213,99 +131,46 @@ import { useProjectNotes } from "./useProjectNotes";
 import { useChromeToggles } from "./useChromeToggles";
 import { useTranscriptExport } from "./useTranscriptExport";
 import { useWindowOrder } from "./useWindowOrder";
-import { dropHiddenFocus } from "./hidden-focus";
-import { Composer, type ShellMenu } from "./Composer";
+import { Composer } from "./Composer";
 import { UpdateBanner } from "./UpdateBanner";
 import { usePromptHistory } from "./usePromptHistory";
 import { usePromptEnhance } from "./usePromptEnhance";
-import { shellCommandFromInput, shellItemFromHistory, useShellRuns } from "./useShellRuns";
-import { filterShellSuggestions, shellEnterPicks } from "./shell-menu";
-import { useFlavorEnabled } from "./flavor";
+import { useShellRuns } from "./useShellRuns";
+import { isWorkflowCommand as isKnownWorkflowCommand } from "./composer-commands";
+import { itemsFromHistory, promptHistoryFrom } from "./history-items";
+import { createPlanReviewActions } from "./plan-review-actions";
+import { createSessionActions } from "./session-actions";
+import { useChatLayoutCommit } from "./useChatLayoutCommit";
+import { useComposerAutosize } from "./useComposerAutosize";
+import { useComposerMenus } from "./useComposerMenus";
+import { useComposerPlaceholder } from "./useComposerPlaceholder";
+import { useGoalWorld } from "./useGoalWorld";
+import { useMonitorFit } from "./useMonitorFit";
+import { useRankCelebration } from "./useRankCelebration";
+import { useRunActivity } from "./useRunActivity";
+import { useTranscriptViewport } from "./useTranscriptViewport";
+import { useWindowShortcuts } from "./useWindowShortcuts";
+import { useWindowTitle } from "./useWindowTitle";
+import { EntryScreen } from "./EntryScreen";
+import { useFirstPrompt, type HydrateSettled } from "./first-prompt";
+import { TranscriptView } from "./TranscriptView";
+import { WorkspaceModalHost } from "./WorkspaceModalHost";
+import { CommandCenter, ShortcutHint } from "./commands/CommandCenter";
+import { modelCommands, projectCommands, sessionCommands } from "./commands/dynamic-commands";
+import type { CommandHandlers } from "./commands/command-registry";
+import { setColorSchemePref } from "./color-scheme";
+import {
+  arrangeAllWindows,
+  focusWindowByOffset,
+  newWindow,
+  openWhatsNewWindow,
+  setPermissionMode,
+  setThinkingLevel,
+} from "./agent";
+import { createComposerSubmit } from "./composer-submit";
 import "./App.css";
 import "./Deck.css";
 import "./Trophies.css";
-
-const DEFAULT_INPUT_PLACEHOLDER = "Type a message, / commands, @ files, @Israel for help";
-const PLAIN_INPUT_PLACEHOLDERS = [
-  DEFAULT_INPUT_PLACEHOLDER,
-  "Need a second opinion? Ask @Israel",
-  "Start with ! to run a command, like !git status",
-  "Stuck on what to do next? Ask @Israel",
-  DEFAULT_INPUT_PLACEHOLDER,
-  "Run tests yourself with !pnpm test, then ask Israel Code to fix them",
-  "Want a second set of eyes? Ask @Israel",
-  "Unsure how to proceed? Ask @Israel",
-  "!ls runs in this project. Israel Code sees the output next message",
-  "Need a quick review? Ask @Israel",
-] as const;
-// Same hints, said the Israeli way: every line still teaches /, @ or !.
-const FUN_INPUT_PLACEHOLDERS = [
-  "Nu? Type a message, / commands, @ files, @Israel for help",
-  "Need a second opinion? Ask @Israel. You'll get three",
-  "Start with ! to run a command, like !git status. Yalla",
-  "Stuck? Ask @Israel. Asking is free, the advice is unsolicited anyway",
-  DEFAULT_INPUT_PLACEHOLDER,
-  "Run !pnpm test yourself, then let Israel Code fix the balagan",
-  "Want someone to argue with your code? Ask @Israel",
-  "Not sure how to proceed? Ask @Israel, it has an opinion",
-  "!ls runs in this project. Israel Code sees the output next message",
-  "Need a quick review? Ask @Israel. Mazel tov in advance",
-] as const;
-const PLAIN_RUNNING_INPUT_PLACEHOLDERS = [
-  "Agent is working. Add a follow-up if you want",
-  "Got another thought? Queue it here",
-  "Run a command while you wait, like !git diff",
-  "Agent is on it. You can stack the next note",
-  "Thinking ahead? Drop the next instruction",
-  "Keep going. Your next message will queue up",
-  "Check something yourself with !, it won't interrupt Israel Code",
-] as const;
-const FUN_RUNNING_INPUT_PLACEHOLDERS = [
-  "Agent is working. Add a follow-up, it can multitask like a Tel Aviv waiter",
-  "Got another thought? Queue it here. Sababa",
-  "Run a command while you wait, like !git diff",
-  "Agent is on it. Stack the next note, no need to shout",
-  "Thinking ahead? Drop the next instruction, it queues up",
-  "Keep going. Your next message waits its turn (a rare thing here)",
-  "Check something yourself with !, it won't interrupt Israel Code",
-] as const;
-const INPUT_PLACEHOLDER_INTERVAL_MS = 12_000;
-const PLACEHOLDER_SHUFFLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const PLACEHOLDER_SHUFFLE_FRAMES = 18;
-const PLACEHOLDER_SHUFFLE_FRAME_MS = 24;
-
-// Info row shown when a video attachment is sent to a model without native
-// video analysis. Shared by the live send path and history restore so the
-// resumed transcript matches the live one exactly.
-const VIDEO_CAPABILITY_WARNING =
-  "This model can't watch video directly. The agent can still extract frames or audio with ffmpeg if needed — switch to a video-capable model (Kimi, MiniMax, MiMo) for native video analysis.";
-
-function shufflePlaceholderFrame(target: string, frame: number): string {
-  const revealCount = Math.ceil((target.length * frame) / PLACEHOLDER_SHUFFLE_FRAMES);
-  return Array.from(target, (char, index) => {
-    if (index < revealCount || /\s|[.,?/@!]/.test(char)) return char;
-    const pick = Math.floor(Math.random() * PLACEHOLDER_SHUFFLE_CHARS.length);
-    return PLACEHOLDER_SHUFFLE_CHARS[pick];
-  }).join("");
-}
-
-// `/schedule` lives in the webview, not the sidecar's command registry: it
-// registers a recurring timer instead of prompting the agent. Declared here so
-// the palette can still discover it alongside the real slash commands.
-// Handled in the webview too: it flips the session's Ultracode setting.
-const ULTRACODE_COMMAND: SlashCommand = {
-  name: "ultracode",
-  aliases: [],
-  description: "Turn Ultracode on or off — parallel agents for big jobs — [on|off]",
-  source: "built-in",
-};
-
-const SCHEDULE_COMMAND: SlashCommand = {
-  name: "schedule",
-  aliases: ["sched"],
-  description: "Run a prompt on a repeating schedule — <prompt> | 15m | [times]",
-  source: "built-in",
-};
 
 export type { Item, TranscriptImage } from "./transcript-item";
 
@@ -333,20 +198,7 @@ function App(): React.ReactElement {
   const { autopilotReviewing, handleAutopilotEvent } = useAutopilot({ setItems, nextId });
   const { snapshot: progress, levelUp, levelUpNonce, levelUpOrigin } = useProgress();
   const trophies = useTrophies();
-  const [, setRankCelebrateNonce] = useState<string | null>(null);
-  const [xpChips, setXpChips] = useState<Array<{ id: string; label: string }>>([]);
-  const lastProgressXpRef = useRef<number | null>(null);
-  const [confettiNonce, setConfettiNonce] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [shellSuggestions, setShellSuggestions] = useState<ShellSuggestion[]>([]);
-  const [shellIndex, setShellIndex] = useState(0);
-  // The input the `!` picker was closed for (Esc or a pick); it reopens on edit.
-  const [shellMenuDismissedFor, setShellMenuDismissedFor] = useState<string | null>(null);
-  // The input the user last moved the picker's highlight for (↑/↓).
-  const [shellNavigatedFor, setShellNavigatedFor] = useState<string | null>(null);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [displayPlaceholder, setDisplayPlaceholder] = useState(DEFAULT_INPUT_PLACEHOLDER);
-  const displayPlaceholderRef = useRef(DEFAULT_INPUT_PLACEHOLDER);
   // Shell-style prompt history for ↑/↓ recall in the chat input. Newest entries
   // last. `historyIndex` is null while editing a fresh draft; stepping ↑ walks
   // backwards into history, ↓ forwards. `historyDraftRef` stashes the in-progress
@@ -403,7 +255,6 @@ function App(): React.ReactElement {
   // once its slide-out animation finishes.
   const [kenPowerBanner, setKenPowerBanner] = useState<"on" | "off" | null>(null);
   const [running, setRunning] = useState(false);
-  const [ultracodeDismissed, setUltracodeDismissed] = useState(false);
   // Rewind picker: closed (null), or open preselecting a message's text ("" = newest).
   const [rewindAt, setRewindAt] = useState<string | null>(null);
   // Last composer keystroke (0 = none since this chat opened). The first
@@ -505,10 +356,6 @@ function App(): React.ReactElement {
   // "connecting to agent…" line, with a way to try again.
   const [connectError, setConnectError] = useState<string | null>(null);
   const [commands, setCommands] = useState<SlashCommand[]>([]);
-  const [slashIndex, setSlashIndex] = useState(0);
-  // Caret offset in the composer, tracked so the `/schedule` hint can highlight
-  // the slot the user is currently typing in.
-  const [caret, setCaret] = useState(0);
   // `/schedule` runtime. Fires each due prompt through the normal send path,
   // skipping any occurrence that comes due mid-run rather than stacking agents.
   // In-memory for the life of the window — see useSchedules.
@@ -520,12 +367,6 @@ function App(): React.ReactElement {
       submitTextRef.current(prompt, undefined, { keepInput: true, scheduled: true });
     }, []),
   });
-  // `@`-mention file picker state. `mention` is the active token being typed
-  // (its query + where it starts in the input); `fileMatches` is the live
-  // search result; `fileIndex` is the keyboard-highlighted row.
-  const [mention, setMention] = useState<{ query: string; start: number } | null>(null);
-  const [fileMatches, setFileMatches] = useState<FileHit[]>([]);
-  const [fileIndex, setFileIndex] = useState(0);
   // Files referenced via `@`, tracked as chips (NOT left in the input text).
   // Their paths are appended to the prompt on submit.
   const [mentionedPaths, setMentionedPaths] = useState<string[]>([]);
@@ -537,17 +378,27 @@ function App(): React.ReactElement {
   // Updated live via the `tasks_list` SSE event while a run-all sweep advances.
   const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   // What has taken the message box's place in the deck, if anything.
-  const [deckPanel, setDeckPanel] = useState<DeckPanelId | null>(null);
+  const [deckPanel, setDeckPanelNow] = useState<DeckPanelId | null>(null);
+  // Deck tool bodies load on demand: every change waits (in order) until
+  // they're in, so a panel never opens around a suspended body.
+  const setDeckPanel = useCallback((next: SetStateAction<DeckPanelId | null>) => {
+    if (deckSurfacesReady()) setDeckPanelNow(next);
+    else void preloadDeckSurfaces().then(() => setDeckPanelNow(next));
+  }, []);
+  useEffect(() => whenIdle(() => void preloadLazySurfaces()), []);
   // The checklist is a deck tool like Notes: open while the deck shows it.
   const showChecklist = deckPanel === "checklist";
-  const setShowChecklist = useCallback((next: SetStateAction<boolean>) => {
-    setDeckPanel((open) => {
-      const isOpen = open === "checklist";
-      const want = typeof next === "function" ? next(isOpen) : next;
-      if (want) return "checklist";
-      return isOpen ? null : open;
-    });
-  }, []);
+  const setShowChecklist = useCallback(
+    (next: SetStateAction<boolean>) => {
+      setDeckPanel((open) => {
+        const isOpen = open === "checklist";
+        const want = typeof next === "function" ? next(isOpen) : next;
+        if (want) return "checklist";
+        return isOpen ? null : open;
+      });
+    },
+    [setDeckPanel],
+  );
   // The chat never leaves the screen for the checklist any more.
   const chatView = useMemo(() => ({ visible: true }), []);
   // Every window chooses a code or chat workspace before connecting. Mode stays
@@ -577,26 +428,7 @@ function App(): React.ReactElement {
   // In the computer the app keeps its full-window layout and is scaled into the space between World's top bar and
   // Stand up (.app-in-monitor reads --mon-tf).
   const monitorOpen = showWorld && worldComputer;
-  useEffect(() => {
-    if (!monitorOpen) return;
-    const root = document.documentElement;
-    const fit = (): void => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const top = 52;
-      const bottom = 64;
-      const k = Math.max(0.5, Math.min((w - 40) / w, (h - top - bottom) / h));
-      // scaled about the window's centre (.app-in-monitor's transform-origin), then shifted into the free band
-      const dy = top + (h - top - bottom - k * h) / 2 - (h - k * h) / 2;
-      root.style.setProperty("--mon-tf", `translateY(${dy.toFixed(1)}px) scale(${k.toFixed(4)})`);
-    };
-    fit();
-    window.addEventListener("resize", fit);
-    return () => {
-      window.removeEventListener("resize", fit);
-      root.style.removeProperty("--mon-tf");
-    };
-  }, [monitorOpen]);
+  useMonitorFit(monitorOpen);
   // Bumped on each workspace/session choice to force re-hydration.
   const [hydrateNonce, setHydrateNonce] = useState(0);
   const { activity, handleActivityEvent } = useTaskActivity(hydrateNonce);
@@ -619,6 +451,7 @@ function App(): React.ReactElement {
   // reveal fully-formed in one pass instead of popping in piecemeal (cwd, git,
   // thinking, model each arriving separately would reflow the bar mid-load).
   const [hydrated, setHydrated] = useState(false);
+  const [hydrateSettled, setHydrateSettled] = useState<HydrateSettled | null>(null);
   // First transcript id that should animate in. Everything restored by a
   // hydrate gets a lower id, so reopening a session (or switching projects)
   // lands instantly and only rows that arrive live afterwards rise into place.
@@ -649,25 +482,17 @@ function App(): React.ReactElement {
   // + other handlers also touch (stateRef above, the plan refs + stickToBottom
   // below) stay here and are passed into the hook.
 
+  const transcriptScroll = useTranscriptScroll({ items, scrollRef, chatLayout });
   const {
     stickToBottomRef,
     lastScrollTopRef,
     noteTranscriptViewport,
     scrollToBottom,
     maybeScrollToBottom,
-    following,
     windowStart,
-    visibleItems,
-    firstNewId,
     windowRef,
-    askPlace,
-    newMarkerRef,
-    onTranscriptScroll,
-    onTranscriptWheel,
-    jumpToLatest,
-    jumpToNew,
-    jumpToAsk,
-  } = useTranscriptScroll({ items, scrollRef, chatLayout });
+    startWarmMount,
+  } = transcriptScroll;
 
   const setDragOverActive = useDragOverlay({ isFileDragOver, setIsFileDragOver });
 
@@ -687,162 +512,30 @@ function App(): React.ReactElement {
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
-  const showXpChip = useCallback((label: string) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    playSound("xp");
-    setXpChips((chips) => [...chips.slice(-2), { id, label }]);
-    window.setTimeout(() => {
-      setXpChips((chips) => chips.filter((chip) => chip.id !== id));
-    }, 1700);
-  }, []);
+  const { xpChips, confettiNonce } = useRankCelebration({
+    progress,
+    levelUp,
+    levelUpNonce,
+    levelUpOrigin,
+  });
 
-  useEffect(() => {
-    if (!progress) return;
-    const previous = lastProgressXpRef.current;
-    lastProgressXpRef.current = progress.xp;
-    if (previous == null) return;
-    const gained = progress.xp - previous;
-    // Chip + sound only in the window whose run earned the XP — other windows
-    // still receive the frame (badge/percent update) but stay quiet.
-    if (gained > 0 && progress.origin) showXpChip(`+${gained} XP`);
-  }, [progress, showXpChip]);
-
-  useEffect(() => {
-    if (!levelUp || !levelUpNonce) return;
-    toast(`Rank up! → ${levelUp.rankName}`, "success", 5200);
-    // Rank-up visuals show everywhere; the sound only plays in the earning window.
-    if (levelUpOrigin) playSound("levelUp");
-    setRankCelebrateNonce(levelUpNonce);
-    const clearRank = window.setTimeout(() => setRankCelebrateNonce(null), 2400);
-
-    const crossedTier = Math.floor((levelUp.from - 1) / 5) !== Math.floor((levelUp.to - 1) / 5);
-    let clearConfetti = 0;
-    if (crossedTier) {
-      setConfettiNonce(levelUpNonce);
-      clearConfetti = window.setTimeout(() => setConfettiNonce(null), 1900);
-    }
-
-    return () => {
-      window.clearTimeout(clearRank);
-      if (clearConfetti) window.clearTimeout(clearConfetti);
-    };
-  }, [levelUp, levelUpNonce, levelUpOrigin]);
-
-  // Re-pin to the bottom before every paint — but only while pinned. The live
-  // tool panel + activity bar (.liveregion) grow/shrink below the transcript as
-  // tools run and finish; since the transcript is a flexible sibling, that
-  // growth steals height from it and would leave the newest content (often the
-  // just-sent user prompt) scrolled under the fold. Keying this layout effect on
-  // the live-region's height inputs (tool feed, run state, done status) AND
-  // `items` re-pins synchronously after layout but before paint, so the prompt
-  // is never hidden. useLayoutEffect runs before paint, so this pass never
-  // flashes; animated chrome growth is caught by the ResizeObserver below. The
-  // stick-to-bottom gate keeps it from yanking the view away while the user is
-  // scrolled up reading mid-stream.
-  useLayoutEffect(() => {
-    maybeScrollToBottom();
-  }, [items, windowStart, liveToolFeed, running, doneStatus, queuedCount, maybeScrollToBottom]);
-
-  // …and keep re-pinning while the chrome below the transcript ANIMATES its
-  // height. The queued-message strip (`.queued-bar`) slides open over 260ms, the
-  // attachment / referenced-file bars and the live tool panel do the same; every
-  // frame of that animation steals a few more pixels from the transcript AFTER
-  // the layout effect above has already run, which is why a just-queued user
-  // bubble ends up sliding under the composer while a normal send (no strip, no
-  // height animation) looks fine. A ResizeObserver on the transcript viewport
-  // fires on each of those frames, so the newest row stays visible for the whole
-  // transition. It complements the layout effect rather than replacing it: an RO
-  // only fires when the VIEWPORT resizes, so content growth (streaming tokens,
-  // images) still needs the effect above. Shrinking the viewport never fires a
-  // scroll event (scrollTop stays valid), so the stick-to-bottom pin survives and
-  // a user scrolled up reading is still left alone.
-  //
-  // Attached through a callback ref, not an effect on `scrollRef.current`: the
-  // transcript unmounts whenever a picker/home view takes over the window, and a
-  // mount-time effect would observe a stale (or null) node after it comes back.
-  const transcriptRoRef = useRef<ResizeObserver | null>(null);
-  const attachTranscript = useCallback(
-    (el: HTMLDivElement | null) => {
-      scrollRef.current = el;
-      if (el) {
-        lastScrollTopRef.current = el.scrollTop;
-        noteTranscriptViewport(el);
-      }
-      transcriptRoRef.current?.disconnect();
-      transcriptRoRef.current = null;
-      if (!el || typeof ResizeObserver === "undefined") return;
-      const ro = new ResizeObserver(() => {
-        // Record the new size here too: a resize with no scroll event would
-        // otherwise make the reader's next scroll read as layout.
-        noteTranscriptViewport(el);
-        if (chatLayout.resized()) maybeScrollToBottom();
-      });
-      ro.observe(el);
-      transcriptRoRef.current = ro;
-    },
-    [maybeScrollToBottom, chatLayout, lastScrollTopRef, noteTranscriptViewport],
-  );
-
-  // The dock floats over the conversation's bottom edge, so the transcript
-  // doesn't shrink when it grows (a wrapping draft, a panel opening). Its
-  // height goes to the frame as --dock-h, which the transcript reserves as
-  // bottom padding; a pinned chat then follows the bottom in the same frame,
-  // so the newest message is never left behind the dock.
-  //
-  // A callback ref, like the transcript's: the dock unmounts whenever a picker
-  // takes over the window, and must be observed afresh when it comes back.
-  const transcriptFrameRef = useRef<HTMLDivElement>(null);
-  const dockElRef = useRef<HTMLDivElement | null>(null);
-  const dockRoRef = useRef<ResizeObserver | null>(null);
-  const dockRef = useCallback(
-    (dock: HTMLDivElement | null) => {
-      dockRoRef.current?.disconnect();
-      dockRoRef.current = null;
-      dockElRef.current = dock;
-      if (!dock) return;
-      const apply = (): void => {
-        const frame = transcriptFrameRef.current;
-        if (!frame) return;
-        const height = nextDockHeight(dock, frame.style.getPropertyValue("--dock-h"));
-        if (height === null) return;
-        frame.style.setProperty("--dock-h", height);
-        maybeScrollToBottom();
-      };
-      apply();
-      if (typeof ResizeObserver === "undefined") return;
-      const observer = new ResizeObserver(apply);
-      observer.observe(dock);
-      dockRoRef.current = observer;
-    },
-    [maybeScrollToBottom],
-  );
-
-  // Settle the scroll position after a session hydrates. The single layout-effect
-  // scroll above runs the instant `items` is set, but the transcript keeps
-  // growing afterward — web fonts swap in (FOUT reflows text taller), code blocks
-  // and markdown finish laying out — which leaves the view pinned a little above
-  // the true bottom. Re-pin across the next two frames and once fonts are ready,
-  // gated on stick-to-bottom so it never yanks the view if the user scrolled up.
-  useEffect(() => {
-    if (!hydrated) return;
-    let raf1 = 0;
-    let raf2 = 0;
-    raf1 = requestAnimationFrame(() => {
-      maybeScrollToBottom();
-      // After the first pin, so the rows that dissolve are the ones in view.
-      if (scrollRef.current) dissolveInVisible(scrollRef.current);
-      raf2 = requestAnimationFrame(maybeScrollToBottom);
-    });
-    let cancelled = false;
-    void document.fonts?.ready.then(() => {
-      if (!cancelled) maybeScrollToBottom();
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [hydrated, hydrateNonce, maybeScrollToBottom]);
+  // Pinned-transcript upkeep: the pre-paint re-pin, the viewport and dock
+  // observers (--dock-h) and the post-hydrate settle (useTranscriptViewport.ts).
+  const { attachTranscript, transcriptFrameRef, dockElRef, dockRef } = useTranscriptViewport({
+    items,
+    windowStart,
+    liveToolFeed,
+    running,
+    doneStatus,
+    queuedCount,
+    hydrated,
+    hydrateNonce,
+    scrollRef,
+    chatLayout,
+    lastScrollTopRef,
+    noteTranscriptViewport,
+    maybeScrollToBottom,
+  });
 
   useEffect(() => {
     stateRef.current = state;
@@ -860,45 +553,7 @@ function App(): React.ReactElement {
     deckPanel === null &&
     workspaceMode === "code" &&
     input.length === 0;
-  const funCopy = useFlavorEnabled();
-  const placeholderPool = running
-    ? funCopy
-      ? FUN_RUNNING_INPUT_PLACEHOLDERS
-      : PLAIN_RUNNING_INPUT_PLACEHOLDERS
-    : funCopy
-      ? FUN_INPUT_PLACEHOLDERS
-      : PLAIN_INPUT_PLACEHOLDERS;
-  const inputPlaceholder = placeholderPool[placeholderIndex % placeholderPool.length]!;
-  const setAnimatedPlaceholder = useCallback((text: string) => {
-    displayPlaceholderRef.current = text;
-    setDisplayPlaceholder(text);
-  }, []);
-  useEffect(() => {
-    if (!animatePlaceholder) return;
-    const id = window.setInterval(() => {
-      setPlaceholderIndex((i) => i + 1);
-    }, INPUT_PLACEHOLDER_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [animatePlaceholder]);
-  useEffect(() => {
-    if (!animatePlaceholder) {
-      setAnimatedPlaceholder(inputPlaceholder);
-      return;
-    }
-    if (displayPlaceholderRef.current === inputPlaceholder) return;
-
-    let frame = 0;
-    const id = window.setInterval(() => {
-      frame += 1;
-      const text =
-        frame >= PLACEHOLDER_SHUFFLE_FRAMES
-          ? inputPlaceholder
-          : shufflePlaceholderFrame(inputPlaceholder, frame);
-      setAnimatedPlaceholder(text);
-      if (frame >= PLACEHOLDER_SHUFFLE_FRAMES) window.clearInterval(id);
-    }, PLACEHOLDER_SHUFFLE_FRAME_MS);
-    return () => window.clearInterval(id);
-  }, [animatePlaceholder, inputPlaceholder, setAnimatedPlaceholder]);
+  const displayPlaceholder = useComposerPlaceholder(animatePlaceholder, running);
 
   const { handleWindowDragEnter, handleWindowDragOver, handleWindowDragLeave, handleWindowDrop } =
     useWindowFileDrop({
@@ -909,168 +564,32 @@ function App(): React.ReactElement {
       addFiles,
     });
 
-  // Keep the native window title aligned with the visible title-bar context.
-  useEffect(() => {
-    const fallbackTitle = workspaceProductName(workspaceMode, Boolean(state?.goal));
-    const title =
-      !needsProject && !showPicker && state?.goal
-        ? `${state.goal.name} · ${fallbackTitle}`
-        : !needsProject && !showPicker
-          ? formatWorkspaceTitle(
-              state?.cwd,
-              state?.gitBranch,
-              fallbackTitle,
-              state?.gitDirtyFileCount,
-              state?.gitHubIssues ?? null,
-              state?.gitHubPRs ?? null,
-            )
-          : fallbackTitle;
-    setWindowTitle(title);
-  }, [
-    needsProject,
-    showPicker,
-    state?.cwd,
-    state?.gitBranch,
-    state?.gitDirtyFileCount,
-    state?.gitHubIssues,
-    state?.gitHubPRs,
-    state?.goal,
-    workspaceMode,
-  ]);
+  useWindowTitle({ needsProject, showPicker, state, workspaceMode });
 
-  // Auto-grow the chat textarea, keeping the transcript's scroll position
-  // intact across the measurement (see composer-autosize.ts for why both
-  // halves matter).
-  const autosizeInput = useCallback(() => {
-    chatLayout.settle();
-    autosizeComposer(inputRef.current, scrollRef.current, stickToBottomRef.current);
-  }, [chatLayout, stickToBottomRef]);
-
-  // useLayoutEffect (not useEffect) so the height is recomputed BEFORE the
-  // browser paints. This matters most when the enhance animation tears down and
-  // hands its multi-line text back to the textarea: with a post-paint effect the
-  // textarea would flash at its default height for one frame, then resize — a
-  // visible layout shift. Sizing pre-paint makes the handoff seamless.
-  //
-  // enhanceAnim is a dependency because the textarea is position:absolute during
-  // the animation (stretched to the overlay's height), so a measurement taken
-  // then is wrong; re-running once it clears sizes the now-in-flow textarea.
-  useLayoutEffect(() => {
-    autosizeInput();
-  }, [input, enhanceAnim, autosizeInput]);
-
-  // History anchoring and autosizing have landed. Commit the final scroll
-  // position before paint; only the displayed positions move, never scrollTop.
-  useLayoutEffect(() => {
-    // Nothing to commit while the transcript is hidden behind another view
-    // (a goal's Workers): it has no size, so any offset taken now is wrong.
-    if (needsProject || (scrollRef.current !== null && isHiddenScroller(scrollRef.current))) {
-      chatLayout.cancel();
-      return;
-    }
-    if (chatLayout.commit(stickToBottomRef.current, scrollToBottom) && scrollRef.current) {
-      lastScrollTopRef.current = scrollRef.current.scrollTop;
-    }
+  // Auto-grow the chat textarea before paint (useComposerAutosize.ts).
+  const { attachInput } = useComposerAutosize({
+    chatLayout,
+    inputRef,
+    scrollRef,
+    stickToBottomRef,
+    input,
+    enhanceAnim,
   });
-  useLayoutEffect(() => () => chatLayout.cancel(), [chatLayout, hydrateNonce]);
 
-  // The height is only recomputed when `input` changes, so anything else that
-  // re-wraps the draft leaves it stale until the next keystroke — the input
-  // sitting at the wrong height and then settling as you type.
-  //
-  // Width is the recurring one: Cmd +/- zoom, a window resize, a sibling bar
-  // appearing. Stale is worse than a jump here — overflow is pinned hidden below
-  // the cap, so re-wrapped lines are clipped rather than scrollable. Only width
-  // is acted on; reacting to height would feed our own resize back in as a loop.
-  // Attached via a callback ref because the composer unmounts whenever a
-  // picker/home view takes over the window.
-  //
-  // The resize runs on the next frame, not inside the callback: autosizing
-  // changes this same textarea's height (and width, via is-multiline), and
-  // resizing an observed element from its own callback leaves a notification
-  // undelivered, which WebKit reports as "ResizeObserver loop completed with
-  // undelivered notifications" on every send.
-  const inputRoRef = useRef<{ observer: ResizeObserver; cancel: () => void } | null>(null);
-  const attachInput = useCallback(
-    (el: HTMLTextAreaElement | null) => {
-      inputRef.current = el;
-      // Turn off macOS inline predictive text in the composer. WebKit lays the
-      // grey suggested words out INSIDE the textarea, so a suggestion that runs
-      // past the line end adds a wrapped line to scrollHeight; the next
-      // keystroke's autosize grows the box to fit it, and the box drops back the
-      // moment the suggestion is dismissed. That is the composer "randomly
-      // growing a line and going back" while typing. WKWebView shows these by
-      // default and the configuration switch is unreliable, so use the HTML
-      // attribute (WebKit 18+). Not in React's DOM types, hence setAttribute.
-      el?.setAttribute("writingsuggestions", "false");
-      inputRoRef.current?.observer.disconnect();
-      inputRoRef.current?.cancel();
-      inputRoRef.current = null;
-      if (!el || typeof ResizeObserver === "undefined") return;
-      let lastWidth = el.clientWidth;
-      let frame = 0;
-      const ro = new ResizeObserver(() => {
-        const width = el.clientWidth;
-        if (width === lastWidth) return;
-        lastWidth = width;
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => {
-          frame = 0;
-          autosizeInput();
-        });
-      });
-      ro.observe(el);
-      inputRoRef.current = { observer: ro, cancel: () => cancelAnimationFrame(frame) };
-    },
-    [autosizeInput],
-  );
+  // History anchoring and autosizing have landed: commit the send/tool layout
+  // transaction before paint (useChatLayoutCommit.ts).
+  useChatLayoutCommit({
+    chatLayout,
+    needsProject,
+    scrollRef,
+    stickToBottomRef,
+    lastScrollTopRef,
+    scrollToBottom,
+    hydrateNonce,
+  });
 
-  // Re-measure once font metrics are settled: an early draft (a restored one,
-  // or fast typing right at launch) can be measured before the final face is
-  // resolved, wrapping a line further and leaving the box a line too tall.
-  // `ready` specifically: WebKit never dispatches `loadingdone`, so a listener
-  // there would be dead code.
-  useEffect(() => {
-    let cancelled = false;
-    void document.fonts?.ready.then(() => {
-      if (!cancelled) autosizeInput();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [autosizeInput]);
-
-  // Keyboard shortcuts for multi-window navigation.
-  //   Cmd/Ctrl+N         → new project window
-  //   Cmd/Ctrl+`          → cycle forward through windows (reading order)
-  //   Cmd/Ctrl+Shift+`    → cycle backward
-  //   Cmd/Ctrl+Shift+A    → auto-arrange all windows into a clean grid
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      const meta = e.metaKey || e.ctrlKey;
-      if (!meta) return;
-      // New window: Cmd/Ctrl + N (no Shift/Alt).
-      if (e.key.toLowerCase() === "n" && !e.altKey && !e.shiftKey) {
-        e.preventDefault();
-        void newWindow();
-        return;
-      }
-      // Cycle windows: Cmd/Ctrl + Backquote (Shift = backward).
-      // Use e.code (physical key) — Shift turns ` into ~, but code stays stable.
-      if (e.code === "Backquote" && !e.altKey) {
-        e.preventDefault();
-        void focusWindowByOffset(e.shiftKey ? -1 : 1);
-        return;
-      }
-      // Auto-arrange all windows: Cmd/Ctrl + Shift + A.
-      if (e.shiftKey && (e.key === "a" || e.key === "A") && !e.altKey) {
-        e.preventDefault();
-        void arrangeAllWindows();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  // Cmd/Ctrl+N, Cmd/Ctrl+`, Cmd/Ctrl+Shift+A (useWindowShortcuts.ts).
+  useWindowShortcuts();
 
   const { windowIndex, windowTotal } = useWindowOrder(inputRef);
 
@@ -1158,6 +677,7 @@ function App(): React.ReactElement {
   // sidecar (its port changes, so we re-wait for readiness).
   const hydrate = useCallback(async (): Promise<void> => {
     const generation = ++hydrateGenerationRef.current;
+    let sessionReady = false;
     readyRef.current = false;
     setHydrated(false);
     setLiveFromId(Number.POSITIVE_INFINITY);
@@ -1178,6 +698,7 @@ function App(): React.ReactElement {
         }
         setRunning(st.running);
         setStatus(st.runState === "cancelling" ? "cancelling..." : "ready");
+        sessionReady = true;
       } else {
         setConnectError("Couldn't read this session from the agent.");
       }
@@ -1196,13 +717,20 @@ function App(): React.ReactElement {
       ).then((ok) => {
         if (!ok && hydrateGenerationRef.current === generation) setModelsFailed(true);
       });
-      const cmds = await listCommands();
+      // Ask for the commands, tasks and history together: each is a sidecar
+      // round trip, and a long chat's history is the slow one. Awaited in the
+      // same order as before, so state lands the same way.
+      const commandsCall = listCommands();
+      const tasksCall = listTasks();
+      const historyCall = listHistory();
+      for (const call of [commandsCall, tasksCall]) call.catch(() => undefined);
+      const cmds = await commandsCall;
       if (cmds.length > 0) setCommands(cmds);
       // Project task list for the Tasks modal + nav button.
-      setProjectTasks(await listTasks());
+      setProjectTasks(await tasksCall);
       // Hydrate the transcript when resuming an existing session — the webview
       // only sees live SSE events, so past messages must be fetched explicitly.
-      const history = await listHistory();
+      const history = await historyCall;
       const pendingShellRuns = Array.isArray(st?.pendingShellRuns) ? st.pendingShellRuns : [];
       void refreshShellTrust();
       if (history.length > 0) {
@@ -1212,130 +740,13 @@ function App(): React.ReactElement {
         // works after reopening a session — not just within the live one. App-
         // button prompts (shimmer labels) weren't typed by the user, so skip
         // them; everything else the user actually entered is included.
-        promptHistoryRef.current = history
-          .filter((h) => h.role === "user" && !(!h.command && recoverPromptLabel(h.text)))
-          .map((h) => {
-            const parsed = !h.command ? parseReferencedFiles(h.text) : null;
-            return (parsed ? parsed.text : h.text).trim();
-          })
-          .filter((t, i, a) => t.length > 0 && a[i - 1] !== t);
+        promptHistoryRef.current = promptHistoryFrom(history);
         // A reloaded transcript gives every worker a new row key; the goal
         // header's tally starts again from it (see tallySource).
         setTranscriptEpoch((epoch) => epoch + 1);
-        setItems(
-          collapseSecurityRows(
-            history.map((h): Item => {
-              // Tool-produced images (screenshots, generate_image) — reconstructed
-              // from persisted ImageContent blocks, downsampled by the sidecar.
-              if (h.toolImages && h.toolImages.length > 0)
-                return {
-                  kind: "images",
-                  id: nextId(),
-                  images: h.toolImages.map((img) => ({ src: img.src, path: img.path })),
-                };
-              if (h.todos) return { kind: "todos", id: nextId(), todos: h.todos, settled: true };
-              // Sub-agent delegation group — reconstructed from persisted tool_call
-              // + tool_result pairing. toolUseCount/activities aren't persisted, so
-              // the resumed feed shows agent name + status only.
-              if (h.subagentGroup && h.subagentGroup.length > 0)
-                return {
-                  kind: "subagent_group",
-                  id: nextId(),
-                  agents: h.subagentGroup.map((a, i) => ({
-                    toolCallId: `history-${i}`,
-                    agentName: a.agentName,
-                    status: a.status,
-                    activities: [],
-                    toolUseCount: a.toolUseCount,
-                    tokenUsage: { input: 0, output: 0 },
-                  })),
-                };
-              if (h.hook) return { kind: "hook", id: nextId(), hook: h.hook };
-              // A resumed compacted session shows the quiet compaction notice in
-              // place of the raw summary body (counts aren't persisted).
-              if (h.compacted)
-                return {
-                  kind: "compaction",
-                  id: nextId(),
-                  status: "done",
-                  originalCount: h.compactionCounts?.originalCount,
-                  newCount: h.compactionCounts?.newCount,
-                };
-              // Persisted display-only markers: plan-mode banner, task header,
-              // error rows, and the video-capability info row — all rendered
-              // identically to their live counterparts.
-              if (h.plan) return { kind: "plan", id: nextId(), reason: h.plan.reason };
-              if (h.task) return { kind: "task", id: nextId(), title: h.task.title };
-              if (h.error) {
-                return {
-                  kind: "error",
-                  id: nextId(),
-                  ...readChatError({ ...h.error }, h.error.scope, true),
-                };
-              }
-              if (h.security)
-                return {
-                  kind: "security",
-                  id: nextId(),
-                  rule: h.security.rule,
-                  target: h.security.target,
-                };
-              if (h.infoKind === "video_warning")
-                return { kind: "info", id: nextId(), text: VIDEO_CAPABILITY_WARNING };
-              if (h.shell) return shellItemFromHistory(h.shell, nextId(), pendingShellRuns);
-              if (h.checkoutNotice) return { kind: "info", id: nextId(), text: h.checkoutNotice };
-              if (h.verify) return verifyItemFromResult(nextId(), h.verify);
-              // Ken "Send to GG Coder" prompts: restore the shimmer label, not the
-              // full prompt body (matches live).
-              if (h.kenSent && h.role === "user")
-                return { kind: "user", id: nextId(), text: h.text, kenSent: true };
-              // Persisted Ken (mentor) turns: his reply restores as a Ken bubble,
-              // the `@Ken` question as a Ken-tinted user bubble (matches live).
-              if (h.ken && h.role === "assistant")
-                return { kind: "ken", id: nextId(), text: h.text };
-              if (h.ken && h.role === "user")
-                return { kind: "user", id: nextId(), text: h.text, ken: true };
-              // Persisted autopilot verdict marker: render identically to the
-              // live item so a resumed session never shows the raw verdict text
-              // (e.g. "ALL_CLEAR") the model actually replied with.
-              if (h.autopilot)
-                return {
-                  kind: "autopilot",
-                  id: nextId(),
-                  phase: h.autopilot.phase,
-                  reason: h.autopilot.reason,
-                  body: h.autopilot.body,
-                  copySeed: h.autopilot.copySeed,
-                };
-              if (h.role !== "user") return { kind: h.role, id: nextId(), text: h.text };
-              // App-button prompts (e.g. "Initialize Git") were shown live as a
-              // friendly shimmer label, not the expanded body. The label is
-              // webview-only, so recover it from the restored prompt text. Slash
-              // commands are already collapsed to `/name` by the sidecar (h.command).
-              const label = !h.command ? recoverPromptLabel(h.text) : null;
-              // Recover @-referenced files appended to the prompt so resumed
-              // sessions show the same file chips (and clean text) as when sent.
-              const parsed = !h.command && label === null ? parseReferencedFiles(h.text) : null;
-              return {
-                kind: "user",
-                id: nextId(),
-                text: parsed ? parsed.text : h.text,
-                command: h.command || label !== null,
-                ...(label !== null ? { label } : {}),
-                images: h.images && h.images.length > 0 ? h.images : undefined,
-                ...(h.attachments && h.attachments.length > 0
-                  ? { attachments: h.attachments }
-                  : {}),
-                ...(parsed && parsed.files.length > 0 ? { files: parsed.files } : {}),
-                ...(h.enhancements && h.enhancements.length > 0
-                  ? { enhancements: h.enhancements }
-                  : {}),
-                ...(h.ultracode ? { ultracode: true } : {}),
-                ...(h.orchestrate ? { orchestrate: true } : {}),
-              };
-            }),
-          ),
-        );
+        // Newest turns first; older rows of the page mount over the next frames.
+        startWarmMount();
+        setItems(itemsFromHistory(history, pendingShellRuns));
       }
       // History keeps a question's tool call but not its card: put back the
       // ones the agent is still waiting on.
@@ -1372,8 +783,10 @@ function App(): React.ReactElement {
       // session is in hand — one fade-in, no staggered reflow.
       setLiveFromId(lastIssuedId() + 1);
       setHydrated(true);
+      // Home's quick start may be waiting on this session (first-prompt.ts).
+      if (hydrateGenerationRef.current === generation) setHydrateSettled({ ok: sessionReady });
     }
-  }, [stickToBottomRef, refreshShellTrust]);
+  }, [stickToBottomRef, refreshShellTrust, startWarmMount]);
 
   useEffect(() => {
     const unsub = subscribe(handleEvent);
@@ -1428,10 +841,10 @@ function App(): React.ReactElement {
   const openTasks = useCallback(() => {
     setDeckPanel("todo");
     void listTasks().then(setProjectTasks);
-  }, []);
+  }, [setDeckPanel]);
   const closeDeckPanel = useCallback(
     (id: DeckPanelId) => setDeckPanel((open) => (open === id ? null : open)),
-    [],
+    [setDeckPanel],
   );
 
   const {
@@ -1470,72 +883,21 @@ function App(): React.ReactElement {
 
   const { notes, handleNotesChange } = useProjectNotes(state?.cwd);
 
-  // Pin Ken to a model (or null → clear the pin, follow GG Coder). The
-  // sidecar's ken_model_change broadcast updates state; the .then is just a
-  // faster local echo of the same payload.
-  function onSelectKenModel(modelId: string | null): void {
-    if (state && modelId !== null && state.kenModelOverride && modelId === state.kenModel) return;
-    if (state && modelId === null && !state.kenModelOverride) return;
-    void switchKenModel(modelId).then((res) => {
-      if (!res) {
-        // Without this the picker just snaps back and the click looks ignored.
-        toast("Couldn't switch Israel's model.", "error");
-        return;
-      }
-      setState((s) =>
-        s
-          ? {
-              ...s,
-              kenProvider: res.kenProvider,
-              kenModel: res.kenModel,
-              kenModelOverride: res.kenModelOverride,
-            }
-          : s,
-      );
-    });
-  }
-
-  // A Goal window's footer: the model GG Goals' workers ("critters") run on.
-  function onSelectCritterModel(modelId: string | null): void {
-    const current = state?.goal?.critterModel ?? null;
-    if (modelId === current) return;
-    void setCritterModel(modelId)
-      .then((res) => {
-        setState((s) =>
-          s?.goal ? { ...s, goal: { ...s.goal, critterModel: res.critterModel } } : s,
-        );
-      })
-      .catch((e: unknown) =>
-        // Otherwise the picker just snaps back and the click looks ignored.
-        toast(e instanceof Error ? e.message : String(e), "error"),
-      );
-  }
-
-  function onSelectModel(modelId: string, options?: { confirmPaid?: boolean }): void {
-    if (state && modelId === state.model) return;
-    void switchModel(modelId, options).then((res) => {
-      if (isSwitchModelError(res)) {
-        // The sidecar refuses with a reason worth reading ("Ollama isn't
-        // running at …", "has no tool calling"). Show it — otherwise the
-        // picker just snaps back with no explanation.
-        toast(res.error, "error");
-        return;
-      }
-      // Sakana Fugu easter egg: blow the fugu horn when a Fugu model is picked.
-      if (res.model.startsWith("fugu")) playSound("fugu");
-      setState((s) =>
-        s
-          ? {
-              ...s,
-              provider: res.provider,
-              model: res.model,
-              thinkingLevel: res.thinkingLevel,
-              supportedThinkingLevels: res.supportedThinkingLevels,
-            }
-          : s,
-      );
-    });
-  }
+  // Model switching, permission mode, approvals and the session toggles
+  // (session-actions.ts).
+  const {
+    onSelectKenModel,
+    onSelectCritterModel,
+    onSelectModel,
+    onSelectWorkerModel,
+    cyclePermission,
+    answerApproval,
+    changeUltracode,
+    changeOrchestrate,
+    changeVerify,
+    changeWorktreeWorkers,
+    changeCompaction,
+  } = createSessionActions({ state, setState, running });
 
   // Context-window usage percentage for the footer meter. 0 (hidden) until we
   // have both a window size and a real token reading from a completed turn.
@@ -1544,73 +906,50 @@ function App(): React.ReactElement {
       ? Math.min(100, Math.round((contextTokens / state.contextWindow) * 100))
       : 0;
 
-  // Workflow commands matching the current `/prefix` (only while the input is a
-  // single `/token` with no space yet). Empty when not in slash mode.
-  const slashQuery =
-    input.startsWith("/") && !input.includes(" ") ? input.slice(1).toLowerCase() : null;
-  // `/schedule ` (past the command token) swaps the palette for the argument
-  // hint. An invalid draft is blocked from being sent to the agent.
-  const scheduleDraft = isScheduleDraft(input);
-  const scheduleParse = scheduleDraft ? parseScheduleCommand(input) : null;
-  // Drives the composer's invalid affordance; submit() enforces the block.
-  const scheduleInvalid = scheduleParse !== null && !scheduleParse.ok;
-  // Commit lives in the top-right button, not the slash menu.
-  const COMMIT_NAMES = ["commit", "setup-commit"];
-  // `/schedule` is handled entirely in the webview (it registers a timer rather
-  // than prompting the agent), so the sidecar's registry never lists it. Inject
-  // it here or it would be undiscoverable — typing `/sch` would show nothing.
-  const ultracodeAvailable = workspaceMode === "code" && !state?.goal;
-  const menuCommands = [
-    SCHEDULE_COMMAND,
-    ...(ultracodeAvailable ? [ULTRACODE_COMMAND] : []),
-    ...commands,
-  ].filter((c) => !COMMIT_NAMES.includes(c.name));
-  const slashMatches =
-    slashQuery !== null
-      ? menuCommands.filter(
-          (c) =>
-            c.name.toLowerCase().startsWith(slashQuery) ||
-            c.aliases.some((a) => a.toLowerCase().startsWith(slashQuery)),
-        )
-      : [];
-  const slashOpen = slashMatches.length > 0;
-  // Clamp so a shrinking match list never points past the end.
-  const clampedSlashIndex = slashMatches.length > 0 ? slashIndex % slashMatches.length : 0;
-
-  // `@Ken` is the mentor-agent address, not a file mention. When the input leads
-  // with it (case-insensitive, word-boundary so `@kennedy.ts` still picks files),
-  // Ken is "active": the file picker is suppressed and the input is tinted in
-  // Ken's color with a shimmering marker, so it's obvious the message goes to Ken.
-  const kenActive = workspaceMode === "code" && /^@(?:israel|ken)\b/i.test(input.trimStart());
-  // Split the input for the `@Ken` highlight overlay: any leading whitespace,
-  // the literal `@Ken` token (preserving the user's casing), then the rest. Only
-  // the token shimmers; lead+rest render in the normal input color.
-  const kenInputParts = (() => {
-    const m = /^(\s*)(@(?:israel|ken))/i.exec(input);
-    if (!m) return null;
-    return { lead: m[1], token: m[2], rest: input.slice(m[1].length + m[2].length) };
-  })();
-  // `@`-mention picker: open whenever a mention token is active and the search
-  // returned at least one file. Clamp the highlighted row to the result count.
-  // Never open while `@Ken` is active — that token addresses Ken, not a file.
-  // `!cmd`: the input runs a command instead of messaging the agent.
-  const shellMode = workspaceMode === "code" && shellCommandFromInput(input) !== null;
-  const ultracodeKeyword =
-    ultracodeAvailable &&
-    !shellMode &&
-    !input.trimStart().startsWith("/") &&
-    hasUltracodeKeyword(input);
-  const ultracodeArmed = ultracodeKeyword && !ultracodeDismissed;
-  // "orchestrate" typed in the draft: Orchestrate for this prompt only.
-  const orchestrateKeyword =
-    ultracodeAvailable &&
-    !shellMode &&
-    !input.trimStart().startsWith("/") &&
-    hasOrchestrateKeyword(input);
-  // A dismissal lasts while the word stays in the draft; typing it anew re-arms.
-  useEffect(() => {
-    if (!ultracodeKeyword) setUltracodeDismissed(false);
-  }, [ultracodeKeyword]);
+  // The draft's menus and keywords: slash commands, /schedule, @-files, !
+  // commands, @Israel, Ultracode and Orchestrate (useComposerMenus.ts).
+  const {
+    caret,
+    setCaret,
+    setSlashIndex,
+    mention,
+    setMention,
+    fileMatches,
+    setFileIndex,
+    scheduleDraft,
+    scheduleInvalid,
+    ultracodeAvailable,
+    slashMatches,
+    slashOpen,
+    clampedSlashIndex,
+    kenActive,
+    kenInputParts,
+    shellMode,
+    ultracodeArmed,
+    orchestrateKeyword,
+    setUltracodeDismissed,
+    shellMenu,
+    mentionOpen,
+    clampedFileIndex,
+    fillComposer,
+    fillScheduleInterval,
+    pickSlashCommand,
+    updateMention,
+    pickMentionFile,
+    removeMentionChip,
+  } = useComposerMenus({
+    input,
+    setInput,
+    setEnhancement,
+    setMentionedPaths,
+    inputRef,
+    workspaceMode,
+    state,
+    commands,
+    shellTrusted,
+    revokeShellTrust,
+    submitText,
+  });
 
   const rewindAvailable = workspaceMode === "code" && !state?.goal;
   function finishRewind(result: { mode: RewindMode; prompt: string; filesRestored: number }): void {
@@ -1626,127 +965,9 @@ function App(): React.ReactElement {
     toast(result.mode === "both" ? `Rewound: ${files}.` : "Rewound the conversation.", "info");
   }
 
-  function cyclePermission(): void {
-    const from = currentPill(state?.permissionMode, state?.planMode);
-    const next = nextPill(from);
-    // Plan only switches between runs; skip past it mid-run.
-    const target = next === "plan" && running ? nextPill(next) : next;
-    setPermissionMode(target)
-      .then((r) =>
-        setState((s) => (s ? { ...s, permissionMode: r.permissionMode, planMode: r.planMode } : s)),
-      )
-      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
-  }
-
-  function answerApproval(id: string, decision: "allow" | "always" | "deny", note?: string): void {
-    setState((s) =>
-      s ? { ...s, pendingApprovals: (s.pendingApprovals ?? []).filter((a) => a.id !== id) } : s,
-    );
-    respondApproval(id, decision, note).catch((e: unknown) =>
-      toast(`Couldn't answer: ${e instanceof Error ? e.message : String(e)}`, "error"),
-    );
-  }
-
-  function changeUltracode(next: boolean): void {
-    setState((s) => (s ? { ...s, ultracode: next } : s));
-    setUltracode(next).catch(() => {
-      setState((s) => (s ? { ...s, ultracode: !next } : s));
-      toast("Couldn't change Ultracode. Try again.", "error");
-    });
-  }
-  // Orchestrate: optimistic flip, reverted if the sidecar refuses (like Ultracode).
-  function changeOrchestrate(next: boolean): void {
-    const patch = (on: boolean) => (s: AgentState | null) =>
-      s
-        ? {
-            ...s,
-            orchestration: { workerModel: s.orchestration?.workerModel ?? null, orchestrate: on },
-          }
-        : s;
-    setState(patch(next));
-    setOrchestrate(next)
-      .then((res) => setState((s) => (s ? { ...s, orchestration: res } : s)))
-      .catch(() => {
-        setState(patch(!next));
-        toast("Couldn't change Orchestrate. Try again.", "error");
-      });
-  }
-  // Verify loop: the control saves through the sidecar; this just mirrors the result.
-  function changeVerify(next: VerifyState): void {
-    setState((s) => (s ? { ...s, verify: next } : s));
-  }
-  // Worktree workers: the review popover saves the policy; this mirrors the result.
-  function changeWorktreeWorkers(next: WorktreeWorkersState): void {
-    setState((s) => (s ? { ...s, worktreeWorkers: next } : s));
-  }
-  // Compaction control: the gauge popover saves through the sidecar; this mirrors the result.
-  function changeCompaction(next: CompactionState): void {
-    setState((s) => (s ? { ...s, compaction: next } : s));
-  }
-  // The model Orchestrate's workers run on; null: they follow the main model.
-  function onSelectWorkerModel(modelId: string | null): void {
-    if (modelId === (state?.orchestration?.workerModel ?? null)) return;
-    void setWorkerModel(modelId)
-      .then((res) => setState((s) => (s ? { ...s, orchestration: res } : s)))
-      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
-  }
-  // Entering `!` loads the picker's commands (history counts change per run).
-  useEffect(() => {
-    if (!shellMode) return;
-    let live = true;
-    void listShellSuggestions().then((list) => {
-      if (live) setShellSuggestions(list);
-    });
-    return () => {
-      live = false;
-    };
-  }, [shellMode]);
-  const shellMatches = useMemo(
-    () => (shellMode ? filterShellSuggestions(shellSuggestions, input.slice(1)) : []),
-    [shellMode, shellSuggestions, input],
-  );
-  const shellMenu: ShellMenu | null =
-    shellMatches.length > 0 && shellMenuDismissedFor !== input
-      ? {
-          matches: shellMatches,
-          activeIndex: shellIndex % shellMatches.length,
-          setActiveIndex: setShellIndex,
-          navigate: (delta) => {
-            const n = shellMatches.length;
-            setShellIndex((i) => (((i + delta) % n) + n) % n);
-            setShellNavigatedFor(input);
-          },
-          enterPicks: shellEnterPicks(input, shellNavigatedFor),
-          pick: (s) => {
-            const next = `!${s.command}`;
-            setInput(next);
-            setShellIndex(0);
-            // A picked command is complete: close the picker until the user edits it.
-            setShellMenuDismissedFor(next);
-            requestAnimationFrame(() => {
-              const el = inputRef.current;
-              if (!el) return;
-              el.focus();
-              el.setSelectionRange(next.length, next.length);
-            });
-          },
-          dismiss: () => setShellMenuDismissedFor(input),
-          trusted: shellTrusted,
-          revokeTrust: () => void revokeShellTrust(),
-        }
-      : null;
-  const mentionOpen = mention !== null && fileMatches.length > 0 && !kenActive && !shellMode;
-  const clampedFileIndex = fileMatches.length > 0 ? fileIndex % fileMatches.length : 0;
-  // Footer background-tasks indicator only shows while something is actually
-  // running (exited tasks shouldn't keep the bar item around).
-
   // True when `text` is a known workflow command invocation (first token).
   function isWorkflowCommand(text: string): boolean {
-    if (!text.startsWith("/")) return false;
-    const name = text.slice(1).split(" ")[0]?.toLowerCase() ?? "";
-    return commands.some(
-      (c) => c.name.toLowerCase() === name || c.aliases.some((a) => a.toLowerCase() === name),
-    );
+    return isKnownWorkflowCommand(text, commands);
   }
 
   // Top-right commit affordance. `/commit` is built in (it runs the project's
@@ -1763,138 +984,9 @@ function App(): React.ReactElement {
   // Default repo name = the project folder name.
   const defaultRepoName = (state?.cwd ?? "").split(/[\\/]/).filter(Boolean).pop() ?? "";
 
-  /** Put text in the composer with the caret at the end, ready to finish and send. */
-  function fillComposer(text: string): void {
-    setInput(text);
-    setCaret(text.length);
-    requestAnimationFrame(() => {
-      const el = inputRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(text.length, text.length);
-    });
-  }
-
-  /**
-   * Fill the interval slot from a preset chip. Replaces an existing interval
-   * rather than appending, so clicking `1h` after `15m` swaps it instead of
-   * producing a second bar. Keeps focus in the composer so typing continues.
-   */
-  function fillScheduleInterval(preset: string): void {
-    const { text, caret: caretAt } = withInterval(input, preset);
-    setInput(text);
-    requestAnimationFrame(() => {
-      const el = inputRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(caretAt, caretAt);
-      setCaret(caretAt);
-    });
-  }
-
   /** Ordered queue events own both pending rows and cancelled transcript bubbles. */
   function handleCancelQueued(id: string): void {
     void cancelQueued(id);
-  }
-
-  function pickSlashCommand(cmd: SlashCommand): void {
-    if (cmd.name === "add-dir" || cmd.name === "remove-dir") {
-      setInput("");
-      setSlashIndex(0);
-      void pickWorkspaceDirectory(cmd.name);
-      return;
-    }
-
-    // Fill the input with the command; the user can add args or press Enter.
-    const next = `/${cmd.name} `;
-    setInput(next);
-    setSlashIndex(0);
-    // Keep the caret state in sync with the filled text, so an argument hint
-    // (e.g. `/schedule`) highlights the right slot instead of a stale offset.
-    setCaret(next.length);
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }
-
-  async function pickWorkspaceDirectory(command: "add-dir" | "remove-dir"): Promise<void> {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-      title:
-        command === "add-dir"
-          ? "Add project folder to workspace"
-          : "Remove project folder from workspace",
-    });
-    if (typeof selected !== "string") return;
-    submitText(`/${command} ${selected}`, command === "add-dir" ? "/add-dir" : "/remove-dir");
-  }
-
-  // Detect an active `@`-mention token at the caret: a `@` that starts at a word
-  // boundary with no whitespace between it and the caret. Returns the query text
-  // after `@` and the `@`'s index, or null when not in a mention.
-  function detectMention(text: string, caret: number): { query: string; start: number } | null {
-    const before = text.slice(0, caret);
-    const at = before.lastIndexOf("@");
-    if (at < 0) return null;
-    // Must start at the line start or after whitespace.
-    const prev = at > 0 ? before[at - 1] : " ";
-    if (prev !== undefined && !/\s/.test(prev)) return null;
-    const query = before.slice(at + 1);
-    // A space ends the token — no mention once the path is followed by a space.
-    if (/\s/.test(query)) return null;
-    return { query, start: at };
-  }
-
-  // Sync the mention picker to the current input + caret on every change.
-  function updateMention(text: string, caret: number): void {
-    setMention(detectMention(text, caret));
-  }
-
-  // Debounced file search whenever the active mention query changes. Skipped when
-  // `@Ken` is active so typing `@ken` never spawns a file lookup or picker.
-  useEffect(() => {
-    if (mention === null || kenActive) {
-      setFileMatches([]);
-      return;
-    }
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void searchFiles(mention.query).then((files) => {
-        if (!cancelled) {
-          setFileMatches(files);
-          setFileIndex(0);
-        }
-      });
-    }, 80);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [mention, kenActive]);
-
-  // Pick a file: drop the typed `@query` from the input, add the file as a chip
-  // (deduped), and restore the caret where the token was. The path lives in chip
-  // state, never in the textarea text.
-  function pickMentionFile(file: FileHit): void {
-    if (mention === null) return;
-    const el = inputRef.current;
-    const caret = el?.selectionStart ?? input.length;
-    const head = input.slice(0, mention.start);
-    const tail = input.slice(caret);
-    const next = head + tail;
-    setInput(next);
-    setEnhancement((current) => followDraftEdit(current, input, next));
-    setMentionedPaths((prev) => (prev.includes(file.path) ? prev : [...prev, file.path]));
-    setMention(null);
-    setFileMatches([]);
-    requestAnimationFrame(() => {
-      el?.focus();
-      el?.setSelectionRange(head.length, head.length);
-    });
-  }
-
-  // Drop a referenced-file chip.
-  function removeMentionChip(p: string): void {
-    setMentionedPaths((prev) => prev.filter((x) => x !== p));
   }
 
   // Submit arbitrary text as if typed + entered. Shared by the input, the
@@ -1955,6 +1047,13 @@ function App(): React.ReactElement {
   // current one without re-creating the interval on every render.
   const submitTextRef = useRef(submitText);
   submitTextRef.current = submitText;
+  // Home's quick-start message: sent once, as a normal user message, after
+  // the session it opened is ready; back in the composer if it can't be.
+  useFirstPrompt(
+    hydrateSettled,
+    (text) => submitTextRef.current(text),
+    (text) => setInput(text),
+  );
 
   // Return to chat without consuming the draft. Agent setup runs the existing
   // /init workflow; audits require a recorded result, never an inferred pass.
@@ -2166,241 +1265,42 @@ function App(): React.ReactElement {
     [],
   );
 
-  // ── Goal world ──
-  // A started goal opens on its Workers view: the critters at work, edge to
-  // edge, in place of the chat, input and footer. The header's Chat | Workers
-  // switch flips between that and the full conversation (with its input).
-  const [goalChatFor, setGoalChatFor] = useState<string | null>(null);
-  // Pause stops the current run and its workers (the same cancel as Stop) and
-  // keeps the goal put, even across restarts; resume carries it on.
-  const setGoalPaused = useCallback(
-    (paused: boolean) => {
-      const act = paused
-        ? pauseGoal().then(() => {
-            if (running) requestCancel();
-          })
-        : resumeGoal().then((resumed) => {
-            // Nothing was cut short: the goal had simply finished.
-            if (!resumed && !state?.goal?.paused) {
-              toast(
-                "Nothing to carry on: the goal finished. Tell Israel Goals what's next in the chat.",
-              );
-            }
-          });
-      void act.catch((e: unknown) =>
-        toast(
-          `Couldn't ${paused ? "pause" : "resume"} the goal: ${e instanceof Error ? e.message : String(e)}`,
-          "error",
-        ),
-      );
-    },
-    [running, requestCancel, state?.goal?.paused],
-  );
-  // The Workers view runs under the (see-through) header; it keeps the
-  // workshop clear of whatever height the header has.
-  const workspaceHeaderRef = useRef<HTMLDivElement>(null);
-  const { activeGoalId, view: goalView } = goalViewFor(state?.goal, goalChatFor);
-  const goalWorldOpen = goalView === "workers";
-  // When the current run began, for the activity bar's timer. Kept here, not
-  // in the bar: the bar lives in the chat, which the Workers view hides, and
-  // its own clock would restart from zero each time the chat came back.
-  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
-  // A question waiting in the transcript means the run is waiting on the user,
-  // even when the window reopened after it was asked (the activity reducer
-  // only sees the ask arrive live): say so instead of "Working...".
-  const openQuestion = useMemo(
-    () =>
-      items.some((item) => item.kind === "ask" && !item.sent && !item.cancelled && !item.deferred),
-    [items],
-  );
-  const barActivity = useMemo(
-    () =>
-      running && openQuestion && !activity.waitingForAnswer
-        ? {
-            ...activity,
-            phase: "attention" as const,
-            label: "Your decision needed",
-            detail: "Answer the question in chat to continue.",
-            waitingForAnswer: true,
-            startedAt: activity.startedAt ?? runStartedAt,
-          }
-        : activity,
-    [running, openQuestion, activity, runStartedAt],
-  );
-  useEffect(() => {
-    setRunStartedAt((prev) => (running ? (prev ?? Date.now()) : null));
-  }, [running]);
-  // The chat stays mounted but hidden behind the Workers view, and a hidden
-  // scroller loses its offset. Remember where the reader was when it hid, and
-  // put them back on return: at the bottom if they were following, else at
-  // the same spot (it otherwise came back pushed up the page).
-  const chatScrollOnHideRef = useRef<{ pinned: boolean; top: number } | null>(null);
-  useLayoutEffect(() => {
-    if (goalWorldOpen) {
-      chatScrollOnHideRef.current = {
-        pinned: stickToBottomRef.current,
-        top: lastScrollTopRef.current,
-      };
-      dropHiddenFocus();
-      return;
-    }
-    const saved = chatScrollOnHideRef.current;
-    chatScrollOnHideRef.current = null;
-    // Shown again, not opened: every entrance inside lands at its end at once
-    // (see finish-entrances.ts), so the deck and its notices don't replay.
-    if (saved) finishEntrances([transcriptFrameRef.current, dockElRef.current]);
-    const el = scrollRef.current;
-    if (!saved || !el) return;
-    stickToBottomRef.current = saved.pinned;
-    if (saved.pinned) scrollToBottom();
-    else {
-      el.scrollTop = saved.top;
-      lastScrollTopRef.current = el.scrollTop;
-    }
-  }, [goalWorldOpen, stickToBottomRef, lastScrollTopRef, scrollToBottom]);
-  // And for as long as the farm is up, not just as it opens: the composer can
-  // take focus while still visible (its autoFocus on a reload) and be hidden
-  // right after.
-  useEffect(() => {
-    if (!goalWorldOpen) return;
-    document.addEventListener("focusin", dropHiddenFocus);
-    return () => document.removeEventListener("focusin", dropHiddenFocus);
-  }, [goalWorldOpen]);
-  const goalWorkers = useMemo(
-    () => (activeGoalId ? collectFloorAgents(critterGroups) : []),
-    [activeGoalId, critterGroups],
-  );
-  // GG Goals heads for the mailbox while a question waits on the user.
-  const goalWaitingOnUser = useMemo(
-    () =>
-      activeGoalId !== null &&
-      items.some((item) => item.kind === "ask" && !item.sent && !item.cancelled),
-    [activeGoalId, items],
-  );
-  // GG Goals blocked on a question: a sign over the Workers view until the
-  // user has gone to the chat while it was waiting (seen), then just the
-  // Chat tab's dot until it's answered.
-  const goalAsk = useMemo(() => (activeGoalId ? blockingAsk(items) : null), [activeGoalId, items]);
-  const [seenGoalAsks, setSeenGoalAsks] = useState<ReadonlySet<string>>(() => new Set());
-  useEffect(() => {
-    if (!goalAsk || goalView !== "chat") return;
-    setSeenGoalAsks((seen) => (seen.has(goalAsk.id) ? seen : new Set([...seen, goalAsk.id])));
-  }, [goalAsk, goalView]);
-  const goalAskNotice = useMemo(
-    () =>
-      goalAsk && !seenGoalAsks.has(goalAsk.id)
-        ? { question: goalAsk.question, more: goalAsk.more }
-        : null,
-    [goalAsk, seenGoalAsks],
-  );
-  // Ken's newest spoken line (the `[ken:face]` line GG Goals ends a message
-  // with), for the Workers view's dialogue box. Finished messages only: the
-  // streaming one lives in the live-text store, not `items`.
-  const kenSaid = useMemo(
-    () => (activeGoalId ? latestKenLine(items, (id) => liveText.get(id) !== undefined) : null),
-    [activeGoalId, items, liveText],
-  );
-  // A stretch of goal work finished (nothing left going, and it stayed that
-  // way a moment): the Workers view's end-of-level card, with its score. It
-  // comes down when closed, when the user goes to the chat, or when work
-  // starts again. Only runs seen live count, so a reopened window shows none.
-  useEffect(() => {
-    goalRunTargetRef.current = activeGoalId;
-  }, [activeGoalId]);
-  const [goalClosedAt, setGoalClosedAt] = useState(0);
-  const [goalFinish, setGoalFinish] = useState<GoalFinish | null>(null);
-  const goalStretch = useMemo(
-    () => (activeGoalId ? openStretch(goalRuns, activeGoalId, goalClosedAt) : []),
-    [activeGoalId, goalRuns, goalClosedAt],
-  );
-  const goalQuiet =
-    goalStretch.length > 0 &&
-    goalIsQuiet({
-      paused: state?.goal?.paused === true,
-      running,
-      waitingOnUser: goalWaitingOnUser,
-      workers: goalWorkers,
-    });
-  const finishInputsRef = useRef({ groups: critterGroups, said: kenSaid });
-  useEffect(() => {
-    finishInputsRef.current = { groups: critterGroups, said: kenSaid };
-  }, [critterGroups, kenSaid]);
-  useEffect(() => {
-    if (!goalQuiet) return;
-    const timer = window.setTimeout(() => {
-      const { groups, said } = finishInputsRef.current;
-      const last = goalStretch[goalStretch.length - 1];
-      if (last) setGoalClosedAt(last.endedAt);
-      setGoalFinish(goalFinishOf(goalStretch, groups, said));
-    }, FINISH_SETTLE_MS);
-    return () => window.clearTimeout(timer);
-  }, [goalQuiet, goalStretch]);
-  useEffect(() => {
-    if (goalFinish && (running || goalView === "chat")) setGoalFinish(null);
-  }, [goalFinish, running, goalView]);
-  const shownGoalFinish = goalFinish?.goalId === activeGoalId ? goalFinish : null;
-  // What Ken is doing right now, for the Workers view's status pill and the
-  // thought mark over his head (see goal-ken-status).
-  const goalPaused = state?.goal?.paused === true;
-  const goalLastRun = useMemo(
-    () => (activeGoalId ? lastRunOf(goalRuns, activeGoalId, items) : null),
-    [activeGoalId, goalRuns, items],
-  );
-  const kenStatus = useMemo(
-    () =>
-      activeGoalId
-        ? kenStatusOf({
-            running,
-            paused: goalPaused,
-            waitingOnUser: goalWaitingOnUser,
-            liveTools: liveToolFeed,
-            workers: goalWorkers,
-            lastRun: goalLastRun,
-          })
-        : null,
-    [activeGoalId, running, goalPaused, goalWaitingOnUser, liveToolFeed, goalWorkers, goalLastRun],
-  );
-  // The header's counts: workers working now, tasks done and failed so far
-  // (see goal-progress). Counting starts afresh for each goal.
-  // Restarted when the transcript is reloaded (after a daemon restart, say):
-  // the tally counts each worker's change by row key, and reloaded rows get
-  // new keys (live bug: "6 done, 6 failed" for a goal that ran 3 workers).
-  const tallySource = `${activeGoalId ?? ""}:${transcriptEpoch}`;
-  const tallyInput = useMemo(
-    () => [
-      ...goalWorkers.map((worker) => ({
-        key: worker.key,
-        phase: floorPhase(worker.status),
-      })),
-      // GG Goals itself, while it does hands-on work (it's never a finished task).
-      ...(running && coordinatorAtWork(liveToolFeed)
-        ? [{ key: COORDINATOR_KEY, phase: "working" as const }]
-        : []),
-    ],
-    [goalWorkers, running, liveToolFeed],
-  );
-  const [tallyState, setTallyState] = useState<{ source: string; tally: GoalTally }>({
-    source: "",
-    tally: EMPTY_TALLY,
+  // When the current run began, and what the activity bar says about it.
+  const { runStartedAt, barActivity } = useRunActivity({ items, running, activity });
+  // ── Goal world ── (useGoalWorld.ts)
+  const {
+    setGoalChatFor,
+    setGoalPaused,
+    workspaceHeaderRef,
+    activeGoalId,
+    goalView,
+    goalWorldOpen,
+    goalWaitingOnUser,
+    goalWorkers,
+    goalAskNotice,
+    kenSaid,
+    shownGoalFinish,
+    setGoalFinish,
+    kenStatus,
+    goalTally,
+  } = useGoalWorld({
+    state,
+    running,
+    requestCancel,
+    items,
+    critterGroups,
+    liveText,
+    liveToolFeed,
+    goalRuns,
+    goalRunTargetRef,
+    transcriptEpoch,
+    scrollRef,
+    transcriptFrameRef,
+    dockElRef,
+    stickToBottomRef,
+    lastScrollTopRef,
+    scrollToBottom,
   });
-  useEffect(() => {
-    setTallyState((prev) => {
-      const base = prev.source === tallySource ? prev.tally : EMPTY_TALLY;
-      const tally = tallyGoal(base, tallyInput);
-      return prev.source === tallySource && tally === prev.tally
-        ? prev
-        : { source: tallySource, tally };
-    });
-  }, [tallySource, tallyInput]);
-  const goalTally = useMemo(
-    () =>
-      !activeGoalId
-        ? null
-        : tallyState.source === tallySource
-          ? tallyState.tally
-          : tallyGoal(EMPTY_TALLY, tallyInput),
-    [activeGoalId, tallyState, tallySource, tallyInput],
-  );
 
   const { recordHistory, navigateHistory } = usePromptHistory({
     promptHistoryRef,
@@ -2428,366 +1328,58 @@ function App(): React.ReactElement {
     scheduleDraft,
   });
 
-  // A send that never reached the agent must not look delivered: drop its
-  // bubble, say what happened, and hand the draft back. Anything the user has
-  // typed or staged since is never overwritten.
-  function restoreFailedSend(
-    failed: {
-      bubbleId: number;
-      draft: string;
-      attachments: PendingAttachment[];
-      mentionedPaths: string[];
-      scope: "error" | "ken_error";
-    },
-    error: unknown,
-  ): void {
-    setItems((prev) => prev.filter((it) => it.id !== failed.bubbleId));
-    pushItem({
-      kind: "error",
-      id: nextId(),
-      ...readChatError(
-        {
-          headline: "Your message wasn't sent",
-          message: error instanceof Error ? error.message : String(error),
-          guidance: "Your draft is back in the message box. Send it again when the agent is ready.",
-          reason: "network",
-        },
-        failed.scope,
-      ),
-    });
-    setInput((cur) => (cur === "" ? failed.draft : cur));
-    if (failed.attachments.length > 0)
-      setAttachments((cur) => (cur.length === 0 ? failed.attachments : cur));
-    if (failed.mentionedPaths.length > 0)
-      setMentionedPaths((cur) => (cur.length === 0 ? failed.mentionedPaths : cur));
-  }
+  // Enter in the composer (composer-submit.ts).
+  const { submit } = createComposerSubmit({
+    input,
+    setInput,
+    attachments,
+    setAttachments,
+    clearAttachments,
+    attachmentReadsRef,
+    mentionedPaths,
+    setMentionedPaths,
+    setMention,
+    setSlashIndex,
+    enhancement,
+    setEnhancement,
+    setSendCount,
+    setItems,
+    pushItem,
+    endStreamingText,
+    chatLayout,
+    stickToBottomRef,
+    readyRef,
+    typingAskRef,
+    answerAsk,
+    hasOpenAsk,
+    dismissOpenAsks,
+    noteSupersedingSend,
+    isWorkflowCommand,
+    recordHistory,
+    workspaceMode,
+    state,
+    running,
+    submitShell,
+    markShellShared,
+    addSchedule,
+    rewindAvailable,
+    setRewindAt,
+    ultracodeAvailable,
+    ultracodeArmed,
+    orchestrateKeyword,
+    changeUltracode,
+  });
 
-  // Submit the current input together with any staged attachments. Images are
-  // echoed inline in the user's bubble; all media is sent to the agent.
-  function submit(): void {
-    if (attachmentReadsRef.current > 0) {
-      toast("Attachments are still loading. Please wait.");
-      return;
-    }
-    const trimmed = input.trim();
-    // "Type instead" on an open question band parks the answer here: the agent's
-    // tool call is blocked on it, so this text is the ANSWER, not a new prompt.
-    // Queueing it as steering would leave the tool call hanging until it times
-    // out, and the model would never see what the user typed. Only composer
-    // sends the user typed count — a command or scheduled prompt firing through
-    // submitText() must not consume the answer.
-    const typed = typingAskRef.current;
-    if (typed && trimmed) {
-      chatLayout.capture();
-      typingAskRef.current = null;
-      setInput("");
-      setSlashIndex(0);
-      answerAsk(typed.itemId, typed.promptId, { [typed.questionId]: trimmed });
-      return;
-    }
-    if (!readyRef.current) return;
-    if (!trimmed && attachments.length === 0 && mentionedPaths.length === 0) return;
-
-    // `!cmd` runs a command for the user, in the project folder, with no agent
-    // turn. Attachments and file chips stay in the composer for the next message.
-    const shellCommand = workspaceMode === "code" ? shellCommandFromInput(input) : null;
-    if (shellCommand !== null) {
-      if (!shellCommand) return;
-      chatLayout.capture();
-      recordHistory(trimmed);
-      stickToBottomRef.current = true;
-      submitShell(shellCommand, state?.cwd ?? "");
-      setInput("");
-      setSlashIndex(0);
-      setMention(null);
-      return;
-    }
-
-    // `/schedule` registers a recurring prompt instead of sending anything now.
-    // An invalid draft is refused outright — sending it would run the raw command
-    // text as a prompt — and the hint above the composer already says why.
-    if (isScheduleDraft(input)) {
-      const result = parseScheduleCommand(input);
-      if (!result.ok) return;
-      chatLayout.capture();
-      addSchedule(result.value);
-      // Confirm in the transcript, otherwise pressing Enter looks like it did
-      // nothing: the first run is a whole interval away, so there is no other
-      // feedback until then.
-      pushItem({
-        kind: "user",
-        id: nextId(),
-        text: trimmed,
-        command: true,
-        label: `Scheduled · ${describeSchedule(result.value)}`,
-      });
-      recordHistory(trimmed);
-      stickToBottomRef.current = true;
-      setInput("");
-      setSlashIndex(0);
-      return;
-    }
-
-    // `/rewind` opens the picker instead of prompting.
-    if (rewindAvailable && /^\/rewind\s*$/i.test(trimmed)) {
-      if (!running) setRewindAt("");
-      else toast("Stop the agent before rewinding.", "error");
-      setInput("");
-      setSlashIndex(0);
-      return;
-    }
-
-    // `/ultracode [on|off]` changes the session setting instead of prompting.
-    const ultracodeCommand = ultracodeAvailable ? parseUltracodeCommand(trimmed) : null;
-    if (ultracodeCommand) {
-      const next =
-        ultracodeCommand === "toggle" ? !(state?.ultracode ?? false) : ultracodeCommand === "on";
-      changeUltracode(next);
-      pushItem({
-        kind: "user",
-        id: nextId(),
-        text: trimmed,
-        command: true,
-        label: next ? "Ultracode on" : "Ultracode off",
-      });
-      recordHistory(trimmed);
-      stickToBottomRef.current = true;
-      setInput("");
-      setSlashIndex(0);
-      return;
-    }
-
-    // `@Ken <prompt>` (case-insensitive, optional colon) routes to Ken Kai, the
-    // read-only mentor agent — NOT GG Coder. Ken runs concurrently with any
-    // build run; his reply streams into a magenta bubble via ken_* events.
-    const kenMatch = workspaceMode === "code" ? /^@(?:israel|ken)\b:?\s*/i.exec(trimmed) : null;
-    if (kenMatch) {
-      if (attachments.length > 0) {
-        toast(
-          "Israel cannot receive attachments. Remove @Israel to send them to Israel Code.",
-          "warning",
-        );
-        return;
-      }
-      const question = trimmed.slice(kenMatch[0].length).trim();
-      if (!question) return;
-      chatLayout.capture();
-      setSendCount((n) => n + 1);
-      recordHistory(trimmed);
-      stickToBottomRef.current = true;
-      const kenBubbleId = nextId();
-      const kenFailed = {
-        bubbleId: kenBubbleId,
-        draft: input,
-        attachments: [],
-        mentionedPaths,
-        scope: "ken_error" as const,
-      };
-      pushItem({ kind: "user", id: kenBubbleId, text: trimmed, ken: true });
-      setInput("");
-      setSlashIndex(0);
-      setMention(null);
-      setMentionedPaths([]);
-      setEnhancement(null);
-      void sendKenPrompt(question).catch((e: unknown) => restoreFailedSend(kenFailed, e));
-      return;
-    }
-
-    // Over this the sidecar refuses the whole request, so stop here with the draft intact.
-    const totalBytes = attachmentBytes(attachments);
-    if (totalBytes > MAX_ATTACHMENT_BYTES) {
-      const mb = (bytes: number): number => Math.ceil(bytes / (1024 * 1024));
-      toast(
-        `Attachments are too big to send (${mb(totalBytes)} MB). The limit is ${mb(MAX_ATTACHMENT_BYTES)} MB per message.`,
-        "error",
-      );
-      return;
-    }
-
-    chatLayout.capture();
-    // The strips this send clears (chips, the cold-cache notice) must leave in
-    // the bubble's commit, or their fold resizes the transcript mid-move.
-    setSendCount((n) => n + 1);
-    recordHistory(trimmed);
-    markShellShared();
-    // Read BEFORE the dismissal clears the band: a prompt that supersedes a
-    // question is consumed as soon as it lands, so it must neither flash the
-    // queued look on the way in nor open the queued strip below the transcript
-    // (see showsQueuedBubble / withoutSupersedingMessage).
-    const supersedesQuestion = hasOpenAsk();
-    dismissOpenAsks();
-    // A user send always re-pins to the bottom — they want to see their message.
-    stickToBottomRef.current = true;
-    // Referenced files are appended to the prompt as a small block so the agent
-    // knows which paths to read; they aren't shown in the user's bubble text.
-    const prompt =
-      mentionedPaths.length > 0 ? appendReferencedFiles(trimmed, mentionedPaths) : trimmed;
-    const bubbleId = nextId();
-    const failed = {
-      bubbleId,
-      draft: input,
-      attachments,
-      mentionedPaths,
-      scope: "error" as const,
-    };
-    // Carry the enhancer's highlighted segments (re-anchored through any edits)
-    // into the sent bubble, aligned to the trimmed text the bubble shows.
-    const sentEnhancements =
-      enhancement && enhancement.plain === input
-        ? (rebaseSegments(enhancement.segments, input, trimmed) ?? undefined)
-        : undefined;
-    // While a run is in flight, the message is QUEUED as steering (the sidecar
-    // injects it mid-loop). Attachments queue too — they're persisted and ride
-    // the same native-block path when the queue drains. Queued rows render
-    // dimmed until run_end clears the flag.
-    if (running) {
-      if (supersedesQuestion) noteSupersedingSend(prompt);
-      const queuedWire = attachments.map(toWire);
-      const queuedImgs = attachments.flatMap((a) => (a.previewUrl ? [a.previewUrl] : []));
-      pushItem({
-        kind: "user",
-        id: bubbleId,
-        text: trimmed,
-        command: isWorkflowCommand(trimmed),
-        images: queuedImgs.length > 0 ? queuedImgs : undefined,
-        attachments: attachmentChips(attachments),
-        files: mentionedPaths.length > 0 ? mentionedPaths : undefined,
-        enhancements: sentEnhancements,
-        queued: showsQueuedBubble("queue", supersedesQuestion) ? true : undefined,
-      });
-      setInput("");
-      clearAttachments();
-      setSlashIndex(0);
-      setMention(null);
-      setMentionedPaths([]);
-      setEnhancement(null);
-      void sendPrompt(
-        prompt,
-        queuedWire,
-        sentEnhancements ? { enhancements: sentEnhancements } : undefined,
-      ).catch((e: unknown) => restoreFailedSend(failed, e));
-      return;
-    }
-    const wire = attachments.map(toWire);
-    const imgPreviews = attachments.flatMap((a) => (a.previewUrl ? [a.previewUrl] : []));
-    pushItem({
-      kind: "user",
-      id: bubbleId,
-      text: trimmed,
-      command: isWorkflowCommand(trimmed),
-      images: imgPreviews.length > 0 ? imgPreviews : undefined,
-      attachments: attachmentChips(attachments),
-      files: mentionedPaths.length > 0 ? mentionedPaths : undefined,
-      enhancements: sentEnhancements,
-      ultracode: ultracodeAvailable && (ultracodeArmed || state?.ultracode) ? true : undefined,
-      orchestrate:
-        ultracodeAvailable && (orchestrateKeyword || state?.orchestration?.orchestrate)
-          ? true
-          : undefined,
-    });
-    // Warn the user when a video attachment is sent to a model without native
-    // video analysis — the agent can still use ffmpeg to extract frames/audio,
-    // but can't watch the clip directly.
-    if (wire.some((a) => a.kind === "video") && !(state?.supportsVideo ?? false)) {
-      pushItem({
-        kind: "info",
-        id: nextId(),
-        text: VIDEO_CAPABILITY_WARNING,
-      });
-    }
-    setInput("");
-    clearAttachments();
-    setSlashIndex(0);
-    setMention(null);
-    setMentionedPaths([]);
-    setEnhancement(null);
-    endStreamingText();
-    const meta: PromptMeta = {
-      ...(sentEnhancements ? { enhancements: sentEnhancements } : {}),
-      ...(ultracodeArmed ? { ultracode: true } : {}),
-      ...(orchestrateKeyword ? { orchestrate: true } : {}),
-    };
-    void sendPrompt(prompt, wire, Object.keys(meta).length > 0 ? meta : undefined).catch(
-      (e: unknown) => restoreFailedSend(failed, e),
-    );
-  }
-
-  // ── Plan review actions (mirror the ggcoder CLI plan overlay) ──
-  // Each closes the modal, drops a critter decision row, and drives the agent with
-  // the corresponding instruction via the existing prompt path.
-  //
-  // The decision is always sent: the box only opens once the sidecar says the
-  // plan is the user's, and a prompt landing during a run queues server-side.
-  // (This used to bail silently on a stale `running` value, closing the box
-  // and leaving the plan in limbo.)
-  function runPlanPrompt(prompt: string, decision: PlanDecision, meta?: PromptMeta): void {
-    setPlanReview(null);
-    pushItem({ kind: "plan_decision", id: nextId(), decision });
-    endStreamingText();
-    void sendPrompt(prompt, [], meta).catch((error: unknown) => {
-      reportPlanDecisionFailure("Your plan decision wasn't sent", error);
-    });
-  }
-
-  function reportPlanDecisionFailure(headline: string, error: unknown): void {
-    pushItem({
-      kind: "error",
-      id: nextId(),
-      ...readChatError({
-        headline,
-        message: error instanceof Error ? error.message : String(error),
-        guidance: "The plan is still waiting. Decide again once the agent is ready.",
-      }),
-    });
-  }
-
-  async function acceptPlan(): Promise<void> {
-    // Capture the approved plan's step count BEFORE the IPC — accepting starts a
-    // fresh session on the sidecar, whose session_reset broadcast nulls
-    // planReview (and clears the transcript + counters) here.
-    const reviewed = planReview;
-    const nextPlanTotal = reviewed ? countPlanSteps(reviewed) : 0;
-    // Stash a fallback for older sidecars. The current sidecar puts its canonical
-    // live-file count directly on session_reset, which wins over this snapshot.
-    pendingPlanTotalRef.current = nextPlanTotal;
-    // Accept the plan: the sidecar wipes the planning conversation into a FRESH
-    // session (so the build doesn't carry all the plan-mode research), bakes the
-    // approved plan into the new system prompt, and broadcasts authoritative
-    // progress before this request resolves. Do not re-seed from stale modal
-    // content after the await: the plan file may already have changed.
-    try {
-      await acceptPlanIPC(planReviewPathRef.current);
-    } catch (error) {
-      // Refused (a run still finishing) or failed: sending "implement it now"
-      // would run in the planning session without the approved plan. Say so
-      // and re-open the box so Accept can be retried.
-      pendingPlanTotalRef.current = null;
-      reportPlanDecisionFailure("The plan couldn't be accepted", error);
-      setPlanReview(reviewed);
-      setPlanReviewAttempt((attempt) => attempt + 1);
-      return;
-    }
-    runPlanPrompt(
-      "The plan has been approved. Implement it now, following each step in order.",
-      "accepted",
-    );
-  }
-
-  function sendPlanFeedback(feedback: string): void {
-    runPlanPrompt(
-      `The plan was not approved. Feedback from the user:\n\n${feedback}\n\n` +
-        "Revise the plan based on this feedback, then call exit_plan again for review.",
-      "feedback",
-      { planRevision: true },
-    );
-  }
-
-  function rejectPlan(): void {
-    runPlanPrompt(
-      "The plan was rejected and dismissed. Do not implement it. Wait for new instructions.",
-      "rejected",
-    );
-  }
+  // Plan review actions (mirror the ggcoder CLI plan overlay): plan-review-actions.ts.
+  const planActions = createPlanReviewActions({
+    planReview,
+    setPlanReview,
+    setPlanReviewAttempt,
+    planReviewPathRef,
+    pendingPlanTotalRef,
+    pushItem,
+    endStreamingText,
+  });
 
   // Start a fresh session on this window's project. Clears the transcript only
   // after the sidecar confirms (it emits `session_reset`, handled below).
@@ -2819,7 +1411,25 @@ function App(): React.ReactElement {
     setDeckPanel(null);
     onProjectChosen();
   }
+  // Reattach (or reopen) a background conversation exactly as the pickers do:
+  // point this window at it, then reset and re-hydrate. Never starts a run.
+  async function openBackgroundSession(row: BackgroundSessionRow): Promise<void> {
+    if (!row.sessionPath) return;
+    await selectWorkspace(
+      row.mode,
+      row.cwd,
+      row.sessionPath,
+      row.chatAgent === "therapist" || row.chatAgent === "research" ? row.chatAgent : "general",
+    );
+    showScreen(() => {
+      setWorkspaceMode(row.mode);
+      setShowPicker(false);
+      resetForChosenProject();
+    });
+  }
   function resetForChosenProject(): void {
+    // Leaving a task mid-run: it carries on in the daemon. Say so, once.
+    if (running) noteBackgroundHandoff();
     checklistFetchRef.current++;
     checklistRunRef.current = null;
     setShowChecklist(false);
@@ -2891,16 +1501,133 @@ function App(): React.ReactElement {
       setEntryView("home");
     }
   };
+  // The command palette and shortcuts sheet (commands/): what this screen can do.
+  const inWorkspace = !needsProject && !showPicker;
+  const workspaceCwd = inWorkspace ? state?.cwd : undefined;
+  const codeTools = inWorkspace && workspaceMode === "code" && !state?.goal;
+  const openSettingsPage = (tab: SettingsTabId): void =>
+    showScreen(() => {
+      setShowPicker(false);
+      setNeedsProject(true);
+      setSettingsTab(tab);
+      setEntryView("settings");
+    });
+  const openProjectFromPalette = (path: string): void => {
+    void selectProject(path)
+      .then(() =>
+        showScreen(() => {
+          setWorkspaceMode("code");
+          setShowPicker(false);
+          resetForChosenProject();
+        }),
+      )
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
+  };
+  const commandHandlers: Omit<CommandHandlers, "openShortcuts"> = {
+    toggleTheme: () =>
+      setColorSchemePref(document.documentElement.dataset.theme === "light" ? "dark" : "light"),
+    openWhatsNew: () => void openWhatsNewWindow("calm").catch(() => {}),
+    openSettings: openSettingsPage,
+    newWindow: () => void newWindow(),
+    nextWindow: () => void focusWindowByOffset(1),
+    prevWindow: () => void focusWindowByOffset(-1),
+    arrangeWindows: () => void arrangeAllWindows(),
+    goHome: () =>
+      showScreen(() => {
+        setShowPicker(false);
+        setNeedsProject(true);
+        setEntryView("home");
+      }),
+    openProjects: () =>
+      showScreen(() => {
+        setShowPicker(false);
+        setNeedsProject(true);
+        setWorkspaceMode("code");
+        setEntryView("projects");
+      }),
+    ...(inWorkspace && {
+      newSession: running ? undefined : () => setConfirmNewSession(true),
+      backToSessions: () => showScreen(() => setShowPicker(true)),
+      openNotes: () => setDeckPanel("notes"),
+      openMemories: () => setDeckPanel("brain"),
+      exportTranscript: items.length > 0 ? () => void exportTranscript() : undefined,
+      toggleTools,
+      thinkingLevels: state?.supportedThinkingLevels,
+      thinkingLevel: state?.thinkingLevel,
+      setThinking: running
+        ? undefined
+        : (level: string) =>
+            void setThinkingLevel(level)
+              .then((r) => setState((s) => (s ? { ...s, ...r } : s)))
+              .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error")),
+    }),
+    ...(codeTools && {
+      openChecklist,
+      openTasks,
+      cyclePermission,
+      planOn: state?.planMode ?? false,
+      togglePlan:
+        running && !state?.planMode
+          ? undefined
+          : () =>
+              void setPermissionMode(state?.planMode ? (state.permissionMode ?? "ask") : "plan")
+                .then((r) =>
+                  setState((s) =>
+                    s ? { ...s, permissionMode: r.permissionMode, planMode: r.planMode } : s,
+                  ),
+                )
+                .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error")),
+      autopilotOn: state?.autopilot ?? false,
+      toggleAutopilot: () => {
+        const next = !(state?.autopilot ?? false);
+        setState((s) => (s ? { ...s, autopilot: next } : s));
+        void setAutopilot(next);
+        setKenPowerBanner(next ? "on" : "off");
+      },
+      ...(ultracodeAvailable && {
+        ultracodeOn: state?.ultracode ?? false,
+        toggleUltracode: () => changeUltracode(!(state?.ultracode ?? false)),
+        orchestrateOn: state?.orchestration?.orchestrate ?? false,
+        toggleOrchestrate: () => changeOrchestrate(!(state?.orchestration?.orchestrate ?? false)),
+      }),
+    }),
+  };
+  const projectLoader = projectCommands(openProjectFromPalette);
+  const sessionLoader = workspaceCwd
+    ? sessionCommands(workspaceCwd, workspaceMode, (session) => {
+        void selectWorkspace(workspaceMode, workspaceCwd, session.path, session.chatAgent)
+          .then(() =>
+            showScreen(() => {
+              setShowPicker(false);
+              resetForChosenProject();
+            }),
+          )
+          .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), "error"));
+      })
+    : null;
+  const modelLoader = inWorkspace ? modelCommands(state?.model, (m) => onSelectModel(m.id)) : null;
+  const switchLoaders = sessionLoader ? [projectLoader, sessionLoader] : [projectLoader];
+  const modelLoaders = modelLoader ? [modelLoader] : [];
+  const commandCenter = (
+    <CommandCenter
+      handlers={commandHandlers}
+      loaders={[...switchLoaders, ...modelLoaders]}
+      switchLoaders={switchLoaders}
+      modelLoaders={modelLoaders}
+    />
+  );
   const inMonitor = monitorOpen ? " app-in-monitor" : "";
   const worldLayer = showWorld ? (
     <div className="world-overlay">
-      <WorldScreen
-        player={progress}
-        onShown={() => setWorldShown(true)}
-        onClose={closeWorld}
-        computer={worldComputer}
-        onComputer={onWorldComputer}
-      />
+      <Suspense fallback={null}>
+        <LazyWorldScreen.Component
+          player={progress}
+          onShown={() => setWorldShown(true)}
+          onClose={closeWorld}
+          computer={worldComputer}
+          onComputer={onWorldComputer}
+        />
+      </Suspense>
     </div>
   ) : null;
 
@@ -2914,82 +1641,27 @@ function App(): React.ReactElement {
           {/* World opens OVER Home (as it does over a workspace), so Home
             stays put underneath while the game fades in, and Back fades
             straight back to it. */}
-          {entryView === "home" || entryView === "world" ? (
-            <HomeScreen
-              onProjects={() =>
-                showScreen(() => {
-                  setWorkspaceMode("code");
-                  setEntryView("projects");
-                })
-              }
-              onGoals={() =>
-                showScreen(() => {
-                  setWorkspaceMode("code");
-                  setEntryView("goals");
-                })
-              }
-              onChat={() =>
-                showScreen(() => {
-                  setWorkspaceMode("chat");
-                  setEntryView("chats");
-                })
-              }
-              onMotion={() =>
-                showScreen(() => {
-                  setWorkspaceMode("motion");
-                  setEntryView("motion");
-                })
-              }
-              // On the in-game computer World is already open behind it: World just stands the player up.
-              onWorld={() =>
-                worldComputer ? setWorldComputer(false) : showScreen(() => setShowWorld(true))
-              }
-              worldShown={worldShown}
-              onSettings={(tab) =>
-                showScreen(() => {
-                  setSettingsTab(tab ?? "general");
-                  setEntryView("settings");
-                })
-              }
-              refreshSignal={homeRefreshSignal}
-            />
-          ) : entryView === "settings" ? (
-            <SettingsScreen
-              initialTab={settingsTab}
-              onClose={() =>
-                showScreen(() => {
-                  setEntryView("home");
-                  // Settings may have changed the folder or providers.
-                  setHomeRefreshSignal((n) => n + 1);
-                })
-              }
-            />
-          ) : entryView === "goals" ? (
+          <EntryScreen
+            entryView={entryView}
+            setEntryView={setEntryView}
+            setWorkspaceMode={setWorkspaceMode}
+            worldComputer={worldComputer}
+            setWorldComputer={setWorldComputer}
+            setShowWorld={setShowWorld}
+            worldShown={worldShown}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+            homeRefreshSignal={homeRefreshSignal}
+            setHomeRefreshSignal={setHomeRefreshSignal}
+            onOpenBackground={openBackgroundSession}
+            onChosen={onProjectChosen}
+          />
+          {showTraySettings && (
             <Suspense fallback={null}>
-              <GoalPicker
-                onChosen={onProjectChosen}
-                onClose={() => showScreen(() => setEntryView("home"))}
-              />
+              <LazySettingsModal.Component onClose={closeTraySettings} />
             </Suspense>
-          ) : entryView === "chats" ? (
-            <ChatPicker
-              onChosen={onProjectChosen}
-              onClose={() => showScreen(() => setEntryView("home"))}
-            />
-          ) : entryView === "motion" ? (
-            <ChatPicker
-              mode="motion"
-              onChosen={onProjectChosen}
-              onClose={() => showScreen(() => setEntryView("home"))}
-            />
-          ) : (
-            <ProjectPicker
-              onChosen={onProjectChosen}
-              // Every window can return to the mode-neutral home screen.
-              onClose={() => showScreen(() => setEntryView("home"))}
-            />
           )}
-          {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {commandCenter}
           <Toaster />
         </div>
         {worldLayer}
@@ -3033,7 +1705,12 @@ function App(): React.ReactElement {
               {...pickerProps}
             />
           )}
-          {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
+          {showTraySettings && (
+            <Suspense fallback={null}>
+              <LazySettingsModal.Component onClose={closeTraySettings} />
+            </Suspense>
+          )}
+          {commandCenter}
           {/* Tray Settings can toast a save failure over the picker. */}
           <Toaster />
         </div>
@@ -3094,6 +1771,7 @@ function App(): React.ReactElement {
           leading={<BackButton label={backLabel} onClick={goBack} />}
           trailing={
             <TitleBarActions
+              onOpenBackground={openBackgroundSession}
               workspaceMode={workspaceMode}
               isGoal={Boolean(state?.goal)}
               goalView={goalView}
@@ -3162,139 +1840,36 @@ function App(): React.ReactElement {
           existing session scrolled down it rendered far above what's on
           screen. Anchoring to this non-scrolling sibling keeps it pinned to
           what the user is actually looking at, at any scroll position. */}
-          <div ref={transcriptFrameRef} className="transcript-frame">
-            {workspaceMode === "code" && kenPowerBanner && (
-              <KenPowerBanner mode={kenPowerBanner} onDone={() => setKenPowerBanner(null)} />
-            )}
-            <div
-              className="transcript"
-              ref={attachTranscript}
-              onScroll={onTranscriptScroll}
-              onWheel={onTranscriptWheel}
-            >
-              {!hydrated && items.length === 0 ? (
-                <TranscriptSkeleton />
-              ) : (
-                <>
-                  {items.length === 0 &&
-                    (connectError !== null ? (
-                      <div className="picker-empty transcript-reveal" role="alert">
-                        <span>Couldn't connect to the agent.</span>
-                        <span style={{ color: theme.textDim }}>{connectError}</span>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-ghost"
-                          onClick={() => {
-                            // Restart the failed start first so the re-hydrate
-                            // waits on a fresh attempt, not the recorded failure.
-                            void retryWindowSession()
-                              .catch((e: unknown) =>
-                                toast(
-                                  `Couldn't restart the agent: ${e instanceof Error ? e.message : String(e)}`,
-                                  "error",
-                                ),
-                              )
-                              .finally(() => setHydrateNonce((n) => n + 1));
-                          }}
-                        >
-                          Try again
-                        </button>
-                      </div>
-                    ) : status === "ready" ? (
-                      <WakeScreen
-                        chat={workspaceMode === "chat"}
-                        motion={workspaceMode === "motion"}
-                        goals={Boolean(state?.goal)}
-                      />
-                    ) : emptyTranscriptStatus(status) ? (
-                      <div className="line transcript-reveal" style={{ color: theme.textDim }}>
-                        {`\u273b ${emptyTranscriptStatus(status)}`}
-                      </div>
-                    ) : null)}
-                  <PromptSendProvider value={sendKenRecommendedPrompt}>
-                    <LiveTextContext.Provider value={liveText}>
-                      {visibleItems.flatMap((it) => {
-                        const phases =
-                          it.kind === "user" ? ultracodePhaseMap.get(it.id) : undefined;
-                        const row = (
-                          <TranscriptRow
-                            key={it.id}
-                            item={it}
-                            view={chatView}
-                            animateIn={it.id >= liveFromId}
-                            consumeEntrance={entrances.consume}
-                            kenTalking={it.id === talkingKenId}
-                            mainModel={state?.model}
-                            errorActive={it.id === currentErrorId}
-                            errorModelPicker={
-                              it.kind === "error" && it.id === currentErrorId ? (
-                                <ModelSelect
-                                  models={models}
-                                  currentModel={
-                                    it.scope === "ken_error" || it.scope === "autopilot_error"
-                                      ? (state?.kenModel ?? state?.model ?? "")
-                                      : (state?.model ?? "")
-                                  }
-                                  onSelect={
-                                    it.scope === "ken_error" || it.scope === "autopilot_error"
-                                      ? onSelectKenModel
-                                      : onSelectModel
-                                  }
-                                  disabled={running || kenRunning || autopilotReviewing}
-                                  title={
-                                    it.scope === "ken_error" || it.scope === "autopilot_error"
-                                      ? "Switch Israel's model"
-                                      : "Switch model"
-                                  }
-                                  label={
-                                    it.reason === "usage_limit" ? "Switch provider" : "Choose model"
-                                  }
-                                  color={theme.primary}
-                                />
-                              ) : undefined
-                            }
-                            onContentGrow={maybeScrollToBottom}
-                            onAskAnswer={answerAsk}
-                            onAskType={typeAskInstead}
-                            onRewind={rewindAvailable && !running ? setRewindAt : undefined}
-                            shellActions={shellActions}
-                          />
-                        );
-                        // Zero-height landing spot for "You have new chats". A flat
-                        // keyed list, so rows never remount when it comes and goes.
-                        return it.id === firstNewId
-                          ? [
-                              <div
-                                key="new-marker"
-                                ref={newMarkerRef}
-                                className="transcript-new-marker"
-                                aria-hidden="true"
-                              />,
-                              row,
-                              ...(phases
-                                ? [<UltracodePhases key={`uc-${it.id}`} phases={phases} />]
-                                : []),
-                            ]
-                          : phases
-                            ? [row, <UltracodePhases key={`uc-${it.id}`} phases={phases} />]
-                            : [row];
-                      })}
-                    </LiveTextContext.Provider>
-                  </PromptSendProvider>
-                </>
-              )}
-            </div>
-            {items.length > 0 && (
-              <TranscriptJumpControls
-                away={!following}
-                hasNew={firstNewId !== null}
-                askAt={askPlace === "above" || askPlace === "below" ? askPlace : null}
-                onScrollToBottom={jumpToLatest}
-                onJumpToNew={jumpToNew}
-                onJumpToAsk={jumpToAsk}
-              />
-            )}
-          </div>
+          <TranscriptView
+            transcriptFrameRef={transcriptFrameRef}
+            attachTranscript={attachTranscript}
+            scroll={transcriptScroll}
+            workspaceMode={workspaceMode}
+            kenPowerBanner={kenPowerBanner}
+            onKenPowerBannerDone={() => setKenPowerBanner(null)}
+            hydrated={hydrated}
+            items={items}
+            connectError={connectError}
+            onRetried={() => setHydrateNonce((n) => n + 1)}
+            status={status}
+            state={state}
+            sendKenRecommendedPrompt={sendKenRecommendedPrompt}
+            liveText={liveText}
+            ultracodePhaseMap={ultracodePhaseMap}
+            chatView={chatView}
+            liveFromId={liveFromId}
+            entrances={entrances}
+            talkingKenId={talkingKenId}
+            currentErrorId={currentErrorId}
+            models={models}
+            onSelectKenModel={onSelectKenModel}
+            onSelectModel={onSelectModel}
+            modelSwitchDisabled={running || kenRunning || autopilotReviewing}
+            answerAsk={answerAsk}
+            typeAskInstead={typeAskInstead}
+            onRewind={rewindAvailable && !running ? setRewindAt : undefined}
+            shellActions={shellActions}
+          />
 
           {/* The dock: everything below the conversation, floating over its
           bottom edge so messages scroll on behind it through a frost (the
@@ -3369,6 +1944,8 @@ function App(): React.ReactElement {
                     }
                   : null
               }
+              onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
+              onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
               tasks={tasks}
               schedules={schedules}
               onStopSchedule={stopSchedule}
@@ -3379,7 +1956,7 @@ function App(): React.ReactElement {
                   title: "Notes",
                   meta: "Saved on this Mac",
                   body: (
-                    <NotesModal
+                    <LazyNotesModal.Component
                       value={notes}
                       onChange={handleNotesChange}
                       onClose={() => closeDeckPanel("notes")}
@@ -3392,7 +1969,7 @@ function App(): React.ReactElement {
                         title: "Tasks",
                         meta: `${projectTasks.filter((t) => t.status !== "done").length} pending`,
                         body: (
-                          <TasksModal
+                          <LazyTasksModal.Component
                             tasks={projectTasks}
                             running={running}
                             onRun={handleRunTask}
@@ -3412,7 +1989,7 @@ function App(): React.ReactElement {
                             ? `${checklistLoad.snapshot.items.filter((i) => i.status === "passed").length} of ${checklistLoad.snapshot.items.length} passing`
                             : undefined,
                         body: (
-                          <ChecklistScreen
+                          <LazyChecklistScreen.Component
                             load={checklistLoad}
                             running={running || checklistRunId !== null}
                             activeId={checklistRunId}
@@ -3445,7 +2022,7 @@ function App(): React.ReactElement {
                   ? {
                       title: "Goal settings",
                       body: (
-                        <GoalSettingsModal
+                        <LazyGoalSettingsModal.Component
                           context={state.goal.context ?? []}
                           instructions={state.goal.instructions ?? ""}
                           busy={running}
@@ -3466,13 +2043,15 @@ function App(): React.ReactElement {
                   workspaceMode === "chat"
                     ? {
                         title: "Brain",
-                        body: <MemoryModal onClose={() => closeDeckPanel("brain")} />,
+                        body: <LazyMemoryModal.Component onClose={() => closeDeckPanel("brain")} />,
                       }
                     : undefined,
               }}
               progress={progress}
               trophies={trophies.snapshot}
-              onOpenWorld={() => showScreen(() => setShowWorld(true))}
+              onOpenWorld={() =>
+                void LazyWorldScreen.preload().then(() => showScreen(() => setShowWorld(true)))
+              }
               usageExtras={
                 windowTotal > 1 &&
                 windowIndex !== null && (
@@ -3491,20 +2070,11 @@ function App(): React.ReactElement {
                   running={running}
                   autopilot={state?.autopilot ?? false}
                   autopilotReviewing={autopilotReviewing}
-                  ultracode={state?.ultracode ?? false}
-                  onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
-                  orchestrate={state?.orchestration?.orchestrate ?? false}
-                  onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
                   verify={state?.verify ?? null}
                   onVerifyChange={changeVerify}
                   worktreeWorkers={state?.worktreeWorkers ?? null}
                   worktreeVerifyProgress={state?.worktreeVerifyProgress}
                   onWorktreeWorkersChange={changeWorktreeWorkers}
-                  orchestratorName={modelDisplayName(models, state?.model)}
-                  workerName={modelDisplayName(
-                    models,
-                    state?.orchestration?.workerModel ?? state?.model,
-                  )}
                   onAutopilotChange={(next) => {
                     setState((s) => (s ? { ...s, autopilot: next } : s));
                     void setAutopilot(next);
@@ -3632,80 +2202,35 @@ function App(): React.ReactElement {
               }
             />
 
+            <ShortcutHint />
             <UpdateBanner appUpdate={appUpdate} />
+            {commandCenter}
           </div>
         </Activity>
 
-        {rewindAt !== null && rewindAvailable && (
-          <RewindModal
-            initialPrompt={rewindAt || undefined}
-            onClose={() => setRewindAt(null)}
-            onRewound={finishRewind}
-          />
-        )}
-
-        {workspaceMode === "code" && showInitGit && (
-          <InitGitModal
-            defaultName={defaultRepoName}
-            onClose={() => setShowInitGit(false)}
-            onInitialize={(prompt) => {
-              setShowInitGit(false);
-              submitText(prompt, "Initializing Git\u2026");
-            }}
-          />
-        )}
-
-        {confirmNewSession && (
-          <ConfirmModal
-            title={workspaceMode === "chat" ? "New Chat" : "New Session"}
-            // Nothing is cleared: `newSession()` writes a NEW session file and
-            // leaves the old one on disk, still listed and re-openable. Saying
-            // "will be cleared" made a safe action read as destructive.
-            message="Start fresh? This conversation stays saved."
-            confirmLabel={workspaceMode === "chat" ? "New Chat" : "New Session"}
-            busy={newSessionBusy}
-            onConfirm={() => void startNewSession()}
-            onClose={() => setConfirmNewSession(false)}
-          />
-        )}
-
-        {/* Always mounted: an MCP server can ask for input at any moment, in any
-          workspace mode, and its tool call stays blocked until we answer. */}
-        <McpElicitModal />
-
-        {workspaceMode === "code" && planReview !== null && (
-          <PlanReviewModal
-            key={planReviewAttempt}
-            content={planReview}
-            // Autopilot Ken reviews submitted plans himself; the indicator tells
-            // the user, but manual Accept/Reject stays live and always wins.
-            kenReviewing={autopilotReviewing}
-            onAccept={acceptPlan}
-            onFeedback={sendPlanFeedback}
-            onReject={rejectPlan}
-          />
-        )}
-
-        {/* Settings reached from the menu-bar tray. Rendered in every view branch
-          (Home, picker, workspace) because the tray targets a WINDOW and can't
-          know which of the three it is showing. */}
-        {showTraySettings && <SettingsModal onClose={closeTraySettings} />}
-
-        {/* Workspace toasts (saved transcript, Remote on/off, rank-up) need their
-          own host: the one in the Home/Settings branch isn't mounted here. */}
-        <Toaster />
-
-        {/* One trophy at a time, in the order earned; it files itself into the
-          deck's trophies key, so it only plays where the deck is. */}
-        {trophies.queue[0] && (
-          <TrophyUnlock
-            key={trophies.queue[0].id}
-            trophy={trophies.queue[0]}
-            snapshot={trophies.snapshot}
-            onOpenTrophies={() => setDeckPanel("trophies")}
-            onDone={trophies.shift}
-          />
-        )}
+        <WorkspaceModalHost
+          workspaceMode={workspaceMode}
+          rewindAt={rewindAt}
+          setRewindAt={setRewindAt}
+          rewindAvailable={rewindAvailable}
+          onRewound={finishRewind}
+          showInitGit={showInitGit}
+          setShowInitGit={setShowInitGit}
+          defaultRepoName={defaultRepoName}
+          submitText={submitText}
+          confirmNewSession={confirmNewSession}
+          setConfirmNewSession={setConfirmNewSession}
+          newSessionBusy={newSessionBusy}
+          startNewSession={startNewSession}
+          planReview={planReview}
+          planReviewAttempt={planReviewAttempt}
+          autopilotReviewing={autopilotReviewing}
+          planActions={planActions}
+          showTraySettings={showTraySettings}
+          closeTraySettings={closeTraySettings}
+          trophies={trophies}
+          setDeckPanel={setDeckPanel}
+        />
       </div>
       {worldLayer}
     </>

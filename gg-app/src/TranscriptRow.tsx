@@ -1,10 +1,5 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import {
-  AtIcon,
-  FileTextIcon,
-  FilmStripIcon,
-  ArrowCounterClockwiseIcon,
-} from "@phosphor-icons/react";
+import { AtIcon, FileTextIcon, FilmStripIcon, ArrowCounterClockwiseIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { ChatErrorNotice } from "./ChatErrorNotice";
 import { openImageDataUrl, openProjectPath } from "./agent";
@@ -24,7 +19,7 @@ import { AskBand } from "./AskBand";
 import { ShellBlock } from "./ShellBlock";
 import { VerifyStrip } from "./VerifyStrip";
 import type { ShellActions } from "./useShellRuns";
-import { Markdown } from "./Markdown";
+import { Markdown } from "./LazyMarkdown";
 import { ImageGenCard } from "./image-gen/ImageGenCard";
 import { ImageCard } from "./ImageCard";
 import { segmentDoneMarkers, hasDoneMarker } from "./plan-steps";

@@ -41,3 +41,7 @@ export function aboutLines(log: ShipLog): readonly KenSay[] {
     },
   ];
 }
+
+/** The parody note under the credits: Israel's pixel portrait is a caricature of a real person. */
+export const PORTRAIT_NOTE =
+  "Israel's pixel portrait is a stylized caricature of Benjamin Netanyahu, drawn as parody and tribute. It isn't affiliated with or endorsed by him or any government.";
