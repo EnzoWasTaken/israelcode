@@ -49,7 +49,6 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
     return onSteroidsChange(setSteroids);
   }, []);
 
-  const ctx: SettingsContext = { steroids, setSteroids, stay: () => {} };
   const current = SETTINGS_SECTIONS.find((s) => s.id === tab);
 
   function selectTab(id: SettingsTabId): void {
@@ -57,6 +56,8 @@ export function SettingsScreen({ onClose, initialTab = "general" }: Props): Reac
     setSwitched(true);
     setTab(id);
   }
+
+  const ctx: SettingsContext = { steroids, setSteroids, stay: () => {}, goTo: selectTab };
 
   // Arrow keys (and Home/End) move focus through the list; Enter/Space open
   // the focused entry, as buttons do.

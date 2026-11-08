@@ -8,6 +8,11 @@ import {
   SparkleIcon,
   PaperPlaneTiltIcon,
   SyringeIcon,
+  PathIcon,
+  LightningIcon,
+  StackIcon,
+  CoinsIcon,
+  BugBeetleIcon,
   type Icon,
 } from "@phosphor-icons/react";
 import { Badge } from "./Badge";
@@ -19,6 +24,11 @@ import { McpModal } from "./McpModal";
 import { SkillsModal } from "./SkillsModal";
 import { HooksPanel } from "./HooksPanel";
 import { SteroidsModal } from "./SteroidsModal";
+import { SettingsAutoRouting } from "./SettingsAutoRouting";
+import { SettingsExecutionModes } from "./SettingsExecutionModes";
+import { SettingsSessions } from "./SettingsSessions";
+import { SettingsCost } from "./SettingsCost";
+import { SettingsDiagnostics } from "./SettingsDiagnostics";
 import { AboutPage } from "./AboutPage";
 import { useSettingsPageReady } from "./settings-ready";
 import { SettingsHeaderAction, SettingsHeaderStatus } from "./settings-header";
@@ -40,7 +50,19 @@ import { toast } from "./toast";
  * one). SettingsScreen renders the nav, header, description and page from it.
  */
 export type SettingsTabId =
-  "general" | "providers" | "remote" | "mcp" | "skills" | "hooks" | "steroids" | "about";
+  | "general"
+  | "providers"
+  | "auto-routing"
+  | "execution-modes"
+  | "sessions"
+  | "cost"
+  | "remote"
+  | "mcp"
+  | "skills"
+  | "hooks"
+  | "steroids"
+  | "diagnostics"
+  | "about";
 
 /** State the screen shares with section renderers and alert predicates. */
 export interface SettingsContext {
@@ -48,6 +70,8 @@ export interface SettingsContext {
   setSteroids: (status: SteroidsStatus | null) => void;
   /** Pages stay put after their own Save/Close (the Back button leaves). */
   stay: () => void;
+  /** Open another Settings page (for "Edit in Auto routing" links). */
+  goTo: (id: SettingsTabId) => void;
 }
 
 export interface SettingsSection {
@@ -65,13 +89,14 @@ export interface SettingsSection {
   fill?: boolean;
 }
 
-export type SettingsGroupId = "app" | "models" | "integrations" | "help";
+export type SettingsGroupId = "app" | "models" | "integrations" | "advanced" | "help";
 
 /** Nav groups, in order. An empty label draws no heading. */
 export const SETTINGS_GROUPS: ReadonlyArray<{ id: SettingsGroupId; label: string }> = [
   { id: "app", label: "App" },
   { id: "models", label: "Models" },
   { id: "integrations", label: "Integrations" },
+  { id: "advanced", label: "Advanced" },
   { id: "help", label: "" },
 ];
 
@@ -96,6 +121,38 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     description: "Connect the accounts and keys your agents use.",
     fill: true,
     render: () => <LoginScreen />,
+  },
+  {
+    id: "auto-routing",
+    label: "Auto routing",
+    group: "models",
+    icon: PathIcon,
+    description: "Let Auto pick the model, effort and mode for each prompt.",
+    render: () => <SettingsAutoRouting />,
+  },
+  {
+    id: "execution-modes",
+    label: "Execution modes",
+    group: "models",
+    icon: LightningIcon,
+    description: "Standard, Ultracode and Orchestrate: how a run is carried out.",
+    render: ({ goTo }) => <SettingsExecutionModes onOpenAutoRouting={() => goTo("auto-routing")} />,
+  },
+  {
+    id: "cost",
+    label: "Cost & usage",
+    group: "models",
+    icon: CoinsIcon,
+    description: "Where Auto limits cost and where token budgets are set.",
+    render: ({ goTo }) => <SettingsCost onOpenAutoRouting={() => goTo("auto-routing")} />,
+  },
+  {
+    id: "sessions",
+    label: "Sessions & background",
+    group: "app",
+    icon: StackIcon,
+    description: "Tasks that keep running, and what closing a window does.",
+    render: () => <SettingsSessions />,
   },
   {
     id: "remote",
@@ -149,6 +206,14 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
         <SteroidsModal status={steroids} onStatus={setSteroids} onClose={stay} />
       </EmbeddedModal>
     ),
+  },
+  {
+    id: "diagnostics",
+    label: "Diagnostics",
+    group: "advanced",
+    icon: BugBeetleIcon,
+    description: "Recent Auto routing decisions and where the app log lives.",
+    render: () => <SettingsDiagnostics />,
   },
   {
     id: "about",
