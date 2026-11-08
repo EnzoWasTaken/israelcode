@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose JSON bodies in route tests */
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";

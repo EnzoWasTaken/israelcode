@@ -78,7 +78,10 @@ pub(crate) async fn routing_credential_clear(
         return Err("only the TypeSafe key can be removed here".to_string());
     }
     let res = client
-        .delete(format!("{}/routing/credential/typesafe", sidecar_base(port)))
+        .delete(format!(
+            "{}/routing/credential/typesafe",
+            sidecar_base(port)
+        ))
         .send()
         .await
         .map_err(|e| e.without_url().to_string())?;

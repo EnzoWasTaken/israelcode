@@ -384,6 +384,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn saving_projects_root_keeps_the_auto_routing_config() {
+        let existing = r#"{"projectsRoot":"/old","autoRoute":{"enabled":true,"decider":{"kind":"model","provider":"anthropic","model":"claude-haiku-5-5"},"candidateModels":["a"]}}"#;
+        let merged = merge_projects_root(Some(existing), "/new");
+        assert_eq!(merged["projectsRoot"], "/new");
+        assert_eq!(merged["autoRoute"]["enabled"], true);
+        assert_eq!(merged["autoRoute"]["decider"]["model"], "claude-haiku-5-5");
+        assert_eq!(merged["autoRoute"]["candidateModels"][0], "a");
+    }
+
+    #[test]
     fn saving_projects_root_keeps_every_other_setting() {
         let existing = r#"{
             "projectsRoot": "/old",
