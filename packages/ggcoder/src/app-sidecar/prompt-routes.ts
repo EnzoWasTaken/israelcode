@@ -9,8 +9,6 @@ import {
   isMechanicalOnlyTurn,
 } from "../core/autopilot-gate.js";
 import { turnWroteFiles } from "../core/verify-loop.js";
-import { hasUltracodeKeyword } from "../core/ultracode.js";
-import { hasOrchestrateKeyword } from "../core/orchestration.js";
 import { PROMPT_COMMANDS } from "../core/prompt-commands.js";
 import { log } from "../core/logger.js";
 import { readBody, json } from "./http.js";
@@ -23,18 +21,17 @@ import {
 } from "@kenkaiiii/gg-core";
 
 import { type AppAttachment, prepareAttachments } from "./attachments.js";
-import {
-  loadUltracodeDefault,
-  loadOrchestrateDefault,
-  saveAutopilot,
-  savePermissionModeDefault,
-  saveUltracodeDefault,
-} from "./app-settings.js";
+import { saveAutopilot, savePermissionModeDefault, saveUltracodeDefault } from "./app-settings.js";
 import { isPermissionMode } from "../core/permission-mode.js";
 import { lastAssistantText, buildKenContext } from "./ken-context.js";
 import { keepAwake } from "./keep-awake.js";
 import type { SessionRouteContext } from "./route-context.js";
-import { routeUserPrompt, runWithEscalation, ESCALATION_RETRY_NOTE } from "./session-routing.js";
+import {
+  runPromptWithRouting,
+  restoreRunModes,
+  ESCALATION_RETRY_NOTE,
+  type RunModeFlags,
+} from "./session-routing.js";
 import { mentionedPaths, slashCommandName } from "../core/trophies/engine.js";
 
 // 180 s of 16 kHz Int16 is 5.8 MB, about 7.7 MB once base64 encoded.
@@ -150,8 +147,7 @@ export function handlePromptRoutes(
     // prompt that queued) clear a claim another request is still holding.
     let claimedStart = false;
     // This run switched Ultracode on for one prompt; switch it back afterwards.
-    let promptUltracode = false;
-    let promptOrchestrate = false;
+    const modeFlags: RunModeFlags = { ultracode: false, orchestrate: false };
     void readBody(req, res, MAX_PROMPT_BODY_BYTES)
       .then(async (raw) => {
         if (raw === null) return;
@@ -313,46 +309,6 @@ export function handlePromptRoutes(
           async () => {
             // The review box's Feedback: revise read-only, like Ken's feedback.
             if (meta?.planRevision === true) await ctx.reenterPlanModeForRevision();
-            // Auto routing (user prompts only): pick model/effort/mode for THIS run.
-            // Never persisted as the user's preference; settings are restored after the run.
-            const userPrompt = meta?.scheduled !== true && meta?.planRevision !== true;
-            const keywordMode =
-              ctx.mode === "code" && !ctx.goal
-                ? meta?.orchestrate === true && hasOrchestrateKeyword(text)
-                  ? ("orchestrate" as const)
-                  : meta?.ultracode === true && hasUltracodeKeyword(text)
-                    ? ("ultracode" as const)
-                    : undefined
-                : undefined;
-            const routed = userPrompt
-              ? await routeUserPrompt(ctx, { text, attachments, keywordMode })
-              : null;
-            // Routing (or an escalation retry) may flip these for this run only; the
-            // finally below puts back the user's own saved setting either way.
-            if (routed) {
-              promptUltracode = true;
-              promptOrchestrate = true;
-            }
-            // "ultracode" typed in the prompt: Ultracode for this run only.
-            if (
-              meta?.ultracode === true &&
-              hasUltracodeKeyword(text) &&
-              ctx.mode === "code" &&
-              !ctx.goal
-            ) {
-              promptUltracode = promptUltracode || !ctx.session.isUltracode();
-              ctx.session.setUltracode(true);
-            }
-            // "orchestrate" typed in the prompt (and flagged by the app): Orchestrate for this run only.
-            if (
-              meta?.orchestrate === true &&
-              hasOrchestrateKeyword(text) &&
-              ctx.mode === "code" &&
-              !ctx.goal
-            ) {
-              promptOrchestrate = promptOrchestrate || !ctx.session.isOrchestrate();
-              ctx.session.setOrchestrate(true);
-            }
             const sendPrompt = async (): Promise<void> => {
               if (attachments.length > 0) {
                 // Persist each attachment under .gg/uploads so files are inspectable
@@ -376,7 +332,11 @@ export function handlePromptRoutes(
                 visibility: "hidden",
               });
             };
-            await runWithEscalation(ctx, routed, sendPrompt, retryPrompt);
+            await runPromptWithRouting(
+              ctx,
+              { text, attachments, meta, send: sendPrompt, retry: retryPrompt },
+              modeFlags,
+            );
           },
           () => ctx.autopilot,
         );
@@ -446,8 +406,7 @@ export function handlePromptRoutes(
       })
       .finally(async () => {
         // Back to the user's own setting (their latest toggle, not this prompt's).
-        if (promptUltracode) ctx.session.setUltracode(await loadUltracodeDefault());
-        if (promptOrchestrate) ctx.session.setOrchestrate(await loadOrchestrateDefault());
+        await restoreRunModes(ctx, modeFlags);
         if (claimedStart) {
           ctx.scheduledRunActive = false;
           ctx.runClaim.release();

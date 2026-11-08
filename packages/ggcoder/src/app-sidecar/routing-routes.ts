@@ -15,7 +15,7 @@ import { isThinkingLevel } from "../core/routing/capabilities.js";
 import type { RoutingRuntime } from "./routing-runtime.js";
 import { maskKey } from "./routing-runtime.js";
 import type { SessionRouteContext } from "./route-context.js";
-import { autoRouteAvailability, autoRoutePayload } from "./session-routing.js";
+import { autoRouteAvailability, autoRoutePayload, setAutoEnabled } from "./session-routing.js";
 
 export interface RoutingRouteDeps {
   runtime: RoutingRuntime;
@@ -338,7 +338,7 @@ export function handleRoutingSessionRoute(
   json: RoutingRouteDeps["json"],
 ): boolean {
   if (!(method === "POST" && url === "/routing/session")) return false;
-  void readBody(req, res).then((raw) => {
+  void readBody(req, res).then(async (raw) => {
     if (raw === null) return;
     let body: { enabled?: unknown; pins?: unknown };
     try {
@@ -374,8 +374,16 @@ export function handleRoutingSessionRoute(
         };
       }
     }
-    if (typeof body.enabled === "boolean") ctx.autoRoute.enabled = body.enabled;
     if (pins) ctx.autoRoute.pins = pins;
+    if (typeof body.enabled === "boolean") {
+      try {
+        // Turning Auto off returns the window to the user's own model and reasoning level.
+        await setAutoEnabled(ctx, body.enabled);
+      } catch (err) {
+        json(res, 500, { error: err instanceof Error ? err.message : String(err) });
+        return;
+      }
+    }
     const payload = autoRoutePayload(ctx);
     ctx.broadcast("route_state", payload);
     json(res, 200, payload);

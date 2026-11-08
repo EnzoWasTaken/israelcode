@@ -211,7 +211,11 @@ import { readCheckoutRecord } from "./core/checkout-record.js";
 import { cancelActiveRun, handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
 import { createRoutingRuntime, type RoutingRuntime } from "./app-sidecar/routing-runtime.js";
 import { handleRoutingRoutes, handleRoutingSessionRoute } from "./app-sidecar/routing-routes.js";
-import { autoRoutePayload, type AutoRouteSessionState } from "./app-sidecar/session-routing.js";
+import {
+  autoRoutePayload,
+  setAutoEnabled,
+  type AutoRouteSessionState,
+} from "./app-sidecar/session-routing.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
 import { handleIntegrationRoutes } from "./app-sidecar/integration-routes.js";
 import { handleMcpRoutes } from "./app-sidecar/mcp-routes.js";
@@ -3025,8 +3029,9 @@ async function createSession(
     lastDecision: null,
   };
   const unsubscribeRouting = routing.onConfigChange((config) => {
-    autoRoute.enabled = config.enabled;
-    broadcast("route_state", autoRoutePayload({ mode, goal, autoRoute }));
+    void setAutoEnabled(routeCtx, config.enabled)
+      .catch((err: unknown) => log("WARN", "routing", "Auto toggle failed", { err: String(err) }))
+      .finally(() => broadcast("route_state", autoRoutePayload({ mode, goal, autoRoute })));
   });
   const routeCtx: SessionRouteContext = {
     routing,

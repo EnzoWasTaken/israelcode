@@ -1,4 +1,10 @@
-import { ProviderError, classifyProviderError, type Message } from "@kenkaiiii/gg-ai";
+import {
+  ProviderError,
+  classifyProviderError,
+  type Message,
+  type Provider,
+  type ThinkingLevel,
+} from "@kenkaiiii/gg-ai";
 import { getModel } from "../core/model-registry.js";
 import { isModelUnavailableFailure } from "../core/model-unavailable.js";
 import { log } from "../core/logger.js";
@@ -16,6 +22,9 @@ import {
   type RoutePins,
   type RouteRequest,
 } from "../core/routing/index.js";
+import { hasOrchestrateKeyword } from "../core/orchestration.js";
+import { hasUltracodeKeyword } from "../core/ultracode.js";
+import { loadOrchestrateDefault, loadUltracodeDefault } from "./app-settings.js";
 import type { AppAttachment } from "./attachments.js";
 import type { SessionRouteContext } from "./route-context.js";
 
@@ -34,10 +43,21 @@ export interface RouteDecisionInfo {
   latencyMs: number;
 }
 
+/** The user's own model and reasoning level for a session: what Auto restores when it is turned off. */
+export interface RouteBaseline {
+  provider: string;
+  model: string;
+  thinkingLevel: ThinkingLevel | undefined;
+}
+
 export interface AutoRouteSessionState {
   enabled: boolean;
   pins: RoutePins;
   lastDecision: RouteDecisionInfo | null;
+  /** Set when Auto first acts (or is enabled), updated by explicit /model and /thinking picks. */
+  baseline?: RouteBaseline;
+  /** Auto was turned off mid-run; the baseline is restored once the run ends. */
+  restorePending?: boolean;
 }
 
 export const AUTO_UNAVAILABLE_EXPLANATION = "Auto routing unavailable — using your current model";
@@ -195,6 +215,84 @@ export async function applyDecision(
   return applied;
 }
 
+type BaselineCtx = Pick<SessionRouteContext, "session" | "autoRoute">;
+
+/** Remember the user's own model/thinking before Auto changes anything. Idempotent. */
+export function ensureBaseline(ctx: BaselineCtx): void {
+  if (ctx.autoRoute.baseline) return;
+  const st = ctx.session.getState();
+  ctx.autoRoute.baseline = {
+    provider: st.provider,
+    model: st.model,
+    thinkingLevel: ctx.session.getThinkingLevel(),
+  };
+}
+
+/** An explicit /model or /thinking pick while Auto is on becomes the new baseline. */
+export function adoptBaseline(ctx: BaselineCtx): void {
+  ctx.autoRoute.baseline = undefined;
+  ensureBaseline(ctx);
+}
+
+/** The model the user chose themselves; what preferences are saved against (never a routed one). */
+export function userModelOf(ctx: BaselineCtx): { provider: Provider; model: string } {
+  const b = ctx.autoRoute.baseline;
+  if (b && ctx.autoRoute.enabled) return { provider: b.provider as Provider, model: b.model };
+  const st = ctx.session.getState();
+  return { provider: st.provider, model: st.model };
+}
+
+/** Put the session back on the user's own model and reasoning level (never persisted). */
+export async function restoreBaseline(ctx: SessionRouteContext): Promise<void> {
+  const b = ctx.autoRoute.baseline;
+  ctx.autoRoute.restorePending = false;
+  ctx.autoRoute.baseline = undefined;
+  if (!b) return;
+  const st = ctx.session.getState();
+  if (b.model !== st.model || b.provider !== st.provider) {
+    await ctx.session.switchModel(b.provider, b.model, { confirmPaid: true });
+    if (!ctx.kenModelOverride) {
+      await ctx.syncKenModel(b.provider as never, b.model);
+      await ctx.syncKenAutoModel(b.provider as never, b.model);
+      ctx.broadcast("ken_model_change", ctx.kenStatePayload());
+    }
+    ctx.broadcast("extras", ctx.footerExtras());
+  }
+  const now = ctx.session.getState();
+  const level =
+    b.thinkingLevel && isThinkingLevelSupported(now.provider, now.model, b.thinkingLevel)
+      ? b.thinkingLevel
+      : undefined;
+  if (level !== ctx.session.getThinkingLevel()) ctx.session.setThinkingLevel(level);
+  ctx.broadcast("thinking_change", {
+    thinkingLevel: ctx.session.getThinkingLevel() ?? null,
+    supportedThinkingLevels: getSupportedThinkingLevels(now.provider, now.model),
+  });
+}
+
+/** Turn Auto on/off for this session. Turning it off returns to the user's own model. */
+export async function setAutoEnabled(ctx: SessionRouteContext, enabled: boolean): Promise<void> {
+  ctx.autoRoute.enabled = enabled;
+  if (enabled) {
+    ensureBaseline(ctx);
+    ctx.autoRoute.restorePending = false;
+    return;
+  }
+  if (ctx.running || ctx.runClaim.active) {
+    ctx.autoRoute.restorePending = true;
+    return;
+  }
+  await restoreBaseline(ctx);
+}
+
+/** Called when a run ends: finish a restore deferred because Auto was turned off mid-run. */
+export async function finishPendingRestore(ctx: SessionRouteContext): Promise<void> {
+  if (!ctx.autoRoute.restorePending || ctx.autoRoute.enabled) return;
+  await restoreBaseline(ctx).catch((err: unknown) =>
+    log("WARN", "routing", "restoring the user's model failed", { err: String(err) }),
+  );
+}
+
 export function publishDecision(ctx: SessionRouteContext, d: RouteDecision): void {
   const info = toDecisionInfo(d);
   ctx.autoRoute.lastDecision = info;
@@ -224,6 +322,7 @@ export async function routeUserPrompt(
   const runtime = ctx.routing;
   let request: RouteRequest | null = null;
   try {
+    ensureBaseline(ctx);
     request = buildRouteRequest(ctx, input);
     const config: AutoRouteConfig = { ...runtime.config(), enabled: true };
     const registry = await runtime.buildRegistry(config);
@@ -291,6 +390,12 @@ export function runProducedOutput(messages: readonly Message[], fromIndex: numbe
   });
 }
 
+function userMessageRecorded(messages: readonly Message[], fromIndex: number): boolean {
+  return messages
+    .slice(fromIndex)
+    .some((m) => m.role === "user" && m.provenance?.visibility !== "hidden");
+}
+
 export const ESCALATION_RETRY_NOTE =
   "The previous attempt could not run (the model was unavailable). Please answer the user's last message above.";
 
@@ -333,7 +438,81 @@ export async function runWithEscalation(
       ctx.routing.diagnostics.record(toDiagnostic(next, routed.request));
       publishDecision(ctx, next);
       prev = next;
-      run = retry;
+      // Normally the user's message is already in the transcript (AgentSession keeps and
+      // persists it when a run fails), so the retry only asks the new model to answer it.
+      // If the failure came before it was recorded, send the original prompt again.
+      run = userMessageRecorded(ctx.session.getMessages(), before) ? retry : attempt;
     }
   }
+}
+
+/** Which execution modes this run switched on, so the user's own setting can be put back after it. */
+export interface RunModeFlags {
+  ultracode: boolean;
+  orchestrate: boolean;
+}
+
+export interface PromptRunMeta {
+  scheduled?: boolean;
+  planRevision?: boolean;
+  ultracode?: boolean;
+  orchestrate?: boolean;
+}
+
+/**
+ * Route (when it applies), flip the per-run modes and send the prompt, with bounded escalation.
+ * Scheduled and plan-revision prompts are not the user's own and are never routed. Mid-run queued
+ * prompts never reach here (they steer the run that is already going). `flags` is filled in so a
+ * `finally` can call {@link restoreRunModes} even if the run throws.
+ */
+export async function runPromptWithRouting(
+  ctx: SessionRouteContext,
+  input: {
+    text: string;
+    attachments: AppAttachment[];
+    meta: PromptRunMeta | undefined;
+    send: () => Promise<void>;
+    retry: () => Promise<void>;
+  },
+  flags: RunModeFlags,
+): Promise<void> {
+  const { text, meta } = input;
+  const codeSession = ctx.mode === "code" && !ctx.goal;
+  const userPrompt = meta?.scheduled !== true && meta?.planRevision !== true;
+  const typedOrchestrate = codeSession && meta?.orchestrate === true && hasOrchestrateKeyword(text);
+  const typedUltracode = codeSession && meta?.ultracode === true && hasUltracodeKeyword(text);
+  const keywordMode: ExecutionMode | undefined = typedOrchestrate
+    ? "orchestrate"
+    : typedUltracode
+      ? "ultracode"
+      : undefined;
+  const routed = userPrompt
+    ? await routeUserPrompt(ctx, { text, attachments: input.attachments, keywordMode })
+    : null;
+  if (routed?.applied.ultracode) flags.ultracode = true;
+  if (routed?.applied.orchestrate) flags.orchestrate = true;
+  // "ultracode" / "orchestrate" typed in the prompt: that mode for this run only.
+  if (typedUltracode && !ctx.session.isUltracode()) {
+    flags.ultracode = true;
+    ctx.session.setUltracode(true);
+  }
+  if (typedOrchestrate && !ctx.session.isOrchestrate()) {
+    flags.orchestrate = true;
+    ctx.session.setOrchestrate(true);
+  }
+  const extra = await runWithEscalation(ctx, routed, input.send, input.retry);
+  if (extra?.ultracode) flags.ultracode = true;
+  if (extra?.orchestrate) flags.orchestrate = true;
+}
+
+/** Back to the user's own saved Ultracode/Orchestrate setting (their latest toggle, not this run's). */
+export async function restoreRunModes(
+  ctx: SessionRouteContext,
+  flags: RunModeFlags,
+): Promise<void> {
+  if (flags.ultracode) ctx.session.setUltracode(await loadUltracodeDefault());
+  if (flags.orchestrate) ctx.session.setOrchestrate(await loadOrchestrateDefault());
+  flags.ultracode = false;
+  flags.orchestrate = false;
+  await finishPendingRestore(ctx);
 }
