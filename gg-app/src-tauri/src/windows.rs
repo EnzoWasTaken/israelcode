@@ -376,14 +376,16 @@ pub(crate) async fn select_project(
         map.get_mut(&label)
             .and_then(|window| window.session_id.take())
     };
-    // Detach the old session (best-effort, off-thread): the daemon keeps it
-    // running in the background if busy, else disposes it.
+    // Detach the old session: the daemon keeps it running in the background if
+    // busy, else disposes it. Awaited (bounded) so the new POST /session for the
+    // same conversation cannot arrive first and open a second live context.
     if let Some(id) = old_id {
         if let Some(port) = port_for(&webview) {
-            let app2 = app.clone();
-            tauri::async_runtime::spawn(async move {
-                daemon_detach_session(&app2, port, &id).await;
-            });
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                daemon_detach_session(&app, port, &id),
+            )
+            .await;
         }
     }
 

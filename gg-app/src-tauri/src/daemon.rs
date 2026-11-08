@@ -451,23 +451,42 @@ pub(crate) async fn active_background_count(app: &tauri::AppHandle, port: u16) -
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PollStep {
     /// Keep polling; tray count becomes `count`.
-    Continue { count: usize, finished: bool },
+    Continue {
+        count: usize,
+        finished: bool,
+        failures: u32,
+    },
     /// Stop the poller (a workspace window is back).
     Stop,
 }
 
 /// Pure transition: `prev` is the last known count, `observed` the new poll
-/// (`None` = daemon unreachable, keep the previous count).
-pub(crate) fn poll_step(prev: usize, observed: Option<usize>, windows: usize) -> PollStep {
+/// (`None` = daemon unreachable). `failures` counts consecutive unreachable
+/// polls; after `POLL_MAX_FAILURES` the count drops to 0 (no daemon, no work).
+pub(crate) fn poll_step(
+    prev: usize,
+    observed: Option<usize>,
+    windows: usize,
+    failures: u32,
+) -> PollStep {
     if windows > 0 {
         return PollStep::Stop;
     }
-    let count = observed.unwrap_or(prev);
+    let (count, failures) = match observed {
+        Some(n) => (n, 0),
+        None => {
+            let f = failures.saturating_add(1);
+            (if f >= POLL_MAX_FAILURES { 0 } else { prev }, f)
+        }
+    };
     PollStep::Continue {
         count,
         finished: prev > 0 && count == 0,
+        failures,
     }
 }
+
+pub(crate) const POLL_MAX_FAILURES: u32 = 3;
 
 #[cfg(any(target_os = "macos", windows))]
 static BG_POLLER_RUNNING: AtomicBool = AtomicBool::new(false);
@@ -476,21 +495,35 @@ static BG_POLLER_RUNNING: AtomicBool = AtomicBool::new(false);
 /// At most one poller runs. The app has no notification mechanism, so
 /// completion is only logged and shown by the tray line disappearing.
 #[cfg(any(target_os = "macos", windows))]
-pub(crate) fn start_background_poller(app: tauri::AppHandle, port: u16, initial: usize) {
+pub(crate) fn start_background_poller(app: tauri::AppHandle, initial: usize) {
     if BG_POLLER_RUNNING.swap(true, Ordering::SeqCst) {
         return;
     }
     tauri::async_runtime::spawn(async move {
         let mut prev = initial;
+        let mut failures = 0u32;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             if app.state::<AppExiting>().0.load(Ordering::SeqCst) {
                 break;
             }
-            let observed = active_background_count(&app, port).await;
-            match poll_step(prev, observed, workspace_window_count(&app)) {
-                PollStep::Stop => break,
-                PollStep::Continue { count, finished } => {
+            // Re-read the port: the daemon may have restarted on a new one.
+            let port = *app.state::<Daemon>().port.lock_or_recover();
+            let observed = match port {
+                Some(port) => active_background_count(&app, port).await,
+                None => None,
+            };
+            match poll_step(prev, observed, workspace_window_count(&app), failures) {
+                PollStep::Stop => {
+                    update_tray_status(&app, |s| s.background_tasks = 0);
+                    break;
+                }
+                PollStep::Continue {
+                    count,
+                    finished,
+                    failures: f,
+                } => {
+                    failures = f;
                     if count != prev {
                         update_tray_status(&app, |s| s.background_tasks = count);
                     }
@@ -647,7 +680,8 @@ pub(crate) async fn finish_window_session(
             cwd.display(),
             started_at.elapsed().as_millis()
         );
-        daemon_delete_session(&app, port, &id).await;
+        // Detach, not delete: POST /session may have reattached a live background run.
+        daemon_detach_session(&app, port, &id).await;
         return Err("session selection was superseded".to_string());
     }
 
@@ -1136,34 +1170,47 @@ mod background_tests {
     #[test]
     fn poll_step_transitions() {
         assert_eq!(
-            poll_step(2, Some(0), 0),
+            poll_step(2, Some(0), 0, 0),
             Continue {
                 count: 0,
-                finished: true
+                finished: true,
+                failures: 0
             }
         );
+        assert_eq!(poll_step(2, Some(1), 2, 0), Stop);
+        // Unreachable: keep the count until the third consecutive failure.
         assert_eq!(
-            poll_step(2, Some(1), 0),
-            Continue {
-                count: 1,
-                finished: false
-            }
-        );
-        assert_eq!(
-            poll_step(2, None, 0),
+            poll_step(2, None, 0, 0),
             Continue {
                 count: 2,
-                finished: false
+                finished: false,
+                failures: 1
             }
         );
         assert_eq!(
-            poll_step(0, Some(0), 0),
+            poll_step(2, None, 0, 2),
             Continue {
                 count: 0,
-                finished: false
+                finished: true,
+                failures: 3
             }
         );
-        assert_eq!(poll_step(2, Some(2), 1), Stop);
+        assert_eq!(
+            poll_step(2, Some(2), 0, 2),
+            Continue {
+                count: 2,
+                finished: false,
+                failures: 0
+            }
+        );
+        assert_eq!(
+            poll_step(0, Some(0), 0, 0),
+            Continue {
+                count: 0,
+                finished: false,
+                failures: 0
+            }
+        );
     }
 
     #[test]
