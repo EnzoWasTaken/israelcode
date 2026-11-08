@@ -1,0 +1,143 @@
+/* Settings screen shell: grouped section list on the left, the page on the
+   right. Narrow windows turn the list into a strip across the top. The page
+   rules themselves (.settings-page, cards, header slots) live in App.css. */
+.settings-screen {
+  position: relative;
+}
+.settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: var(--space-10);
+  padding-inline: var(--page-pad);
+}
+.settings-nav {
+  flex: 0 0 216px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8) 0 var(--space-10);
+  overflow-y: auto;
+}
+.settings-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.settings-nav-heading {
+  padding: 0 var(--space-6) var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-base);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--dur-press) var(--ease-out),
+    color var(--dur-press) var(--ease-out);
+}
+.settings-nav-item:hover {
+  background: var(--surface-1);
+  color: var(--text);
+}
+.settings-nav-item.is-active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+.settings-nav-item.is-active .settings-nav-icon {
+  color: var(--primary);
+}
+.settings-nav-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.settings-nav-icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.settings-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-nav-alert {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--error);
+}
+
+.settings-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.settings-intro {
+  margin: 0;
+  padding: var(--space-8) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+}
+/* The body owns the side padding now, and nothing floats over the page bottom. */
+.settings-main .settings-page {
+  padding-inline: 0;
+  padding-bottom: var(--space-10);
+}
+.settings-main .settings-page.is-fill {
+  padding-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .settings-body {
+    flex-direction: column;
+    gap: 0;
+  }
+  .settings-nav {
+    flex: none;
+    flex-direction: row;
+    gap: var(--space-2);
+    padding: var(--space-4) 0;
+    overflow: auto hidden;
+  }
+  .settings-nav-group {
+    flex-direction: row;
+    gap: var(--space-1);
+  }
+  .settings-nav-heading {
+    display: none;
+  }
+  .settings-nav-item {
+    width: auto;
+    flex: none;
+  }
+  .settings-intro {
+    padding-top: var(--space-4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-nav-item {
+    transition: none;
+  }
+}
