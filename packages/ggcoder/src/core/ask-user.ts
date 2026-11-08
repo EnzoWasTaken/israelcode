@@ -116,6 +116,12 @@ export interface AskUserBridgeOptions {
   broadcast: (prompt: AskUserPrompt) => void;
   /** Soft deadline in ms, read when each question is parked. */
   timeoutMs?: number | (() => number);
+  /**
+   * True while nobody is watching a background (detached) session. The soft
+   * deadline then re-arms instead of firing, so the question keeps the agent
+   * waiting for the user to come back rather than expiring unseen.
+   */
+  isSuspended?: () => boolean;
   /** The soft deadline passed: the agent proceeds, the question stays open. */
   onTimeout?: (prompt: AskUserPrompt) => void;
   /** A deferred question was answered. Called at most once per question. */
@@ -165,14 +171,22 @@ export function createAskUserBridge(opts: AskUserBridgeOptions): AskUserBridge {
         // deadline: the agent has moved on to a new decision point.
         closeDeferred();
         const prompt: AskUserPrompt = { ...request, id: `ask-${++seq}` };
-        const timer = setTimeout(() => {
-          if (!pending.has(prompt.id)) return;
-          deferred.set(prompt.id, prompt);
-          opts.onTimeout?.(prompt);
-          release(prompt.id, { action: "deferred" });
-        }, deadline());
-        timer.unref?.();
-        pending.set(prompt.id, { prompt, resolve, timer });
+        const arm = (): ReturnType<typeof setTimeout> => {
+          const timer = setTimeout(() => {
+            const entry = pending.get(prompt.id);
+            if (!entry) return;
+            if (opts.isSuspended?.()) {
+              entry.timer = arm();
+              return;
+            }
+            deferred.set(prompt.id, prompt);
+            opts.onTimeout?.(prompt);
+            release(prompt.id, { action: "deferred" });
+          }, deadline());
+          timer.unref?.();
+          return timer;
+        };
+        pending.set(prompt.id, { prompt, resolve, timer: arm() });
         opts.broadcast(prompt);
       }),
     settle: (id, result) => {

@@ -136,7 +136,13 @@ import {
   type WorkspaceMode,
   parseWorkspaceMode,
   type SessionContext,
+  type ContextStatus,
 } from "./app-sidecar/session-types.js";
+import {
+  createBackgroundSessionRegistry,
+  handleBackgroundSessionRoutes,
+  makeTitle,
+} from "./app-sidecar/background-sessions.js";
 import {
   ALL_PROVIDERS,
   loadProjectModelPrefs,
@@ -202,7 +208,7 @@ import { handleBranchRoutes, type BranchRouteContext } from "./app-sidecar/branc
 import { resolveResumeCheckout } from "./app-sidecar/git-branches.js";
 import { mainCheckoutOf, resolveSetupCommand, setupNote } from "./app-sidecar/worktrees.js";
 import { readCheckoutRecord } from "./core/checkout-record.js";
-import { handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
+import { cancelActiveRun, handleRunControlRoutes } from "./app-sidecar/run-control-routes.js";
 import { handleAuthRoutes } from "./app-sidecar/auth-routes.js";
 import { handleIntegrationRoutes } from "./app-sidecar/integration-routes.js";
 import { handleMcpRoutes } from "./app-sidecar/mcp-routes.js";
@@ -347,6 +353,18 @@ async function main(): Promise<void> {
   // request to its window's session via the `x-gg-session` header (and the
   // `?session=` query for the SSE /events stream).
   const sessions = new Map<string, SessionContext>();
+  // Tracks every context so a window that goes away can leave its work running
+  // (see POST /session/:id/detach) and so finished background runs stay listed.
+  const backgroundSessions = createBackgroundSessionRegistry({
+    file: path.join(paths.agentDir, "background-sessions.json"),
+    disposeContext: async (ctx) => {
+      sessions.delete(ctx.id);
+      await ctx.dispose();
+      log("INFO", "app-sidecar", "session disposed", { id: ctx.id });
+    },
+    onRows: (rows) => broadcastAll("background_sessions", { sessions: rows }),
+  });
+  await backgroundSessions.load();
   // A window that moved into a worktree resumes its conversation in a new
   // session there; this note (keyed by that conversation file) tells its agent.
   const pendingMoveNotes = new Map<string, string>();
@@ -527,6 +545,22 @@ async function main(): Promise<void> {
             : (process.env.GG_APP_CWD ?? process.cwd());
         const sessionPath =
           typeof body.sessionPath === "string" && body.sessionPath ? body.sessionPath : undefined;
+        // A conversation whose window went away while it worked is still live in
+        // this daemon: hand it back instead of starting a second one on the file.
+        if (sessionPath) {
+          const live = backgroundSessions.findDetached(sessionPath, mode, chatAgent);
+          if (live) {
+            backgroundSessions.attach(live.id);
+            log("INFO", "app-sidecar", "session reattached", { id: live.id });
+            daemonJson(res, 200, {
+              sessionId: live.id,
+              sessionPath: live.session.getState().sessionPath ?? sessionPath,
+              cwd: live.cwd,
+              reattached: true,
+            });
+            return;
+          }
+        }
         const id = randomUUID();
         try {
           // A resumed conversation comes back on the branch it was last on,
@@ -579,10 +613,12 @@ async function main(): Promise<void> {
               pendingMoveNotes,
               pendingSetups,
               pendingCheckoutNotices,
+              onStatusChange: (sessionId) => backgroundSessions.refresh(sessionId),
             },
             { id, mode, chatAgent, cwd: sessionCwd, sessionPath },
           );
           sessions.set(id, ctx);
+          backgroundSessions.track(ctx);
           log("INFO", "app-sidecar", "session created", {
             id,
             mode,
@@ -612,10 +648,41 @@ async function main(): Promise<void> {
       const ctx = sessions.get(id);
       if (ctx) {
         sessions.delete(id);
+        backgroundSessions.untrack(id);
         void ctx.dispose().catch(() => {});
         log("INFO", "app-sidecar", "session disposed", { id });
       }
       daemonJson(res, 200, { ok: true });
+      return;
+    }
+
+    // The window is gone but its work may not be: POST /session/:id/detach.
+    // Busy or awaiting-input contexts stay alive in the daemon; idle ones are
+    // disposed exactly like DELETE.
+    if (method === "POST" && url.startsWith("/session/") && url.endsWith("/detach")) {
+      const id = decodeURIComponent(url.slice("/session/".length, -"/detach".length));
+      void backgroundSessions.detach(id).then((result) => {
+        if (result.kept) log("INFO", "app-sidecar", "session kept in background", { id });
+        const kept = result.kept;
+        daemonJson(res, 200, kept ? { ok: true, kept, status: result.status } : { ok: true, kept });
+      });
+      return;
+    }
+
+    if (
+      handleBackgroundSessionRoutes(
+        {
+          registry: backgroundSessions,
+          sessionsDir: paths.sessionsDir,
+          readBody: daemonReadBody,
+          json: daemonJson,
+        },
+        req,
+        res,
+        url,
+        method,
+      )
+    ) {
       return;
     }
 
@@ -756,6 +823,9 @@ async function main(): Promise<void> {
       // teardown is still pending then, these would never be stopped.
       for (const c of sessions.values()) c.stopBackgroundProcesses();
       clearInterval(parentWatch);
+      // Rows first: work still running now is reported as interrupted next start.
+      await backgroundSessions.flush();
+      backgroundSessions.close();
       // Radio playback is app-wide (one stream across all windows), so it stops
       // at the daemon level, not per session.
       stopRadio();
@@ -832,6 +902,8 @@ async function createSession(
     pendingSetups: Set<string>;
     /** Chat rows for conversations that reopened somewhere new for their branch. */
     pendingCheckoutNotices: Map<string, string>;
+    /** A session's run state, approvals, questions or plan changed. */
+    onStatusChange?: (id: string) => void;
   },
   opts: {
     id: string;
@@ -921,6 +993,56 @@ async function createSession(
     const safePayload = redactValue({ type, data }, { secrets: environmentSecrets(process.env) });
     const frame = `data: ${JSON.stringify(safePayload)}\n\n`;
     for (const c of clients) c.res.write(frame);
+    if (STATUS_EVENTS.has(type)) notifyStatus();
+  }
+
+  // ── Background-session status ──────────────────────────────
+  // The daemon's registry reads status() whenever one of these changes.
+  const STATUS_EVENTS = new Set([
+    "approval_request",
+    "approval_resolved",
+    "ask_user",
+    "ask_user_deferred",
+    "ask_user_closed",
+    "plan_review",
+    "run_end",
+    "error",
+  ]);
+  let detached = false;
+  let runStartedAt: number | null = null;
+  let statusUpdatedAt = Date.now();
+  let lastOutcome: "completed" | "failed" | "cancelled" | null = null;
+  let lastErrorHeadline: string | null = null;
+  function notifyStatus(): void {
+    statusUpdatedAt = Date.now();
+    deps.onStatusChange?.(opts.id);
+  }
+  function contextStatus(): ContextStatus {
+    const firstUser = session.getMessages().find((m) => m.role === "user");
+    const text =
+      typeof firstUser?.content === "string"
+        ? firstUser.content
+        : Array.isArray(firstUser?.content)
+          ? firstUser.content.map((b) => (b.type === "text" ? b.text : "")).join(" ")
+          : "";
+    const base = { title: makeTitle(text), startedAt: runStartedAt, updatedAt: statusUpdatedAt };
+    if (approvals.list().length > 0) {
+      return { ...base, state: "awaiting_input", detail: "Waiting for your approval" };
+    }
+    if (asks.pendingCount > 0) {
+      return { ...base, state: "awaiting_input", detail: "Asked you a question" };
+    }
+    if (pendingPlanPath !== null && !running && !runClaim.active && !autopilotActive) {
+      return { ...base, state: "awaiting_input", detail: "Plan ready for review" };
+    }
+    if (running || runClaim.active || autopilotActive) {
+      return { ...base, state: "running", detail: null };
+    }
+    if (lastOutcome === "failed") {
+      return { ...base, state: "failed", detail: lastErrorHeadline ?? "The run failed" };
+    }
+    if (lastOutcome) return { ...base, state: lastOutcome, detail: null };
+    return { ...base, state: "idle", detail: null };
   }
 
   // Replace CLI-specific guidance (slash commands, CLI tool names) with
@@ -1015,6 +1137,7 @@ async function createSession(
       ...(payload.statusCode != null ? { statusCode: String(payload.statusCode) } : {}),
       ...(payload.requestId ? { requestId: payload.requestId } : {}),
     });
+    if (type !== "ken_error") lastErrorHeadline = payload.headline;
     broadcast(type, payload);
     // Same sanitized snapshot for live and restored rows, including reset metadata.
     void session.persistAppMarker("error", payload).catch(() => {});
@@ -1049,6 +1172,8 @@ async function createSession(
     broadcast: (prompt) => broadcast("ask_user", prompt),
     timeoutMs: () =>
       askSoftDeadlineMs(autopilot || autopilotActive || taskRunAll || scheduledRunActive),
+    // Nobody is watching a detached session: the question waits for the user.
+    isSuspended: () => detached,
     onTimeout: (prompt) => {
       log("WARN", "app-sidecar", "ask_user deadline passed; agent proceeding", { id: prompt.id });
       broadcast("ask_user_deferred", { id: prompt.id });
@@ -1114,7 +1239,7 @@ async function createSession(
     rememberAlways: (command) => allowCommandAlways(cwd, command),
   });
   const askUserTool = createAskUserTool(async (request) => {
-    const result = await asks.park(request);
+    const result = await asks.park(request).finally(notifyStatus);
     await startGoalFrom(result, request.questions);
     return result;
   });
@@ -1874,7 +1999,14 @@ async function createSession(
   const runClaim = new RunClaim();
   const runLifecycle = new RunLifecycle(
     (runState) => {
+      const wasRunning = running;
       running = runState !== "idle";
+      if (running && !wasRunning) {
+        runStartedAt = Date.now();
+        lastOutcome = null;
+        lastErrorHeadline = null;
+      }
+      notifyStatus();
       if (running) {
         releaseRunAwake ??= keepAwake.acquire("run");
       } else {
@@ -1956,6 +2088,7 @@ async function createSession(
     pendingPlanPath = null;
     pendingPlanContent = "";
     planGeneration++;
+    notifyStatus();
   }
 
   // Plan feedback (Ken's or the user's) is revised back in read-only plan
@@ -2227,6 +2360,13 @@ async function createSession(
     const cancelled = runLifecycle.isCancellationRequested(generation);
     const settlement = runLifecycle.settle(generation, outcome);
     if (!settlement.settled) return cancelled;
+    lastOutcome =
+      cancelled || outcome === "aborted"
+        ? "cancelled"
+        : outcome === "failed"
+          ? "failed"
+          : "completed";
+    notifyStatus();
     // A replacement signal is safe only after the provider-backed owner settled.
     installFreshRunControllers();
     if (cancelled && emitCancelledFallback && !cancelledRunEndGenerations.has(generation)) {
@@ -3245,6 +3385,11 @@ async function createSession(
     dispose,
     stopBackgroundProcesses,
     isBusy,
+    status: contextStatus,
+    setDetached: (value) => {
+      detached = value;
+    },
+    stop: async () => (await cancelActiveRun(routeCtx)).result.status,
     gitDir: () => gitCwd,
   };
 }
