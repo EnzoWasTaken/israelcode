@@ -194,12 +194,6 @@ export function DeckMenu({
   autopilot,
   autopilotReviewing,
   onAutopilotChange,
-  ultracode = false,
-  onUltracodeChange,
-  orchestrate = false,
-  onOrchestrateChange,
-  orchestratorName,
-  workerName,
   verify,
   onVerifyChange,
   worktreeWorkers,
@@ -229,14 +223,6 @@ export function DeckMenu({
   autopilot: boolean;
   autopilotReviewing: boolean;
   onAutopilotChange: (next: boolean) => void;
-  ultracode?: boolean;
-  onUltracodeChange?: (next: boolean) => void;
-  /** Native orchestration toggle (code windows); absent elsewhere. */
-  orchestrate?: boolean;
-  onOrchestrateChange?: (next: boolean) => void;
-  /** Display names for the toggle's tooltip: the main model and the Worker model. */
-  orchestratorName?: string;
-  workerName?: string;
   /** The verify loop (code windows): its switch, checks and cap; absent elsewhere. */
   verify?: VerifyState | null;
   onVerifyChange?: (next: VerifyState) => void;
@@ -300,32 +286,6 @@ export function DeckMenu({
         >
           Autopilot
           <span className="led" data-state={autopilot ? "on" : undefined} aria-hidden="true" />
-        </button>
-      )}
-      {code && onUltracodeChange && (
-        <button
-          type="button"
-          className="key"
-          role="switch"
-          aria-checked={ultracode}
-          title="Ultracode: big jobs are split into phases, run by parallel agents and checked by a reviewer. Applies from your next message."
-          onClick={() => onUltracodeChange(!ultracode)}
-        >
-          Ultracode
-          <span className="led" data-state={ultracode ? "on" : undefined} aria-hidden="true" />
-        </button>
-      )}
-      {code && onOrchestrateChange && (
-        <button
-          type="button"
-          className="key"
-          role="switch"
-          aria-checked={orchestrate}
-          title={`Plan with ${orchestratorName ?? "the main model"}, build with ${workerName ?? "the Worker model"}, review before replying`}
-          onClick={() => onOrchestrateChange(!orchestrate)}
-        >
-          Orchestrate
-          <span className="led" data-state={orchestrate ? "on" : undefined} aria-hidden="true" />
         </button>
       )}
       {code && verify && onVerifyChange && (

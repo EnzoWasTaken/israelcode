@@ -24,13 +24,14 @@ import { useDeckEscape } from "./deck-escape";
 import { EmbeddedModal } from "./modal-embed";
 import { Icon } from "./icons";
 import { modelDisplayName } from "./model-name";
+import { RouteControlLabel, routeControlName, RouteLine } from "./RouteControl";
 import { ModelPanel, type SecondAgent } from "./ModelPanel";
 import {
   PROJECT_HEALTH_TIER_LABELS,
   projectHealthTier,
   type ProjectHealth,
 } from "./project-health";
-import { ThinkingDots, thinkingLabel } from "./thinking-display";
+import { thinkingLabel } from "./thinking-display";
 import { useSubscriptionUsage } from "./TitleUsageMeter";
 import { compactResetLabel, fullResetLabel } from "./usage-display";
 import { toast } from "./toast";
@@ -94,6 +95,9 @@ export interface DeckProps {
   second: SecondAgent | null;
   /** The Workers Orchestrate delegates to (code windows); omitted elsewhere. */
   third?: SecondAgent | null;
+  /** Execution-mode toggles (code windows); omitted where unsupported. */
+  onUltracodeChange?: (next: boolean) => void;
+  onOrchestrateChange?: (next: boolean) => void;
   tasks: BackgroundTask[];
   schedules: readonly ActiveSchedule[];
   onStopSchedule: (id: string) => void;
@@ -200,6 +204,7 @@ export function Deck(props: DeckProps): React.ReactElement {
       <div className="deck-main" data-away={panel !== null || undefined} inert={panel !== null}>
         <div className="deck-status">
           {props.status}
+          <RouteLine state={state} />
           {planMode && (
             <span
               className="deck-flag"
@@ -359,12 +364,11 @@ function Rail({
         type="button"
         className="key rail-key model-key"
         title={`${state?.model ? modelName : "Model"}${levels.length ? ` · thinking ${thinkingLabel(state?.thinkingLevel).toLowerCase()}` : ""}${modelBilling ? ` · ${modelBilling.detail}` : ""}${second ? ` · ${second.name}: ${second.following ? `follows ${second.followLabel}` : modelDisplayName(models, second.model)}` : ""}`}
-        aria-label={`Model ${modelName}${levels.length ? `, thinking ${thinkingLabel(state?.thinkingLevel)}` : ""}${paid ? `, ${modelBilling?.label}` : ""}. Change`}
+        aria-label={`${routeControlName(state, models)}${paid ? `, ${modelBilling?.label}` : ""}`}
         data-paid={paid || undefined}
         {...key("model")}
       >
-        <ThinkingDots levels={levels} level={state?.thinkingLevel} />
-        <span className="well trunc">{modelName}</span>
+        <RouteControlLabel state={state} models={models} />
         {paid && (
           <span className="rail-label model-cost" aria-hidden="true">
             paid
@@ -390,6 +394,8 @@ function PanelBody(
           onSelectModel={props.onSelectModel}
           second={props.second}
           third={props.third ?? null}
+          onUltracodeChange={props.onUltracodeChange}
+          onOrchestrateChange={props.onOrchestrateChange}
           onClose={close}
         />
       );

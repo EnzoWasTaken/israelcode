@@ -4,7 +4,10 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ModelPanel, type SecondAgent } from "./ModelPanel";
 import type { AgentState, ModelOption } from "./agent";
 
-vi.mock("./agent", () => ({ setThinkingLevel: vi.fn(() => Promise.resolve()) }));
+vi.mock("./agent", () => ({
+  setThinkingLevel: vi.fn(() => Promise.resolve()),
+  setSessionRouting: vi.fn(() => Promise.resolve({})),
+}));
 
 // jsdom has no layout, so no `scrollIntoView` (same stub as Dropdown.test.tsx).
 beforeAll(() => {

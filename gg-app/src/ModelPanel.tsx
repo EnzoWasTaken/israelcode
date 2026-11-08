@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { setThinkingLevel, type AgentState, type ModelOption } from "./agent";
+import { ModelRouting } from "./ModelRouting";
 import { PanelHead } from "./DeckPanelHead";
 import { Icon } from "./icons";
 import { modelDisplayName } from "./model-name";
@@ -80,6 +81,8 @@ export function ModelPanel({
   onSelectModel,
   second: secondAgent,
   third = null,
+  onUltracodeChange,
+  onOrchestrateChange,
   onClose,
 }: {
   state: AgentState | null;
@@ -90,6 +93,8 @@ export function ModelPanel({
   second: SecondAgent | null;
   /** A further agent to pick for (the Workers in a code window); omitted elsewhere. */
   third?: SecondAgent | null;
+  onUltracodeChange?: (next: boolean) => void;
+  onOrchestrateChange?: (next: boolean) => void;
   onClose: () => void;
 }): React.ReactElement {
   const [target, setTarget] = useState<ModelTarget>("gg");
@@ -228,6 +233,12 @@ export function ModelPanel({
   return (
     <div className="deck-panel model-panel">
       <PanelHead title="Model" onClose={onClose} />
+      <ModelRouting
+        state={state}
+        models={models}
+        onUltracodeChange={onUltracodeChange}
+        onOrchestrateChange={onOrchestrateChange}
+      />
       <div className="deck-prow model-head">
         {(secondAgent || third) && (
           <div className="key-group" role="radiogroup" aria-label="Choose a model for">
