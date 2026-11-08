@@ -33,6 +33,8 @@ import type { VerifyController } from "./verify.js";
 import type { CompactionController } from "./compaction.js";
 import type { HooksController } from "./hooks.js";
 import type { WorktreeReviewController } from "./worktree-review.js";
+import type { RoutingRuntime } from "./routing-runtime.js";
+import type { AutoRouteSessionState } from "./session-routing.js";
 
 /** Closure state of one `createSession` context that the per-session route
  *  handlers read and write. Built in `createSession`; `let` bindings are
@@ -189,4 +191,8 @@ export interface SessionRouteContext {
   readonly startHfPull: (repo: string) => Promise<Record<string, unknown>>;
   readonly cancelHfPull: () => boolean;
   serveController: ServeController | null;
+  /** Daemon-level Auto routing engine (config, adapters, cache, diagnostics). */
+  readonly routing: RoutingRuntime;
+  /** This window's Auto state: on/off, pins and the last decision. */
+  readonly autoRoute: AutoRouteSessionState;
 }

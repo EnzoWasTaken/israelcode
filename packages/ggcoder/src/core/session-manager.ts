@@ -239,7 +239,9 @@ export interface AppMarkerPayload extends RecordedPosition {
     /** The conversation opened somewhere new for its branch; `data` carries { text }. */
     | "checkout"
     /** A verify-loop result; `data` carries { passed, rounds, stoppedReason }. */
-    | "verify";
+    | "verify"
+    /** An Auto routing decision; `data` carries the content-free RouteDecision summary. */
+    | "route_decision";
   afterMessageCount: number;
   /** Kind-specific display fields (reason/title/headline/kenSent/counts/…). */
   data: Record<string, unknown>;
@@ -1646,7 +1648,8 @@ export class SessionManager {
             kind === "interrupted_run" ||
             kind === "security" ||
             kind === "shell" ||
-            kind === "verify")
+            kind === "verify" ||
+            kind === "route_decision")
         ) {
           return [
             {

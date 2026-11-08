@@ -18,6 +18,7 @@ import {
 } from "./app-settings.js";
 import type { CancelResult } from "../core/run-lifecycle.js";
 import type { SessionRouteContext } from "./route-context.js";
+import { autoRoutePayload } from "./session-routing.js";
 
 /**
  * What a POST /thinking asks for. An empty body cycles to the next level (the
@@ -171,6 +172,14 @@ export function handleRunControlRoutes(
         }
       }
       await ctx.session.switchModel(target.provider, target.id, { confirmPaid });
+      // An explicit pick while Auto is on is a pin: the router stops overriding the model.
+      if (ctx.autoRoute.enabled) {
+        ctx.autoRoute.pins = {
+          ...ctx.autoRoute.pins,
+          model: { provider: target.provider, model: target.id },
+        };
+        ctx.broadcast("route_state", autoRoutePayload(ctx));
+      }
       // Picking an Ollama model loads it, so the footer shows the context Ollama
       // really serves instead of the 4K guess. Never delays the switch.
       if (target.provider === "local") void ctx.learnServedContext(target.id, true).catch(() => {});
@@ -396,6 +405,13 @@ export function handleRunControlRoutes(
       }
       const next = resolved.level;
       ctx.session.setThinkingLevel(next);
+      // Same for the reasoning level (turning it off clears the pin; the router may set it again).
+      if (ctx.autoRoute.enabled) {
+        const { effort: _drop, ...rest } = ctx.autoRoute.pins;
+        void _drop;
+        ctx.autoRoute.pins = next ? { ...rest, effort: next } : rest;
+        ctx.broadcast("route_state", autoRoutePayload(ctx));
+      }
       // Persist per-project so THIS window restores its thinking state on
       // restart; keep the global write as a fallback (mirrors the CLI).
       void saveProjectModelPrefs(ctx.cwd, {

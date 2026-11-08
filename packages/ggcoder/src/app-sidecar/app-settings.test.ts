@@ -32,6 +32,8 @@ const {
   loadWorktreeWorkersPref,
   saveWorktreeWorkersPref,
   updateAppSettings,
+  loadAutoRouteConfig,
+  saveAutoRouteConfig,
 } = await import("./app-settings.js");
 
 beforeEach(async () => {
@@ -286,5 +288,35 @@ describe("compaction settings", () => {
     expect((await loadAppSettings()).compaction).toEqual({
       [path.resolve("/ok")]: { threshold: 0.6, pins: ["a"] },
     });
+  });
+});
+
+describe("Auto routing config", () => {
+  it("defaults to off when missing or malformed (silent migration)", async () => {
+    expect((await loadAutoRouteConfig()).enabled).toBe(false);
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(appSettingsFile(), JSON.stringify({ projectsRoot: "/r", autoRoute: 5 }));
+    const cfg = await loadAutoRouteConfig();
+    expect(cfg.enabled).toBe(false);
+    expect(cfg.decider).toBeNull();
+  });
+
+  it("round-trips and keeps other keys", async () => {
+    await fs.mkdir(path.dirname(appSettingsFile()), { recursive: true });
+    await fs.writeFile(appSettingsFile(), JSON.stringify({ projectsRoot: "/r", other: 1 }));
+    const cfg = await loadAutoRouteConfig();
+    await saveAutoRouteConfig({
+      ...cfg,
+      enabled: true,
+      decider: { kind: "decisions-api", service: "typesafe", model: "jev-latest" },
+    });
+    const loaded = await loadAutoRouteConfig();
+    expect(loaded.enabled).toBe(true);
+    expect(loaded.decider).toEqual({
+      kind: "decisions-api",
+      service: "typesafe",
+      model: "jev-latest",
+    });
+    expect((await readFile()).other).toBe(1);
   });
 });
