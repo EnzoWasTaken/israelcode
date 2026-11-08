@@ -131,7 +131,6 @@ const GoalWorld = lazy(() =>
   import("./GoalWorld").then((module) => ({ default: module.GoalWorld })),
 );
 import { ModelSelect, loadModelsInto } from "./ModelSelect";
-import { modelDisplayName } from "./model-name";
 import {
   describeSchedule,
   isScheduleDraft,
@@ -3392,6 +3391,8 @@ function App(): React.ReactElement {
                     }
                   : null
               }
+              onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
+              onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
               tasks={tasks}
               schedules={schedules}
               onStopSchedule={stopSchedule}
@@ -3514,20 +3515,11 @@ function App(): React.ReactElement {
                   running={running}
                   autopilot={state?.autopilot ?? false}
                   autopilotReviewing={autopilotReviewing}
-                  ultracode={state?.ultracode ?? false}
-                  onUltracodeChange={ultracodeAvailable ? changeUltracode : undefined}
-                  orchestrate={state?.orchestration?.orchestrate ?? false}
-                  onOrchestrateChange={ultracodeAvailable ? changeOrchestrate : undefined}
                   verify={state?.verify ?? null}
                   onVerifyChange={changeVerify}
                   worktreeWorkers={state?.worktreeWorkers ?? null}
                   worktreeVerifyProgress={state?.worktreeVerifyProgress}
                   onWorktreeWorkersChange={changeWorktreeWorkers}
-                  orchestratorName={modelDisplayName(models, state?.model)}
-                  workerName={modelDisplayName(
-                    models,
-                    state?.orchestration?.workerModel ?? state?.model,
-                  )}
                   onAutopilotChange={(next) => {
                     setState((s) => (s ? { ...s, autopilot: next } : s));
                     void setAutopilot(next);
