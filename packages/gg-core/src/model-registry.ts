@@ -161,6 +161,20 @@ export const MODELS: ModelInfo[] = [
     costTier: "high",
     maxThinkingLevel: "max",
   },
+  {
+    // Fable 5.1 successor; same adaptive-thinking line and limits (1M context,
+    // 128K output, image input, low→max effort).
+    id: "claude-fable-5-2",
+    name: "Claude Fable 5.2",
+    provider: "anthropic",
+    contextWindow: 1_000_000,
+    maxOutputTokens: 128_000,
+    supportsThinking: true,
+    supportsImages: true,
+    supportsVideo: false,
+    costTier: "high",
+    maxThinkingLevel: "max",
+  },
   // {
   //   // Mythos-class model offered through Project Glasswing (limited
   //   // availability, invitation-only). Same underlying model as Fable 5.1 with

@@ -583,6 +583,27 @@ describe("streamOpenAICodex", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("sends a named choice of the only tool as required", async () => {
+    let sent: Record<string, unknown> | undefined;
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      sent = JSON.parse(String(init.body)) as Record<string, unknown>;
+      return new Response("nope", { status: 400 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = streamOpenAICodex({
+      provider: "openai",
+      model: "gpt-5.5",
+      messages: [{ role: "user", content: "hi" }],
+      apiKey: "token",
+      accountId: "acct",
+      tools: [{ name: "select_route", description: "pick", parameters: z.object({}) }],
+      toolChoice: { name: "select_route" },
+    });
+    await result.response.catch(() => undefined);
+    expect(fetchMock).toHaveBeenCalled();
+    expect(sent?.tool_choice).toBe("required");
+  });
+
   it("rejects required tool choice locally when no tools exist", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

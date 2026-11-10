@@ -119,6 +119,11 @@ export function usesResponsesLite(model: string): boolean {
 
 function toCodexToolChoice(choice: ToolChoice | undefined, tools: Tool[] | undefined): string {
   const resolved = choice ?? "auto";
+  // Naming the only configured tool forces exactly that call, which Codex can express as
+  // "required" (Auto routing's decision model forces its single select_route tool this way).
+  if (typeof resolved === "object" && tools?.length === 1 && tools[0]!.name === resolved.name) {
+    return "required";
+  }
   if (typeof resolved === "object") {
     throw new GGAIError(
       `OpenAI Codex does not support selecting the named tool \`${resolved.name}\`; use auto, none, or required.`,

@@ -222,3 +222,19 @@ describe("LLM decision adapter", () => {
     });
   });
 });
+
+describe("Claude Fable 5.2 in the routing registry", () => {
+  it("is a reasoning model with the full effort ladder, so effort picks scale with difficulty", async () => {
+    const { buildCapabilityRegistry } = await import("./capabilities.js");
+    const { effortForDifficulty } = await import("./decision-adapter.js");
+    const { getModel } = await import("../model-registry.js");
+    const info = getModel("claude-fable-5-2");
+    expect(info).toBeTruthy();
+    const [cap] = buildCapabilityRegistry({ models: [info!], isAvailable: () => true });
+    expect(cap!.strengths).toContain("reasoning");
+    expect(cap!.thinkingLevels).toEqual(["low", "medium", "high", "max"]);
+    expect(effortForDifficulty("trivial", cap!.thinkingLevels)).toBe("low");
+    expect(effortForDifficulty("moderate", cap!.thinkingLevels)).toBe("medium");
+    expect(effortForDifficulty("hard", cap!.thinkingLevels)).toBe("high");
+  });
+});

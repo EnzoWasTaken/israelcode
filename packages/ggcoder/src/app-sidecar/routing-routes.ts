@@ -132,9 +132,33 @@ async function configPayload(runtime: RoutingRuntime) {
   };
 }
 
-async function runTest(deps: RoutingRouteDeps) {
+/**
+ * The decider to test: the one sent with the request (the picker's unsaved choice) when the
+ * body has a `decider` key, else the saved one. Without this, "Test connection" after picking a
+ * new decision model silently tested the previously saved model.
+ */
+export function testDecider(
+  raw: string,
+  saved: AutoRouteConfig["decider"],
+): AutoRouteConfig["decider"] {
+  let body: unknown;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    return saved;
+  }
+  if (typeof body !== "object" || body === null || !("decider" in body)) return saved;
+  return parseAutoRouteConfig({ decider: (body as { decider: unknown }).decider }).decider;
+}
+
+async function runTest(deps: RoutingRouteDeps, raw: string) {
   const { runtime } = deps;
-  const config: AutoRouteConfig = { ...runtime.config(), enabled: true, cacheTtlMs: 0 };
+  const config: AutoRouteConfig = {
+    ...runtime.config(),
+    decider: testDecider(raw, runtime.config().decider),
+    enabled: true,
+    cacheTtlMs: 0,
+  };
   const built = await runtime.buildAdapter(config);
   const decider = built.adapter?.label ?? config.decider?.model ?? "none";
   if (!built.adapter) {
@@ -313,7 +337,7 @@ export function handleRoutingRoutes(
     void deps.readBody(req, res).then(async (raw) => {
       if (raw === null) return;
       try {
-        json(res, 200, await runTest(deps));
+        json(res, 200, await runTest(deps, raw));
       } catch (err) {
         fail(err);
       }

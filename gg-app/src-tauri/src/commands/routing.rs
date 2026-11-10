@@ -88,16 +88,22 @@ pub(crate) async fn routing_credential_clear(
     json_or_error(res, "failed to remove the API key").await
 }
 
-/// Proxy: run one routing decision on a canned task with the configured decider.
+/// Proxy: run one routing decision on a canned task. `decider` is the picker's
+/// (possibly unsaved) choice; without it the saved decider is tested.
 #[tauri::command]
 pub(crate) async fn routing_test(
     webview: WebviewWindow,
     client: State<'_, reqwest::Client>,
+    decider: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     let port = daemon_port(&webview)?;
+    let body = match decider {
+        Some(d) => serde_json::json!({ "decider": d }),
+        None => serde_json::json!({}),
+    };
     let res = client
         .post(format!("{}/routing/test", sidecar_base(port)))
-        .json(&serde_json::json!({}))
+        .json(&body)
         .send()
         .await
         .map_err(|e| e.without_url().to_string())?;

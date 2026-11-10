@@ -3827,8 +3827,11 @@ export function clearRoutingCredential(service: "typesafe"): Promise<{ ok: true 
   return invoke("routing_credential_clear", { service });
 }
 
-export function testRouting(): Promise<RoutingTestResult> {
-  return invoke<RoutingTestResult>("routing_test");
+/** Test a decider: the picker's choice (`null` = none) or, when omitted, the saved one. */
+export function testRouting(decider?: AutoRouteConfig["decider"]): Promise<RoutingTestResult> {
+  return decider === undefined
+    ? invoke<RoutingTestResult>("routing_test")
+    : invoke<RoutingTestResult>("routing_test", { decider });
 }
 
 export async function getRoutingDiagnostics(): Promise<RouteDiagnostic[]> {

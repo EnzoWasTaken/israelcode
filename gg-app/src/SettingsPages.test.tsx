@@ -155,6 +155,12 @@ describe("Auto routing page", () => {
     await loadAuto();
     fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
     expect(await screen.findByText(/321 ms, picked sonnet \(low\)/)).toBeTruthy();
+    // Tests the picker's selection (here the saved one), sent along explicitly.
+    expect(agent.testRouting).toHaveBeenLastCalledWith({
+      kind: "model",
+      provider: "anthropic",
+      model: "haiku",
+    });
 
     vi.mocked(agent.testRouting).mockResolvedValueOnce({
       ok: false,
@@ -163,7 +169,7 @@ describe("Auto routing page", () => {
       error: { reason: "timeout", message: "The decision model took too long to answer" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
-    expect(await screen.findByText("The decision model took too long to answer")).toBeTruthy();
+    expect(await screen.findByText(/The decision model took too long to answer/)).toBeTruthy();
   });
 
   it("asks before removing the TypeSafe key", async () => {

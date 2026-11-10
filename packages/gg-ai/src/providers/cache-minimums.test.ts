@@ -10,6 +10,7 @@ describe("anthropicMinCacheableTokens", () => {
     ["claude-opus-5-5", 512],
     ["claude-haiku-5-5", 512],
     ["claude-fable-5-1", 512],
+    ["claude-fable-5-2", 512],
     ["unknown-model", 1024],
   ])("%s → %i", (model, min) => {
     expect(anthropicMinCacheableTokens(model)).toBe(min);

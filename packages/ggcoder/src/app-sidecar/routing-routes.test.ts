@@ -17,6 +17,7 @@ import type { SessionRouteContext } from "./route-context.js";
 import {
   checkKeyShape,
   describeTestFailure,
+  testDecider,
   handleRoutingRoutes,
   handleRoutingSessionRoute,
 } from "./routing-routes.js";
@@ -232,6 +233,39 @@ describe("POST /routing/test", () => {
   });
   it("describes failures", () => {
     expect(describeTestFailure("provider_error", 503)).toContain("503");
+  });
+
+  it("tests the decider sent with the request, not the saved one", async () => {
+    const fetchFn = (async (_u: unknown, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      const first = Object.keys(req.questions.model.criteria)[0];
+      const answers: Record<string, unknown> = {
+        model: { type: "choice", choice: first, confidence: 0.9 },
+        difficulty: { type: "score", score: 1, confidence: 0.9 },
+        task_kind: { type: "choice", choice: "coding", confidence: 0.9 },
+      };
+      if (req.questions.mode)
+        answers.mode = { type: "choice", choice: "standard", confidence: 0.9 };
+      return new Response(JSON.stringify({ answers }), { status: 200 });
+    }) as unknown as typeof fetch;
+    // Saved: a model decider with no login. Picked (unsaved): Jev via TypeSafe.
+    const saved = { kind: "model", provider: "openai", model: "gpt-6-luna" } as const;
+    const t = await setup({ typesafe: RAW_TS }, fetchFn, { decider: saved });
+    const r = await t.call("POST", "/routing/test", { decider });
+    expect(r.body.ok).toBe(true);
+    expect(r.body.decider).toContain("TypeSafe");
+    const plain = await t.call("POST", "/routing/test");
+    expect(plain.body.ok).toBe(false);
+    expect(plain.body.error.reason).toBe("missing_credentials");
+  });
+
+  it("picks the test decider from the body", () => {
+    const saved = { kind: "model", provider: "openai", model: "gpt-6-luna" } as const;
+    expect(testDecider("{}", saved)).toEqual(saved);
+    expect(testDecider("not json", saved)).toEqual(saved);
+    expect(testDecider(JSON.stringify({ decider: null }), saved)).toBeNull();
+    expect(testDecider(JSON.stringify({ decider }), saved)).toEqual(decider);
+    expect(testDecider(JSON.stringify({ decider: { kind: "bogus" } }), saved)).toBeNull();
   });
 });
 

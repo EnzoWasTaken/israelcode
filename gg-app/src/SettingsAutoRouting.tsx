@@ -163,7 +163,7 @@ export function SettingsAutoRouting(): React.ReactElement {
   async function runTest(): Promise<void> {
     setTest({ pending: true });
     try {
-      setTest(await testRouting());
+      setTest(await testRouting(draft?.decider ?? null));
     } catch (e) {
       setTest({
         ok: false,
@@ -301,12 +301,14 @@ export function SettingsAutoRouting(): React.ReactElement {
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            disabled={!resp.config.decider || (test !== null && "pending" in test)}
+            disabled={!draft.decider || (test !== null && "pending" in test)}
             onClick={() => void runTest()}
           >
             Test connection
           </button>
-          <span className="sp-help">Tests the saved decision model with a sample prompt.</span>
+          <span className="sp-help">
+            Tests the selected decision model with a sample prompt, saved or not.
+          </span>
         </div>
         <div role="status" aria-live="polite" className="sp-status">
           {test && "pending" in test && <span className="sp-help">Testing…</span>}
@@ -320,7 +322,10 @@ export function SettingsAutoRouting(): React.ReactElement {
             </span>
           )}
           {test && !("pending" in test) && !test.ok && (
-            <span className="sp-error">{test.error?.message ?? "The test failed."}</span>
+            <span className="sp-error">
+              {test.decider ? `${test.decider}: ` : ""}
+              {test.error?.message ?? "The test failed."}
+            </span>
           )}
         </div>
       </SettingsCard>

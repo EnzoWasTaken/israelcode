@@ -22,6 +22,14 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.109.1",
+    date: "2026-11-10",
+    items: [
+      "Auto routing connects again. `Jev via TypeSafe` and `GPT-6 Luna` (with your OpenAI sign-in) both make routing calls now, and `Test connection` in Settings → Auto routing tests the model you just picked, saved or not, and names it when something fails.",
+      "`Claude Fable 5.2` is here: pick it in the model selector for the newest Fable with a `1 million` token memory and the full `low` to `max` effort ladder, and Auto knows it too, scaling its effort with how hard the task is.",
+    ],
+  },
+  {
     version: "0.109.0",
     date: "2026-11-08",
     items: [
