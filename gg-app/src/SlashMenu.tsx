@@ -29,7 +29,7 @@ export function SlashMenu({ commands, activeIndex, onSelect, onHover }: Props): 
   return (
     <div className="slash-menu" style={{ background: theme.surface2, borderColor: theme.border }}>
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
-        plays
+        Plays
       </div>
       <div ref={scrollRef} className="pop-scroll slash-scroll" onScroll={onScroll}>
         {commands.map((cmd, i) => {

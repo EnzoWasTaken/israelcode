@@ -38,7 +38,7 @@
 [data-trophy-key][data-trophy-lit] {
   color: var(--text);
   box-shadow:
-    inset 0 1px 0 var(--key-hi),
+    inset 0 0 0 1px var(--border),
     0 0 0 1.5px var(--primary),
     0 0 14px -2px var(--primary);
   transition: box-shadow var(--t-out);
@@ -105,11 +105,9 @@
 .trophy-group-title {
   margin: 0 0 var(--space-3);
   color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   line-height: 1.3;
-  text-transform: uppercase;
 }
 /* Two columns in every tab; rows in a line share a height so the grid stays
    even. One column once the deck is too narrow for two readable rows. */
@@ -135,14 +133,12 @@
   border-radius: var(--radius-card);
   background: var(--key);
   color: var(--text);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 /* Unearned rows sink into a well: present, readable, not yet yours. */
 .trophy-row:not([data-earned]) {
   background: var(--well);
-  box-shadow: inset 0 1px 2px var(--well-shadow);
+  box-shadow: none;
 }
 .trophy-main {
   display: flex;
@@ -283,7 +279,7 @@
   color: var(--text);
   border: 1px solid var(--border-strong);
   box-shadow:
-    inset 0 1px 0 var(--key-hi),
+    inset 0 0 0 1px var(--border),
     var(--shadow-lg);
 }
 /* The tier's metal as a hairline along the top edge. */
@@ -374,7 +370,7 @@
   gap: var(--space-5);
   margin-top: var(--space-5);
   padding-top: var(--space-4);
-  border-top: 1px dashed var(--border-strong);
+  border-top: 1px solid var(--border-strong);
 }
 .tu-count {
   color: var(--text-muted);

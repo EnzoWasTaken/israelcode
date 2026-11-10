@@ -11,10 +11,7 @@
   gap: var(--space-4);
   border: 0;
   border-radius: var(--radius-button);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
   font-family: var(--sans);
   font-size: var(--fs-base);
   font-weight: 600;
@@ -73,10 +70,10 @@
 }
 .picker-item:active,
 .slash-item.active {
-  background: var(--surface-1);
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 .slash-item:active {
-  background: var(--surface-2);
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 @media (prefers-reduced-motion: reduce) {
   :is(
@@ -390,8 +387,6 @@
   font-family: var(--sans);
   font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--text-muted);
 }
 
@@ -475,98 +470,6 @@ select {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
-/* Ambient glow. A wide, very soft wash of the accent behind everything, which
-   is where this palette's richness lives — the surfaces themselves are almost
-   colourless.
-
-   Position comes from window-glow.ts as custom properties, seeded off the
-   window label, so twelve tiled windows do not all glow in the same corner.
-   Defaults here keep the rule valid if the properties are ever absent.
-
-   LEGIBILITY IS THE CONSTRAINT. The wash is pinned to the edges, soft,
-   and capped at a low alpha — it must never sit behind the transcript and
-   fight body text. The intensity below is the ceiling, not a starting point.
-
-   NO `filter` HERE, EVER. This used to be `filter: blur(80px) hue-rotate()`.
-   WebKit runs a CSS filter on a non-composited element in SOFTWARE, over the
-   element's full bounds, on EVERY repaint that touches it — and this element
-   spans the whole window, so a blinking cursor re-blurred the entire window at
-   80px. A user's profile of the shared GPU process ("Israel Code Graphics and
-   Media", 7 windows, 468% CPU) was dominated by FEGaussianBlurSoftwareApplier.
-   The softness now comes from the gradients' own falloff, which is one cheap
-   shade pass. `will-change: opacity` (NOT filter — see .enh-diss-fade) lifts
-   the wash onto its own layer so the pulse and other repaints reuse it. */
-.app::before {
-  content: "";
-  position: absolute;
-  /* Kept inside the shell: `body { overflow: hidden }` clips anything beyond
-     it, so a negative inset simply disappeared. */
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  will-change: opacity;
-  opacity: var(--glow-alpha, 1);
-  background:
-    radial-gradient(
-      var(--glow-size, 46%) calc(var(--glow-size, 46%) * 0.86) at var(--glow-x1, 100%)
-        var(--glow-y1, 100%),
-      color-mix(in srgb, var(--glow-tint, var(--glow-live)) 34%, transparent),
-      transparent 78%
-    ),
-    radial-gradient(
-      50% 42% at var(--glow-x2, 0%) var(--glow-y2, 0%),
-      color-mix(in srgb, var(--glow-tint, var(--glow-live)) 15%, transparent),
-      transparent 80%
-    );
-  /* Long and eased: the glow is ambient, so a state change should register
-     peripherally rather than announce itself. */
-  transition:
-    --glow-live 1.6s var(--ease-glow),
-    opacity 1.2s var(--ease-glow);
-}
-.app::before {
-  --glow-live: var(--glow);
-}
-/* Per-window hue variation (was `hue-rotate()` in the filter chain). Relative
-   colour syntax needs Safari 16.4+; older WebKits simply skip the tint. */
-@supports (color: hsl(from red h s l)) {
-  .app::before {
-    --glow-tint: hsl(from var(--glow-live) calc(h + var(--glow-hue, 0)) s l);
-  }
-}
-
-/* Working: lifts to the brighter accent and breathes. Deliberately gentle — it
-   has to read from across the room without nagging while you are reading. */
-.app[data-glow="working"]::before {
-  --glow-live: var(--primary);
-  animation: glow-pulse 3.4s ease-in-out infinite;
-  animation-play-state: var(--loop-play-state, running);
-}
-@keyframes glow-pulse {
-  0%,
-  100% {
-    opacity: 0.75;
-  }
-  50% {
-    opacity: 1.25;
-  }
-}
-
-/* Done: the window rests in the ship colour and STAYS there until the next run
-   starts. A timed revert undid itself while the result was still on screen. */
-.app[data-glow="done"]::before {
-  --glow-live: var(--success);
-  opacity: 1.15;
-}
-
-/* The wash is decorative. Anyone who has asked for less motion or less
-   transparency gets a flat canvas instead. */
-@media (prefers-reduced-motion: reduce) {
-  .app[data-glow="working"]::before {
-    animation: none;
-  }
-}
-
 /* ── Background windows freeze their looping decoration. ──
    Every looping animation forces a repaint each frame, and every repaint is a
    round trip through WebKit's single shared GPU process ("Israel Code Graphics and
@@ -588,7 +491,7 @@ select {
 /* The logo's one-shot reveal is never paused: paused at 0% it held the banner
    invisible whenever Home mounted while another window was focused. Its
    shimmer and glitch loops (on .ascii-logo-glitch) pause instead. */
-/* Everything else in the shell paints above the glow. Modals are portalled to
+/* The shell's children share one stacking level. Modals are portalled to
    <body> (see Modal.tsx), so they sit outside this stacking context entirely
    rather than being trapped by it. */
 .app > * {
@@ -626,8 +529,7 @@ select {
   width: 7px;
   height: 7px;
   border-radius: var(--radius-pill);
-  background: var(--primary-fill);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 45%, transparent);
+  background: var(--text-muted);
   animation: appRestoringPulse 1.2s ease-in-out infinite;
   animation-play-state: var(--loop-play-state, running);
 }

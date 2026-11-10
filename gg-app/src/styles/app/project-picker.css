@@ -442,7 +442,7 @@
 
 /* ── Tekhelet & Stone: the page header and its rows ──
    Every full-screen page (projects, sessions, goals, Settings) opens with its
-   name in the display face and closes its header with the flag rule. `:root`
+   name in the display face and closes its header with a hairline. `:root`
    lifts these over the alloy layer (styles/deck/alloy.css), which loads later.
    The farm's frosted world header keeps its own look over the art. */
 :root .picker-head:not(.world-head) {
@@ -457,18 +457,17 @@
   line-height: 1.2;
   text-transform: none;
 }
-/* Rows answer the pointer with a faint Tekhelet wash and a blue mark at the
-   leading edge; keyboard focus gets the shared ring. */
+/* Rows answer the pointer with the neutral hover wash; keyboard focus gets
+   the shared ring. */
 :root .picker-item {
   border-radius: var(--radius-button);
 }
 :root .picker-item:hover {
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface-1));
+  background: rgb(var(--ink-rgb) / 0.05);
   border-color: transparent;
-  box-shadow: inset 3px 0 0 var(--primary);
 }
 :root .picker-item:active {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface-1));
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 :root .picker-item:focus-visible {
   outline: none;
