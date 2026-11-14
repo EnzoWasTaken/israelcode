@@ -5,8 +5,8 @@
    dark follow from :root[data-theme]. */
 
 /* ── Keys ──
-   The controls of the title bar and deck. A lit top edge and a dark lip below
-   make them read as raised; a pressed or open key sinks into a well. */
+   The controls of the title bar and deck. Flat: one tone step and a hairline.
+   A pressed or open key takes the darker well tone and a stronger hairline. */
 .key {
   display: inline-flex;
   align-items: center;
@@ -17,10 +17,7 @@
   border-radius: var(--radius-button);
   background: var(--key);
   color: var(--text-secondary);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
   font-family: var(--sans);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -39,7 +36,7 @@
 .key:is([aria-expanded="true"], [aria-pressed="true"], [aria-checked="true"]) {
   background: var(--well);
   color: var(--text);
-  box-shadow: inset 0 1px 2px var(--well-shadow);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 .key:disabled {
   opacity: 0.45;
@@ -69,13 +66,13 @@
   flex-wrap: nowrap;
 }
 
-/* A value read out on a key, sunk into the key's face. */
+/* A value read out on a key: a darker tone step, no bevel. */
 .well {
   display: inline-block;
   padding: 3px var(--space-3);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
   color: var(--text);
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -84,7 +81,7 @@
 }
 .key:is([aria-expanded="true"], [aria-pressed="true"], [aria-checked="true"]) .well {
   background: var(--key);
-  box-shadow: inset 0 1px 0 var(--key-hi);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .trunc {
   min-width: 0;
@@ -99,11 +96,9 @@
   height: 7px;
   border-radius: 50%;
   background: var(--led-off);
-  box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.25);
 }
 .led[data-state="on"] {
   background: var(--primary-fill);
-  box-shadow: 0 0 5px var(--primary);
 }
 .led[data-state="ok"] {
   background: var(--success);
@@ -150,45 +145,19 @@
   background: var(--critter);
 }
 
-/* ── Title bar: one row, frosted ──
-   The title bar floats over the conversation: text scrolls up beneath it and
-   stays faintly readable through a frost that fades out downward, with no
-   hard line at its edge. (The same frost the Goal farm already used.) */
+/* ── Title bar: one opaque row ──
+   The title bar sits over the conversation on the window's own ground, closed
+   by a hairline; text scrolls up beneath it and is simply covered. */
 .chat-head {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 4;
-  border-bottom: 0;
-  background: transparent;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
-.chat-head::before,
-.chat-head::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 -28px;
-  z-index: -1;
-  pointer-events: none;
-}
-.chat-head::before {
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--bg) 82%, transparent),
-    color-mix(in srgb, var(--bg) 45%, transparent) 55%,
-    transparent
-  );
-  -webkit-backdrop-filter: blur(2px) saturate(140%);
-  backdrop-filter: blur(2px) saturate(140%);
-  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0) 45%, transparent);
-  mask-image: linear-gradient(to bottom, rgb(0 0 0) 45%, transparent);
-}
-.chat-head::after {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0) 20%, transparent 65%);
-  mask-image: linear-gradient(to bottom, rgb(0 0 0) 20%, transparent 65%);
-}
+
 /* The conversation starts below the title bar and scrolls up under it. */
 .app:has(> .chat-head) .transcript {
   padding-top: calc(40px + var(--space-4));
@@ -201,10 +170,8 @@
 
 /* ── The dock: everything below the conversation, floating over it ──
    The live region, sub-agent lane, deck and update banner sit over the
-   conversation's bottom edge. Messages scroll on behind them through the
-   title bar's frost, mirrored: rising from the window's bottom, starting a
-   little above the deck so text softens before it reaches it, with no hard
-   edge anywhere. --dock-h (set in App.tsx) is its live height. */
+   conversation's bottom edge on the window's own opaque ground; messages
+   scroll on behind them. --dock-h (set in App.tsx) is its live height. */
 .app > .dock {
   position: absolute;
   left: 0;
@@ -243,67 +210,12 @@
     transparent
   );
 }
-.app > .dock::before,
-.app > .dock::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: calc(-1 * var(--dock-rise));
-  z-index: -1;
-  pointer-events: none;
-}
 .app > .dock {
-  --dock-rise: var(--space-12);
-}
-.app > .dock::before {
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--bg) 82%, transparent),
-    color-mix(in srgb, var(--bg) 60%, transparent) 70%,
-    transparent
-  );
-  -webkit-backdrop-filter: blur(2px) saturate(140%);
-  backdrop-filter: blur(2px) saturate(140%);
-  -webkit-mask-image: linear-gradient(to top, rgb(0 0 0) 75%, transparent);
-  mask-image: linear-gradient(to top, rgb(0 0 0) 75%, transparent);
-}
-.app > .dock::after {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  -webkit-mask-image: linear-gradient(to top, rgb(0 0 0) 60%, transparent 95%);
-  mask-image: linear-gradient(to top, rgb(0 0 0) 60%, transparent 95%);
-}
-@media (prefers-reduced-transparency: reduce) {
-  .app > .dock::before {
-    background: var(--bg);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-    top: 0;
-  }
-  .app > .dock::after {
-    display: none;
-  }
+  background: var(--bg);
 }
 
 .app:has(> .chat-head) .transcript-frame {
   margin-top: 0;
-}
-@media (prefers-reduced-transparency: reduce) {
-  .chat-head::before {
-    background: var(--bg);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-    inset: 0;
-  }
-  .chat-head::after {
-    display: none;
-  }
 }
 .chat-head-strip {
   display: grid;
@@ -361,10 +273,8 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--text-secondary);
 }
 .chat-head-title .chat-head-link:hover:not(:disabled) {
@@ -390,10 +300,8 @@
 .clean-mark {
   padding: 0 var(--space-2);
   color: var(--text-muted);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 /* The tally is plain text beside a row of keys: the keys' 6px gap glued it to

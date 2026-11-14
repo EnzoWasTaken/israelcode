@@ -112,9 +112,7 @@
 }
 .model-menu-title {
   padding: var(--space-1) var(--space-3) var(--space-3);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--fs-sm);
 }
 /* Per-provider group heading. Quieter than the menu title so the hierarchy
    reads title > provider > model. */
@@ -123,10 +121,8 @@
 }
 .model-menu-subtitle {
   padding: var(--space-1) var(--space-3) 3px;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 .model-menu-grid {
   display: grid;
@@ -184,9 +180,7 @@
      wash under green text read as a generic library badge. */
   background: var(--surface-2);
   color: var(--success);
-  box-shadow:
-    var(--shadow-sm),
-    inset 0 1px 0 var(--key-hi);
+  box-shadow: inset 0 0 0 1px var(--border);
   font-family: var(--sans);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -451,7 +445,6 @@
   border: 1px solid var(--fx-meter-edge);
   border-radius: var(--radius-pill);
   background: radial-gradient(circle, var(--fx-meter-from), var(--fx-meter-to));
-  box-shadow: var(--shadow-sm);
 }
 .title-usage-fill {
   position: absolute;

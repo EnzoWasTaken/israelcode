@@ -44,7 +44,7 @@ export function FileMentionMenu({
   return (
     <div className="slash-menu" style={{ background: theme.surface2, borderColor: theme.border }}>
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
-        {isRecent ? "recent files" : "files"}
+        {isRecent ? "Recent files" : "Files"}
       </div>
       <div ref={scrollRef} className="pop-scroll slash-scroll" onScroll={onScroll}>
         {files.map((file, i) => {

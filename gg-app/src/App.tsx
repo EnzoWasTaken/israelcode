@@ -40,7 +40,6 @@ import {
   restoreTarget,
   subscribe,
   isSecondaryWindow,
-  windowLabel,
   type AgentState,
   type WorkspaceMode,
   type ModelOption,
@@ -57,7 +56,6 @@ import {
   parseOpenAskPrompts,
   withOpenAsks,
 } from "./ask-user";
-import { glowPlacement, glowStateFor, glowVars } from "./window-glow";
 import { ActivityBar } from "./ActivityBar";
 import { createEntranceLifetime } from "./transcript-motion";
 import { createLiveTextStore } from "./live-text";
@@ -260,30 +258,6 @@ function App(): React.ReactElement {
   // Last composer keystroke (0 = none since this chat opened). The first
   // keystroke after opening or a >4 min idle pause prewarms the prompt cache.
   const lastKeystrokeAtRef = useRef(0);
-  // Whether a run has completed in this window. Drives the ambient glow's
-  // "done" state, which PERSISTS until the next run starts — the window really
-  // is finished until you ask for something else (see window-glow.ts).
-  const [hasFinishedRun, setHasFinishedRun] = useState(false);
-
-  // Stable per window: seeded off the label, so a tiled grid never shows the
-  // same glow twice, and a given window keeps its placement across reloads.
-  const glowStyle = useMemo(() => glowVars(glowPlacement(windowLabel)), []);
-  const glowState = glowStateFor(running, hasFinishedRun);
-
-  // Watching the `running` flag keeps this in one place rather than threaded
-  // through every path that can end a run (finish, cancel, error). No timers:
-  // the state is durable, so there is nothing to retire.
-  const wasRunning = useRef(false);
-  useEffect(() => {
-    if (running) {
-      wasRunning.current = true;
-      setHasFinishedRun(false);
-      return;
-    }
-    if (!wasRunning.current) return;
-    wasRunning.current = false;
-    setHasFinishedRun(true);
-  }, [running]);
   const cancelling = state?.runState === "cancelling";
   const requestCancel = useCallback(() => {
     if (cancelling) return;
@@ -1740,8 +1714,7 @@ function App(): React.ReactElement {
     <>
       <div
         className={`app${isFileDragOver ? " app-file-dragover" : ""}${windowFocused ? " window-focused" : ""}${goalWorldOpen ? " goal-world-open" : ""}${inMonitor}`}
-        data-glow={glowState}
-        style={{ background: theme.background, ...glowStyle }}
+        style={{ background: theme.background }}
         onDragEnter={handleWindowDragEnter}
         onDragOver={handleWindowDragOver}
         onDragLeave={handleWindowDragLeave}

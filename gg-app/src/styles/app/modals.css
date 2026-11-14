@@ -237,7 +237,7 @@
   outline: none;
   border-radius: var(--radius-button);
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
   color: var(--text);
   font-family: var(--sans);
   font-size: var(--fs-md);
@@ -254,9 +254,7 @@
    treatment as an open .dropdown-trigger. */
 .modal-input:focus {
   border-color: var(--primary);
-  box-shadow:
-    inset 0 1px 1.5px var(--well-shadow),
-    0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 .modal-row {
   display: flex;

@@ -169,7 +169,7 @@
     box-shadow var(--t-in);
 }
 .ask-options .btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface-3));
+  background: rgb(var(--ink-rgb) / 0.05);
   border-color: color-mix(in srgb, var(--primary) 42%, transparent);
 }
 /* Pressed, by pointer or by its number key (`data-key-press`, set by AskBand
@@ -178,7 +178,7 @@
    compact button, or its edges visibly lurch. */
 .ask-options .btn:active:not(:disabled),
 .ask-options .btn[data-key-press] {
-  background: color-mix(in srgb, var(--primary) 16%, var(--surface-3));
+  background: rgb(var(--ink-rgb) / 0.09);
   scale: 0.99;
 }
 .ask-options .btn:focus-visible {
@@ -274,7 +274,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-strong);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-family: var(--sans);
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -316,7 +316,7 @@
   align-items: center;
   justify-content: center;
   border: 1.5px solid var(--text-muted);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
 }
 .btn-primary .ask-box {
   border-color: var(--on-primary-fill);

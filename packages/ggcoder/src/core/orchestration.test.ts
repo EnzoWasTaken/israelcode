@@ -16,27 +16,27 @@ describe("orchestration", () => {
     expect(hasOrchestrateKeyword("orchestrated")).toBe(false);
   });
 
-  it("asks for plan, delegate, review and a reviewed summary, naming the worker model", () => {
-    const text = buildOrchestrateMessage(true, ["spawn_agent", "todo_write"], "GPT-5 mini")
+  it("tells the model to load the delegate skill and names the worker model", () => {
+    const text = buildOrchestrateMessage(true, ["spawn_agent", "skill"], "GPT-5 mini")
       .content as string;
-    expect(text).toContain("`todo_write`");
+    expect(text).toContain("load the `delegate` skill with the `skill` tool");
     expect(text).toContain("`spawn_agent`");
     expect(text).toContain(`up to ${ULTRACODE_ACTIVE_LIMIT} running at once`);
     expect(text).toContain("the Worker model (GPT-5 mini)");
-    expect(text).toContain("The children do the pieces, not you.");
-    expect(text).toMatch(/Review every worker's result before you reply/);
-    expect(text).toContain("run the project's checks yourself");
-    expect(text).toContain("fix round");
-    expect(text).toContain("one reviewed summary");
+    expect(text).not.toContain("one spec");
     expect(text).toContain("Small or single-step requests stay direct");
   });
 
-  it("names only the tools the session has and falls back to the orchestrator's model", () => {
+  it("carries a condensed method without the skill tool, and falls back without spawn_agent", () => {
+    const text = buildOrchestrateMessage(true, ["spawn_agent"]).content as string;
+    expect(text).not.toContain("`delegate`");
+    expect(text).toContain("one spec");
+    expect(text).toContain("fresh worker");
+    expect(text).toContain("fix rounds");
+    expect(text).toContain("the same model as you");
     const solo = buildOrchestrateMessage(true, ["read"]).content as string;
-    expect(solo).not.toContain("`todo_write`");
     expect(solo).toContain("no `spawn_agent`");
-    const unpinned = buildOrchestrateMessage(true, ["spawn_agent"]).content as string;
-    expect(unpinned).toContain("the same model as you");
+    expect(solo).not.toContain("the Worker model");
   });
 
   it("asks for worktree isolation and a merge review when worktree workers are on", () => {

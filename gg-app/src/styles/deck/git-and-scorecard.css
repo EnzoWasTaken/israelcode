@@ -2,7 +2,7 @@
 .git-tabs {
   flex-wrap: wrap;
   row-gap: var(--space-3);
-  border-bottom: 1px dashed var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .git-tabs .tab-n {
   margin-left: var(--space-3);
@@ -223,9 +223,7 @@
       transparent 60%
     ),
     var(--surface-2);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .sc-level {
   grid-area: level;
@@ -236,16 +234,12 @@
   padding: var(--space-4) var(--space-6) var(--space-5);
   border-radius: var(--radius-card);
   background: var(--well);
-  box-shadow:
-    inset 0 1px 2px var(--well-shadow),
-    inset 0 0 0 1px color-mix(in srgb, var(--rank-a) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rank-a) 35%, transparent);
 }
 .sc-level-k {
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .sc-level-n {
   font-size: 40px;
@@ -302,9 +296,7 @@
 .sc-xp-k {
   color: var(--text-muted);
   font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 .sc-xp-v {
   color: var(--text);
@@ -333,7 +325,7 @@
   border-radius: 3px;
   overflow: hidden;
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
 }
 .sc-bar::before {
   content: "";
@@ -375,17 +367,12 @@
   padding: var(--space-5) var(--space-6);
   border-radius: var(--radius-card);
   background: var(--key);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .sc-tile-k {
   color: var(--text-muted);
   font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 .sc-tile-v {
   color: var(--text);
@@ -417,7 +404,7 @@
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-8);
   padding-top: var(--space-5);
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
   color: var(--text-muted);
   font-size: var(--fs-xs);
 }

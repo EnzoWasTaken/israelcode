@@ -22,6 +22,15 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.110.0",
+    date: "2026-11-13",
+    items: [
+      "A calmer look. Surfaces are near-neutral in dark and light, every bit of text clears `4.5:1` contrast, controls are flat with three simple corner sizes, and the window glow is gone so the title bar and dock sit solid.",
+      "Every skill you have is now a slash command. Type `/` and your skills sit right next to your commands, so any of them runs on the spot as `/skill-name`, with whatever you type after it.",
+      "`Orchestrate` got a real playbook. Turn it on and the main model leads like a pro: one spec, short briefs, one parallel build wave, one review, and fresh workers for at most `2` fix rounds, so a team job costs about what a solo run would.",
+    ],
+  },
+  {
     version: "0.109.1",
     date: "2026-11-10",
     items: [

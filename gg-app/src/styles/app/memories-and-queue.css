@@ -41,7 +41,7 @@
   color: var(--text);
 }
 .brain-tabs button[aria-selected="true"] {
-  background: color-mix(in srgb, var(--primary) 18%, var(--surface-2));
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
 }
 .brain-tabs button:focus-visible {
@@ -71,9 +71,7 @@
   color: var(--text-dim);
   font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.04em;
   text-align: left;
-  text-transform: uppercase;
 }
 .memory-table td {
   padding: var(--space-5);
@@ -290,9 +288,7 @@
   padding-top: var(--space-4);
 }
 .schedule-presets-label {
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-sm);
 }
 .schedule-preset {
   background: transparent;

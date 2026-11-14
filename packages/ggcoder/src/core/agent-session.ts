@@ -50,7 +50,11 @@ import {
   type SlashCommandContext,
 } from "./slash-commands.js";
 import { PROMPT_COMMANDS, getPromptCommand } from "./prompt-commands.js";
-import { loadWorkspaceCustomCommands, type CustomCommand } from "./custom-commands.js";
+import {
+  loadWorkspaceCustomCommands,
+  skillCommands,
+  type CustomCommand,
+} from "./custom-commands.js";
 import { expandPromptCommand } from "./prompt-command-expansion.js";
 import { SettingsManager } from "./settings-manager.js";
 import { AuthStorage } from "./auth-storage.js";
@@ -4592,11 +4596,13 @@ export class AgentSession {
    * The custom `.gg/commands` slash commands this session can run: the
    * project's, then those of every added root (a goal's attached repos too).
    * Read fresh, so a new command file is picked up without a restart.
+   * Loaded skills follow as `/skill-name` commands.
    */
   async loadCustomCommands(): Promise<CustomCommand[]> {
     const own = await loadWorkspaceCustomCommands([this.cwd, ...this.additionalRoots]);
     // Plugin commands are namespaced (`plugin:command`), so they never clash.
-    return [...own, ...(await loadPluginCommands(this.claudePlugins))];
+    const existing = [...own, ...(await loadPluginCommands(this.claudePlugins))];
+    return [...existing, ...skillCommands(this.skills, existing)];
   }
 
   /**

@@ -100,7 +100,7 @@
 }
 .sb-chip[aria-pressed="true"] {
   color: var(--text);
-  background: color-mix(in srgb, var(--primary) 18%, var(--surface-2));
+  background: rgb(var(--ink-rgb) / 0.09);
   border-color: color-mix(in srgb, var(--primary) 40%, transparent);
 }
 .sb-chip:focus-visible {
@@ -129,10 +129,8 @@
 .sb-group-label {
   margin: var(--space-7) var(--space-5) var(--space-3);
   color: var(--text-dim);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .sb-group:first-child .sb-group-label {
   margin-top: var(--space-4);
@@ -151,12 +149,11 @@
   transition: background var(--t-fast);
 }
 .sb-row:hover {
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  background: rgb(var(--ink-rgb) / 0.05);
 }
-/* You are here: Tekhelet tint plus the gold marker. */
+/* You are here: the neutral selected fill. */
 .sb-row.is-selected {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
-  box-shadow: inset 3px 0 0 var(--gold);
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 .sb-list[aria-busy="true"] .sb-row {
   cursor: progress;
@@ -234,7 +231,7 @@
 }
 .sb-action:hover:not(:disabled) {
   color: var(--text);
-  background: color-mix(in srgb, var(--primary) 18%, var(--surface-3));
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 
 .sb-hint {

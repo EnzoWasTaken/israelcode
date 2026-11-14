@@ -1,12 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parseSkillFile } from "./skills.js";
+import type { Skill } from "./skills.js";
 
 export interface CustomCommand {
   name: string;
   description: string;
   prompt: string;
   filePath: string;
+  source?: "skill";
 }
 
 /**
@@ -62,6 +64,28 @@ export async function loadWorkspaceCustomCommands(
     if (seen.has(command.name)) continue;
     seen.add(command.name);
     commands.push(command);
+  }
+  return commands;
+}
+
+/** One slash command per visible skill; names already in `taken` win. */
+export function skillCommands(
+  skills: readonly Skill[],
+  taken: readonly CustomCommand[],
+): CustomCommand[] {
+  const seen = new Set(taken.map((c) => c.name));
+  const commands: CustomCommand[] = [];
+  for (const skill of skills) {
+    if (skill.hidden || seen.has(skill.name)) continue;
+    seen.add(skill.name);
+    commands.push({
+      name: skill.name,
+      description: skill.description || "Skill",
+      // Invocation args are appended by expandPromptCommand, so no $ARGUMENTS here.
+      prompt: `Before doing anything else, load the skill named exactly "${skill.name}" with the skill tool, then follow it for the user's request below (if any).`,
+      filePath: skill.root ?? "",
+      source: "skill",
+    });
   }
   return commands;
 }

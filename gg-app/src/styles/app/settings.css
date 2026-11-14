@@ -367,20 +367,19 @@
   line-height: 1.5;
   margin-top: var(--space-6);
 }
-/* ── Tekhelet & Stone: segmented choices inside Settings ──
+/* ── Segmented choices inside Settings ──
    The chosen key of a radio group (Appearance's Light / Dark / Auto and its
-   kin) carries a Tekhelet tint and Tekhelet ink instead of a plain well, so
-   "current" reads at a glance in both themes. */
+   kin) takes the neutral selected fill, full ink and a heavier weight. */
 .settings-page .key-group > .key[aria-checked="true"],
 .settings-page .key-group > .key[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--primary) 18%, var(--well));
-  color: var(--primary);
+  background: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--well));
+  color: var(--text);
   font-weight: 600;
 }
-/* The floating tab bar: the travelling pill takes the same tint. */
+/* The floating tab bar: the travelling pill takes the same fill. */
 :root .settings-tabs-pill {
-  background: color-mix(in srgb, var(--primary) 16%, var(--key));
+  background: color-mix(in srgb, rgb(var(--ink-rgb)) 9%, var(--key));
 }
 .settings-tab.is-active .settings-tab-icon {
-  color: var(--primary);
+  color: var(--text);
 }

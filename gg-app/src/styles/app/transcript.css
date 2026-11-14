@@ -32,13 +32,13 @@
   margin-top: 0.5em;
 }
 /* Numbered steps become rows: the number in a well on the left, the text
-   flowing beside it, a dashed rule between, so a reader can't lose their
+   flowing beside it, a hairline between, so a reader can't lose their
    place mid-instruction. The counter starts at the list's own start number
    (see StepList in Markdown.tsx). */
 .assistant-text .markdown > ol {
   list-style: none;
   padding: 0;
-  border-top: 1px dashed var(--border-strong);
+  border-top: 1px solid var(--border-strong);
 }
 .assistant-text .markdown > ol > li {
   --step-line: 1.7em;
@@ -46,7 +46,7 @@
   position: relative;
   margin: 0;
   padding: var(--space-5) 0 var(--space-5) calc(var(--step-well) + var(--space-7));
-  border-bottom: 1px dashed var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
   color: var(--text);
 }
 /* The well centres on the step's first line. --step-line is a registered
@@ -63,7 +63,7 @@
   place-items: center;
   border-radius: var(--radius-sm);
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
   font-size: var(--fs-xs);
   font-weight: 650;
   line-height: 1;

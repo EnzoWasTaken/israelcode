@@ -297,7 +297,7 @@ function TranscriptRowBody({
               remaining frames are decoration. */}
           {(item.queued || item.promoted) && (
             <span className="queued-pill" aria-hidden={item.promoted}>
-              queued
+              Queued
             </span>
           )}
           {onRewind && !item.queued && !item.ken && (

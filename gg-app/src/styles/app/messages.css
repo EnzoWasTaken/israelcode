@@ -338,8 +338,6 @@
      frame one. Unitless (1.28 x 11px = 14px) so the label still fits when the
      user enlarges text; the max-heights below use the same 1.28em. */
   line-height: 1.28;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   margin-bottom: var(--space-3);
   /* Resting value under the pulse, so the label still reads as secondary when
      the animation is suppressed for reduced motion. */

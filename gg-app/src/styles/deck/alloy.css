@@ -8,7 +8,7 @@
   min-height: 40px;
   padding: var(--space-3) var(--space-4) var(--space-3) var(--page-pad);
   gap: var(--space-5);
-  border-bottom: 1px dashed var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .platform-macos .picker-head {
   padding: var(--space-3) var(--space-4) var(--space-3) 84px;
@@ -19,9 +19,7 @@
 }
 .picker-title {
   font-size: var(--fs-sm);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 .picker-head-actions {
@@ -35,24 +33,20 @@
   height: 26px;
   border: 0;
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
   font-size: var(--fs-sm);
 }
 .picker-search:focus {
   background: var(--well);
-  box-shadow:
-    inset 0 1px 1.5px var(--well-shadow),
-    0 0 0 2px var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
 }
 .picker-item {
-  border-radius: 10px;
+  border-radius: var(--radius-button);
 }
 .picker-item:hover {
   background: var(--surface-1);
   border-color: transparent;
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 /* Settings → General: cards in an even grid, two side by side from 760px, so
@@ -85,9 +79,9 @@
   gap: var(--space-3);
   padding: var(--space-1) var(--space-4);
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: var(--well);
-  box-shadow: inset 0 1px 1.5px var(--well-shadow);
+  box-shadow: none;
   color: var(--text-secondary);
 }
 .badge-dot {
@@ -113,7 +107,7 @@
   border: 0;
   border-radius: calc(var(--radius-button) + var(--seg-inset));
   background: var(--well);
-  box-shadow: inset 0 1px 2px var(--well-shadow);
+  box-shadow: none;
 }
 /* Settings' tab bar keeps its height: 54px around 42px tabs. */
 .settings-tabs {
@@ -130,9 +124,7 @@
 .goal-view-switch .key[aria-pressed="true"] {
   background: var(--key);
   color: var(--text);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .settings-tab,
 .brain-tabs button {
@@ -142,18 +134,13 @@
   border: 0;
   border-radius: var(--radius-button);
   background: var(--key);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .brain-tabs button[aria-selected="true"],
 .brain-tabs button[aria-pressed="true"] {
   background: var(--key);
   color: var(--text);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 /* Small actions that were outlined pills become keys. */
@@ -165,10 +152,7 @@
   border: 0;
   border-radius: var(--radius-button);
   background: var(--key);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .modal-close {
   border-radius: var(--radius-button);
@@ -188,9 +172,7 @@
 .model-menu {
   border-color: var(--border);
   border-radius: var(--radius-card);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    var(--deck-shadow);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ── Small windows ── */
@@ -270,11 +252,7 @@
   --warning: var(--night-warning);
   --error: var(--night-error);
   --key: var(--night-key);
-  --key-hi: var(--night-key-hi);
-  --key-edge: var(--night-key-edge);
-  --key-shadow: var(--night-key-shadow);
   --well: var(--night-well);
-  --well-shadow: var(--night-well-shadow);
   color: var(--text);
 }
 /* The logo's moving highlight is a dark-scene effect; on a light page it read

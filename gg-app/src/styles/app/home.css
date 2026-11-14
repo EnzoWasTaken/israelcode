@@ -729,7 +729,7 @@
 }
 .home-chip:hover,
 .home-chip[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--primary) 18%, var(--surface-3));
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
 }
 .home-chip-name {
@@ -772,8 +772,7 @@
   color: var(--text);
 }
 .home-menu-item[aria-checked="true"] {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
-  box-shadow: inset 3px 0 0 var(--gold-fill);
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
 }
 .home-menu-open {
@@ -825,7 +824,7 @@
   color: var(--text);
 }
 .home-seg-btn[aria-checked="true"] {
-  background: color-mix(in srgb, var(--primary) 22%, var(--surface-3));
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
 }
 .home-go {
@@ -865,8 +864,6 @@
   margin: 0;
   color: var(--text-dim);
   font: 700 var(--fs-xs) / 1.2 var(--sans);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .home-link-btn {
   display: inline-flex;
@@ -907,8 +904,7 @@
   transition: background-color var(--t-fast);
 }
 .home-recent.is-selected {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
-  box-shadow: inset 3px 0 0 var(--gold-fill);
+  background: rgb(var(--ink-rgb) / 0.09);
 }
 .home-recent.is-skeleton {
   justify-content: space-between;

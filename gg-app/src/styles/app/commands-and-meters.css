@@ -296,8 +296,6 @@
 }
 .verify-round-title {
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--text-dim);
 }
 .verify-check-line {
@@ -506,8 +504,7 @@
 .mcp-market-severity {
   margin: 0;
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: capitalize;
 }
 .mcp-market-findings {
   list-style: none;

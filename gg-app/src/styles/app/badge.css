@@ -2,7 +2,7 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgb(var(--ink-rgb) / 0.12);
+  border: 1px solid rgb(var(--ink-rgb) / 0.09);
   border-radius: var(--radius-pill);
   /* Cap band measured 0.94px HIGH; half the correction sits on top. */
   padding: 0.5px var(--space-4) 1.5px;
