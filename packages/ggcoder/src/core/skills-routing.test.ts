@@ -101,10 +101,10 @@ describe("skill routing prompts", () => {
           .filter((s) => s.hidden)
           .map((s) => s.name)
           .sort(),
-      ).toEqual(["bulletproof", "lean"]);
+      ).toEqual(["bulletproof", "delegate", "lean"]);
       const catalog = formatSkillsForPrompt(skills);
       const tool = createSkillTool(skills);
-      for (const hidden of ["bulletproof", "lean"]) {
+      for (const hidden of ["bulletproof", "delegate", "lean"]) {
         expect(catalog).not.toContain(`**${hidden}**`);
         expect(tool.description).not.toContain(`**${hidden}**`);
       }

@@ -62,7 +62,7 @@ export function ScheduleHint({ input, caret, onPickInterval }: Props): React.Rea
       style={{ background: theme.surface2, borderColor: theme.border }}
     >
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
-        schedule
+        Schedule
       </div>
 
       <div className="schedule-sig">
@@ -124,7 +124,7 @@ export function ScheduleHint({ input, caret, onPickInterval }: Props): React.Rea
           `15 minutes` come from. */}
       <div className="schedule-presets">
         <span className="schedule-presets-label" style={{ color: theme.textMuted }}>
-          every
+          Every
         </span>
         {INTERVAL_PRESETS.map((preset) => (
           <button

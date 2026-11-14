@@ -14,7 +14,7 @@
   /* The same centred column as the transcript (see --gutter in App.css). */
   margin: var(--space-2) var(--gutter) var(--space-5);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-input);
   background: var(--surface-1);
   /* One quiet edge: the border. No raised highlight, no cast shadow. */
   container: deck / inline-size;
@@ -22,14 +22,11 @@
     border-color var(--t-out),
     box-shadow var(--t-out);
 }
-/* Writing in the message box: the deck's edge turns Tekhelet with a faint
-   halo, so the composer reads as the place your words go. */
+/* Writing in the message box: the deck's edge turns Tekhelet, so the
+   composer reads as the place your words go. */
 .deck:has(.inputwrap:focus-within) {
   border-color: color-mix(in srgb, var(--primary) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
-  transition:
-    border-color var(--t-in),
-    box-shadow var(--t-in);
+  transition: border-color var(--t-in);
 }
 .deck[data-plan-mode] {
   border-style: dashed;
@@ -97,10 +94,7 @@
   line-height: 24px;
   border-radius: var(--radius-button);
   background: var(--key);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge),
-    0 2px 4px -2px var(--key-shadow);
+  box-shadow: inset 0 0 0 1px var(--border);
   font-size: var(--fs-xs);
   font-weight: 600;
   text-decoration: none;
@@ -116,10 +110,8 @@
   flex: none;
   margin-right: var(--space-6);
   color: var(--primary);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 /* Plan progress: one bar and a count, the same size at 5 steps or 50. */
 .plan-steps-badge {
@@ -129,10 +121,8 @@
 }
 .plan-steps-word {
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .plan-steps-bar,
 .cbar {
@@ -143,7 +133,7 @@
   border-radius: 2px;
   overflow: hidden;
   background: var(--well);
-  box-shadow: inset 0 1px 1px var(--well-shadow);
+  box-shadow: none;
 }
 .plan-steps-bar::before,
 .cbar::before {
@@ -201,9 +191,7 @@
 .deck .icon-circle-primary:hover:not(:disabled) {
   background: var(--primary-fill);
   color: var(--on-primary-fill);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--on-primary-fill) 25%, transparent),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 /* Mid-run the send key is Stop: it keeps its red in the deck too, so the
    one way to halt the agent never reads as "send". */
@@ -361,7 +349,7 @@
   width: 2px;
   height: 100%;
   border-radius: 1px;
-  background: var(--primary-fill);
+  background: var(--text-muted);
   transform-origin: bottom;
   animation: eq-bounce 0.9s var(--ease-in-out) infinite alternate;
   animation-play-state: var(--loop-play-state, running);
@@ -387,8 +375,6 @@
   border: 0;
   border-radius: var(--radius-button);
   background: var(--key);
-  box-shadow:
-    inset 0 1px 0 var(--key-hi),
-    0 1px 0 var(--key-edge);
+  box-shadow: inset 0 0 0 1px var(--border);
   font-size: var(--fs-sm);
 }

@@ -499,8 +499,8 @@ export interface SlashCommand {
   name: string;
   aliases: string[];
   description: string;
-  /** "built-in" prompt template or a user ".gg/commands" custom command. */
-  source?: "built-in" | "custom";
+  /** "built-in" prompt template, a ".gg/commands" custom command, or a loaded skill. */
+  source?: "built-in" | "custom" | "skill";
 }
 
 export interface DiscoveredProject {

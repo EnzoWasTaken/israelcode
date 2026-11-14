@@ -4,38 +4,47 @@ Israel Code's look since 0.109.0. Every colour, type face and signature detail b
 
 ## Themes
 
-- **Dark, "Night over Jaffa"** (the default): ink-navy surfaces lifted by lightness, warm-white ink.
-- **Light, "Jerusalem stone"**: warm limestone whites, ink-navy text, the flag's own blue.
+- **Dark** (the default): near-neutral ink surfaces with a trace of blue, separated by lightness; cool-white text.
+- **Light**: a cool limestone ground under white cards, near-black ink, the flag's own blue.
 - Night scenes (Home's forest, a Goal's farm) stay dark in both themes through the `--night-*` copies of the dark palette.
+- Chrome is neutral. Colour is spent on meaning: an action, a link, a state, Israel's voice.
 
 ## Palette
 
-| Role          | Token                                            | Dark                                       | Light                                      | Use                                                           |
-| ------------- | ------------------------------------------------ | ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------- |
-| Canvas        | `--bg`                                           | `#0a1020`                                  | `#ebe5d9`                                  | Window background                                             |
-| Surfaces      | `--surface-1/2/3`                                | `#101a2f` / `#16223b` / `#1d2b48`          | `#f3eee4` / `#faf7f0` / `#ffffff`          | Panels, cards, raised controls                                |
-| Ink           | `--text` … `--text-dim`                          | `#f3efe6` … `#9aa5bb`                      | `#0e1a38` … `#586180`                      | Four text levels; `--text-dim` is the floor                   |
-| Tekhelet      | `--primary`                                      | `#7fa6ff`                                  | `#0038b8`                                  | Actions, links, focus, selection tint                         |
-| Tekhelet fill | `--primary-fill` / `--on-primary-fill`           | `#2a5bd7` / `#fbf8f1`                      | `#0038b8` / `#fbf8f1`                      | Filled primary buttons, send key                              |
-| Sun gold      | `--gold`, `--gold-fill` / `--on-gold-fill`       | `#f4c25b`, `#f4c25b` / `#1f1503`           | `#7f5300`, `#f2b84b` / `#241703`           | Israel's voice (`--ken`), progress, the "you are here" marker |
-| States        | `--success`, `--warning`, `--caution`, `--error` | `#6fd6a0`, `#ffae57`, `#ff8a50`, `#ff7070` | `#17663a`, `#9a4a00`, `#a8380f`, `#b42318` | Meaning only, never decoration                                |
-| Your messages | `--user-bg`                                      | 13% Tekhelet over `--surface-2`            | same mix                                   | The user bubble and the composer's "you" colour               |
+| Role          | Token                                            | Dark                                       | Light                                      | Use                                                    |
+| ------------- | ------------------------------------------------ | ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------ |
+| Canvas        | `--bg`                                           | `#0c0e13`                                  | `#f4f3ef`                                  | Window background, title bar and dock                  |
+| Surfaces      | `--surface-1/2/3`                                | `#12151b` / `#181c24` / `#1f242e`          | `#f9f8f5` / `#fcfcfa` / `#ffffff`          | Panels, cards, menus                                   |
+| Keys, wells   | `--key` / `--well`                               | `#1b1f28` / `#101319`                      | `#ffffff` / `#eceae5`                      | Flat controls; pressed keys and readouts               |
+| Ink           | `--text` … `--text-dim`                          | `#eceef2` … `#9aa1ae`                      | `#11151c` … `#5a616e`                      | Four text levels; `--text-dim` is the floor            |
+| Tekhelet      | `--primary`                                      | `#7fa6ff`                                  | `#0038b8`                                  | Links, command names, keyboard focus                   |
+| Tekhelet fill | `--primary-fill` / `--on-primary-fill`           | `#2a5bd7` / `#fafbfd`                      | `#0038b8` / `#fafbfd`                      | The send key and one primary button per page or dialog |
+| Sun gold      | `--gold`, `--gold-fill` / `--on-gold-fill`       | `#f4c25b`, `#f4c25b` / `#1f1503`           | `#7f5300`, `#f2b84b` / `#241703`           | Israel's voice (`--ken`) and progress                  |
+| States        | `--success`, `--warning`, `--caution`, `--error` | `#6fd6a0`, `#ffae57`, `#ff8a50`, `#ff7070` | `#17663a`, `#9a4a00`, `#a8380f`, `#b42318` | Meaning only, never decoration                         |
+| Your messages | `--user-bg`                                      | `--surface-3`                              | `#e9e8e3`                                  | The user bubble: a neutral tone step, no tint          |
 
-Contrast: every text token clears 4.5:1 on every surface in its theme (dark `--text-dim` 5.7:1 on `--surface-3`; light `--text-dim` 4.9:1 on `--bg`); filled buttons clear 5.5:1. Re-check with a contrast script before changing a value.
+Contrast, measured on every surface of each theme (`--bg`, `--surface-1/2/3`, `--key`, `--well`, `--code-bg`, `--user-bg`): every text token clears 4.5:1. The floor is `--text-dim`: 5.99:1 on `--surface-3` in dark, 5.08:1 on `--user-bg` in light, and 4.67:1 at worst under the selected fill. Filled primary buttons are 5.67:1 in dark (4.63:1 on hover) and 8.98:1 in light. Re-check with a contrast script before changing a value.
+
+## Shape and depth
+
+- **Three radii**: `--radius-button` 6px for controls and rows, `--radius-card` 10px for cards, menus and dialogs, `--radius-pill` for chips. `--radius-sm` 4px is only for marks nested in a control (keycaps, inline code, wells); the composer and message bubbles use 14px (`--radius-input`, `--radius-bubble`).
+- **Flat controls**: a key is one tone step and a 1px hairline (`inset 0 0 0 1px var(--border)`); a pressed or open key takes the well tone and the stronger hairline. No bevels, inner shadows or glows.
+- **Shadows mean "floating"**: `--shadow-*` is for menus, popovers, dialogs and toasts only. Anything at rest is separated by tone and hairline.
+- **Opaque chrome**: the title bar and the dock sit on `--bg`; there is no window glow and no frosted header. The Goal farm's header keeps its own frost over the art.
 
 ## Type
 
 - **Sora** (`--sans`) for all UI and reading text, at the existing `--fs-*` scale; conversation text uses `--fs-read`.
-- **Frank Ruhl Libre 700** (`--display`) for card, dialog and page titles only: never body text, labels or small uppercase headings. Latin subset, 15 KB, `font-display: swap`, falls back to Young Serif.
+- **Frank Ruhl Libre 700** (`--display`) for card, dialog and page titles only: never body text or labels. Latin subset, 15 KB, `font-display: swap`, falls back to Young Serif.
 - Young Serif stays the About page's storybook face; m5x7 and Alagard stay the pixel faces of Home, the farm and critter bubbles.
 - Code, paths and commands are set in Sora; monospace only where characters must line up (ASCII art, multi-line code blocks).
 
 ## Signature details
 
-- **The flag rule** (`--rule-flag`): a double Tekhelet hairline that closes page headers, echoing the flag's two stripes. Use it once per page, at the header; never as a general divider.
-- **You are here**: the current place (Settings page, active tab, selected row) gets a Tekhelet-tinted fill plus a gold marker.
+- **Selection is neutral**: the current place (Settings page, active tab, selected row, pressed chip) gets `rgb(var(--ink-rgb) / 0.09)` and full-ink text; hover gets `/ 0.05`. No coloured bar, no accent tint.
+- **Header rule** (`--rule-flag`): one plain 1px hairline closing a page header. Dashed lines are kept for two states only: a queued message and plan mode.
+- **Labels**: sentence case, `--fs-sm` for section and menu headings (`--fs-xs` inside keys, badges and meters), weight 600, muted ink. No tracked uppercase.
 - **Israel speaks in gold**: Israel's replies, status and chips use `--ken` / `--ken-fill` (sun gold), apart from the Tekhelet of actions.
-- **Calm depth**: separation comes from surface lightness and soft navy shadows (`--shadow-*`), not hard borders or gloss.
 
 ## Israel's portrait
 

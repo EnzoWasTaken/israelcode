@@ -29,8 +29,6 @@
   color: var(--text-dim);
   font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 .settings-nav-item {
   display: flex;
@@ -51,27 +49,21 @@
     color var(--dur-press) var(--ease-out);
 }
 .settings-nav-item:hover {
-  background: color-mix(in srgb, var(--primary) 6%, var(--surface-1));
+  background: rgb(var(--ink-rgb) / 0.05);
   color: var(--text);
 }
-/* Where you are: a Tekhelet-tinted row with the sun-gold marker. */
+/* Where you are: the neutral selected fill and full-ink text. */
 .settings-nav-item.is-active {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--gold-fill);
 }
 .settings-nav-item.is-active .settings-nav-icon {
-  color: var(--primary);
+  color: var(--text);
 }
 .settings-nav-item:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-}
-.settings-nav-item.is-active:focus-visible {
-  box-shadow:
-    inset 3px 0 0 var(--gold-fill),
-    var(--focus-ring);
 }
 .settings-nav-icon {
   position: relative;

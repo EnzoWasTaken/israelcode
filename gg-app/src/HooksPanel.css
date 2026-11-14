@@ -111,9 +111,8 @@
 }
 
 .hooks-recent-outcome {
-  text-transform: uppercase;
   font-size: var(--fs-xs);
-  letter-spacing: 0.04em;
+  text-transform: capitalize;
   opacity: 0.8;
 }
 

@@ -19,7 +19,7 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
-/* The input is the palette's header: a quiet field closed by the flag rule,
+/* The input is the palette's header: a quiet field closed by a hairline,
    so the list reads as hanging beneath it. */
 .cmdk-input {
   width: 100%;
@@ -47,9 +47,7 @@
 .cmdk-section {
   padding: var(--space-4) var(--space-6) var(--space-2);
   color: var(--text-dim);
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 .cmdk-row {
@@ -66,17 +64,16 @@
     color var(--t-out);
 }
 .cmdk-row:hover {
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  background: rgb(var(--ink-rgb) / 0.05);
   color: var(--text);
   transition:
     background-color var(--t-in),
     color var(--t-in);
 }
-/* The chosen row: a Tekhelet-tinted fill with the gold "you are here" mark. */
+/* The chosen row: the neutral selected fill. */
 .cmdk-row[aria-selected="true"] {
-  background: color-mix(in srgb, var(--primary) 16%, var(--surface-2));
+  background: rgb(var(--ink-rgb) / 0.09);
   color: var(--text);
-  box-shadow: inset 3px 0 0 var(--gold-fill);
 }
 .cmdk-title {
   flex: 1 1 auto;

@@ -134,7 +134,7 @@ export function handlePromptRoutes(
           name: c.name,
           aliases: [] as string[],
           description: c.description,
-          source: "custom" as const,
+          source: (c.source ?? "custom") as "custom" | "skill",
         }));
       json(res, 200, { commands: [...workspaceActions, ...builtins, ...custom] });
     })();

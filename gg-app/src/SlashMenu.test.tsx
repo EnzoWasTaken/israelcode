@@ -25,7 +25,7 @@ const COMMANDS: SlashCommand[] = [
 describe("SlashMenu", () => {
   it("is titled 'plays'", () => {
     render(<SlashMenu commands={COMMANDS} activeIndex={0} onSelect={vi.fn()} onHover={vi.fn()} />);
-    expect(screen.getByText("plays")).toBeTruthy();
+    expect(screen.getByText("Plays")).toBeTruthy();
   });
 
   it("lists each command with its name and description", () => {

@@ -45,7 +45,7 @@ export function ShellCommandMenu({
   return (
     <div className="slash-menu" style={{ background: theme.surface2, borderColor: theme.border }}>
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
-        commands
+        Commands
       </div>
       <div ref={scrollRef} className="pop-scroll slash-scroll" onScroll={onScroll}>
         {suggestions.map((s, i) => {
