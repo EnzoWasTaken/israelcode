@@ -176,3 +176,13 @@
     align-self: flex-start;
   }
 }
+
+.sp-subhead {
+  margin: var(--space-7) 0 var(--space-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.sp-subhead:first-child {
+  margin-top: 0;
+}

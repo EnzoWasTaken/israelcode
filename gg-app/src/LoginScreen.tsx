@@ -13,7 +13,7 @@ import { useSettingsPageReady } from "./settings-ready";
 interface Props {
   /**
    * Shown as its own screen, with a header and Back. Omitted inside the
-   * Settings screen's AI Providers tab, which supplies both.
+   * Settings screen's AI providers tab, which supplies both.
    */
   onClose?: () => void;
 }
@@ -117,7 +117,7 @@ export function LoginScreen({ onClose }: Props): React.ReactElement {
       {onClose ? (
         <div className="picker-head" data-tauri-drag-region>
           <BackButton label="Back" onClick={onClose} />
-          <span className="picker-title">AI Providers</span>
+          <span className="picker-title">AI providers</span>
           {connectedBadge}
         </div>
       ) : (

@@ -3,6 +3,15 @@ import { FileTextIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import type { FileHit } from "./agent";
 import { useScrollEdges } from "./popover";
+import { MenuKeyHints, type MenuKeyHint } from "./MenuKeyHints";
+import { MENTION_MENU_ID, menuOptionId } from "./composer-commands";
+
+const HINTS: readonly MenuKeyHint[] = [
+  { keys: "↑↓", does: "move" },
+  { keys: "Enter", does: "pick" },
+  { keys: "Tab", does: "pick" },
+  { keys: "Esc", does: "close" },
+];
 
 interface Props {
   files: readonly FileHit[];
@@ -36,8 +45,8 @@ export function FileMentionMenu({
       mounted.current = true;
       return;
     }
-    document
-      .querySelector(`.mention-item[data-idx="${activeIndex}"]`)
+    scrollRef.current
+      ?.querySelector(`.mention-item[data-idx="${activeIndex}"]`)
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
@@ -46,16 +55,30 @@ export function FileMentionMenu({
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
         {isRecent ? "Recent files" : "Files"}
       </div>
-      <div ref={scrollRef} className="pop-scroll slash-scroll" onScroll={onScroll}>
+      <div
+        ref={scrollRef}
+        id={MENTION_MENU_ID}
+        role="listbox"
+        aria-label={isRecent ? "Recent files" : "Files"}
+        className="pop-scroll slash-scroll"
+        onScroll={onScroll}
+      >
         {files.map((file, i) => {
           const active = i === activeIndex;
           const dir = file.path.slice(0, file.path.length - file.name.length);
           return (
             <button
               key={file.path}
+              id={menuOptionId(MENTION_MENU_ID, i)}
+              role="option"
+              aria-selected={active}
+              tabIndex={-1}
               data-idx={i}
               className={`slash-item mention-item${active ? " active" : ""}`}
-              onMouseEnter={() => onHover(i)}
+              onMouseMove={() => {
+                if (!active) onHover(i);
+              }}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelect(file)}
             >
               <span className="mention-icon" style={{ color: theme.textMuted }}>
@@ -73,6 +96,7 @@ export function FileMentionMenu({
           );
         })}
       </div>
+      <MenuKeyHints hints={HINTS} />
     </div>
   );
 }

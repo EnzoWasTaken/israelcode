@@ -58,6 +58,7 @@ export function Dropdown({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const onListScroll = useScrollEdges(listRef, open);
+  const typeahead = useRef({ text: "", at: 0 });
   const baseId = useId();
   const listId = `${baseId}-list`;
   const optionId = (index: number): string => `${baseId}-option-${index}`;
@@ -142,6 +143,21 @@ export function Dropdown({
     }
   }
 
+  // Jump to the next enabled option whose label starts with what was typed; 500 ms of quiet resets.
+  function typeAhead(char: string, now: number): void {
+    const buffer = now - typeahead.current.at > 500 ? char : typeahead.current.text + char;
+    typeahead.current = { text: buffer, at: now };
+    const from = buffer.length === 1 ? activeIndex : activeIndex - 1;
+    for (let offset = 1; offset <= options.length; offset++) {
+      const index = (((from + offset) % options.length) + options.length) % options.length;
+      const option = options[index];
+      if (option && !option.disabled && option.label.toLowerCase().startsWith(buffer)) {
+        setActiveIndex(index);
+        return;
+      }
+    }
+  }
+
   function onListKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
     switch (event.key) {
       case "ArrowDown":
@@ -169,6 +185,9 @@ export function Dropdown({
         closeList(false);
         return;
       default:
+        if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+        event.preventDefault();
+        typeAhead(event.key.toLowerCase(), event.timeStamp);
     }
   }
 

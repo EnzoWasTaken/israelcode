@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getGitBranches, switchGitBranch, type BranchPlacement, type GitBranches } from "./agent";
+import { MenuKeyHints } from "./MenuKeyHints";
 
 /** "today", "3 days ago", "5 months ago": how long since a branch's last commit. */
 export function lastCommitLabel(seconds: number, now: number): string {
@@ -96,6 +97,12 @@ export function BranchPicker({
         autoCorrect="off"
         onChange={(event) => setQuery(event.target.value)}
         onKeyDown={(event) => {
+          if (event.key === "Escape" && query) {
+            event.preventDefault();
+            event.stopPropagation();
+            setQuery("");
+            return;
+          }
           if (event.key !== "Enter" || busy) return;
           const exact = list.branches.find((b) => b.name === needle);
           if (exact && !exact.current) void pick(exact.name, false);
@@ -184,7 +191,15 @@ export function BranchPicker({
           </li>
         ))}
       </ul>
-      {shown.length === 0 && !canCreate && <p className="deck-note">No branches match.</p>}
+      <MenuKeyHints
+        hints={[
+          { keys: "Enter", does: "open or create" },
+          { keys: "Esc", does: "clear" },
+        ]}
+      />
+      {shown.length === 0 && !canCreate && (
+        <p className="deck-note">{`No branches match “${query.trim()}”.`}</p>
+      )}
     </div>
   );
 }

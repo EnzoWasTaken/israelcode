@@ -107,7 +107,7 @@ export function ProjectWorktrees({
                 type="button"
                 className="picker-hide"
                 aria-label={`Remove the ${w.branch ?? "detached"} worktree`}
-                title="Remove this worktree (the branch stays)"
+                title={`Remove the ${w.branch ?? "detached"} worktree (the branch stays)`}
                 disabled={removing !== null}
                 onClick={() => (w.dirty > 0 ? setConfirm(w) : void remove(w, false))}
               >

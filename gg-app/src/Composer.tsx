@@ -27,6 +27,7 @@ import { ReferencedFiles } from "./ReferencedFiles";
 import { ScheduleHint } from "./ScheduleHint";
 import { ShimmerText } from "./ShimmerText";
 import { SlashMenu } from "./SlashMenu";
+import { MENTION_MENU_ID, SHELL_MENU_ID, SLASH_MENU_ID, menuOptionId } from "./composer-commands";
 import { theme } from "./theme";
 import { splitUltracode } from "./ultracode";
 import { insertDictation } from "./dictation";
@@ -106,6 +107,36 @@ export interface ComposerProps {
   navigateHistory: (dir: -1 | 1, el: HTMLTextAreaElement) => boolean;
   submit: () => void;
   requestCancel: () => void;
+}
+
+/** What one open composer menu exposes to the shared key handler. */
+interface MenuNav {
+  count: number;
+  index: number;
+  move: (delta: 1 | -1) => void;
+  pick: () => void;
+  close?: () => void;
+  enterPicks: boolean;
+}
+
+/** One key chain for every open composer menu: ↑/↓ wrap, Tab picks, Enter picks if allowed, Esc closes. */
+function handleMenuKey(e: React.KeyboardEvent<HTMLTextAreaElement>, nav: MenuNav): boolean {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    nav.move(e.key === "ArrowDown" ? 1 : -1);
+    return true;
+  }
+  if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey && nav.enterPicks)) {
+    e.preventDefault();
+    nav.pick();
+    return true;
+  }
+  if (e.key === "Escape" && nav.close) {
+    e.preventDefault();
+    nav.close();
+    return true;
+  }
+  return false;
 }
 
 /** The `!` command picker's state; App owns it, the composer drives it. */
@@ -220,6 +251,47 @@ export function Composer({
     onError: (message) => toast(message, "error"),
   });
   const dictating = dictation.state !== "idle";
+  // A lone `/word` that matches nothing still shows a muted row; Enter sends it as typed.
+  const slashNoMatch = !scheduleDraft && !slashOpen && /^\/\S+$/.test(input) ? input : null;
+  const openMenu: (MenuNav & { id: string }) | null = shellMenu
+    ? {
+        id: SHELL_MENU_ID,
+        count: shellMenu.matches.length,
+        index: shellMenu.activeIndex,
+        move: shellMenu.navigate,
+        pick: () => {
+          const picked = shellMenu.matches[shellMenu.activeIndex];
+          if (picked) shellMenu.pick(picked);
+        },
+        close: shellMenu.dismiss,
+        enterPicks: shellMenu.enterPicks,
+      }
+    : mentionOpen
+      ? {
+          id: MENTION_MENU_ID,
+          count: fileMatches.length,
+          index: clampedFileIndex,
+          move: (d) => setFileIndex((i) => (i + d + fileMatches.length) % fileMatches.length),
+          pick: () => {
+            const file = fileMatches[clampedFileIndex];
+            if (file) pickMentionFile(file);
+          },
+          close: () => setMention(null),
+          enterPicks: true,
+        }
+      : slashOpen
+        ? {
+            id: SLASH_MENU_ID,
+            count: slashMatches.length,
+            index: clampedSlashIndex,
+            move: (d) => setSlashIndex((i) => (i + d + slashMatches.length) % slashMatches.length),
+            pick: () => {
+              const cmd = slashMatches[clampedSlashIndex];
+              if (cmd) pickSlashCommand(cmd);
+            },
+            enterPicks: true,
+          }
+        : null;
   return (
     <div
       ref={composerRef}
@@ -241,8 +313,9 @@ export function Composer({
         </div>
       )}
       <FloatingSurface>
-        {!scheduleDraft && slashOpen && (
+        {!scheduleDraft && (slashOpen || slashNoMatch !== null) && (
           <SlashMenu
+            noMatch={slashNoMatch ?? undefined}
             commands={slashMatches}
             activeIndex={clampedSlashIndex}
             onSelect={pickSlashCommand}
@@ -256,6 +329,7 @@ export function Composer({
             suggestions={shellMenu.matches}
             activeIndex={shellMenu.activeIndex}
             trusted={shellMenu.trusted}
+            enterPicks={shellMenu.enterPicks}
             onRevokeTrust={shellMenu.revokeTrust}
             onSelect={shellMenu.pick}
             onHover={shellMenu.setActiveIndex}
@@ -394,6 +468,13 @@ export function Composer({
           <textarea
             ref={setTextarea}
             aria-label="Message"
+            {...(openMenu
+              ? {
+                  "aria-autocomplete": "list" as const,
+                  "aria-controls": openMenu.id,
+                  "aria-activedescendant": menuOptionId(openMenu.id, openMenu.index),
+                }
+              : {})}
             // AskBand's number keys still pick an option while this is empty.
             data-composer-input=""
             className={`input${enhanceAnim ? " input-anim" : ""}${kenActive ? " input-ken" : ""}${
@@ -471,38 +552,8 @@ export function Composer({
                 onDismissUltracode?.();
                 return;
               }
-              if (shellMenu && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-                e.preventDefault();
-                shellMenu.navigate(e.key === "ArrowDown" ? 1 : -1);
-              } else if (
-                shellMenu &&
-                (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey && shellMenu.enterPicks))
-              ) {
-                e.preventDefault();
-                const picked = shellMenu.matches[shellMenu.activeIndex];
-                if (picked) shellMenu.pick(picked);
-              } else if (shellMenu && e.key === "Escape") {
-                e.preventDefault();
-                shellMenu.dismiss();
-              } else if (mentionOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-                e.preventDefault();
-                const delta = e.key === "ArrowDown" ? 1 : -1;
-                setFileIndex((i) => (i + delta + fileMatches.length) % fileMatches.length);
-              } else if (mentionOpen && (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey))) {
-                e.preventDefault();
-                const file = fileMatches[clampedFileIndex];
-                if (file) pickMentionFile(file);
-              } else if (mentionOpen && e.key === "Escape") {
-                e.preventDefault();
-                setMention(null);
-              } else if (slashOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-                e.preventDefault();
-                const delta = e.key === "ArrowDown" ? 1 : -1;
-                setSlashIndex((i) => (i + delta + slashMatches.length) % slashMatches.length);
-              } else if (slashOpen && (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey))) {
-                e.preventDefault();
-                const cmd = slashMatches[clampedSlashIndex];
-                if (cmd) pickSlashCommand(cmd);
+              if (openMenu && handleMenuKey(e, openMenu)) {
+                // handled by the open menu
               } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                 // Menus are closed here (handled above), so arrows recall sent
                 // prompts shell-style — unless the caret is mid-text in a

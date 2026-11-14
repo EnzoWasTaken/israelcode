@@ -164,7 +164,11 @@ export function TitleBarActions({
             type="button"
             className="key key-sm commit-key"
             disabled={running}
-            title={hasCommit ? `Run /${commitCommand}` : "Generate a /commit command"}
+            title={
+              hasCommit
+                ? `Run /${commitCommand}`
+                : "Create a /commit command that runs this project's checks"
+            }
             aria-label={`Commit ${dirtyCount} ${dirtyCount === 1 ? "file" : "files"}`}
             onClick={onCommit}
           >
@@ -204,7 +208,6 @@ export function DeckMenu({
   onOpenMemories,
   projectTasks,
   onOpenTasks,
-  showChecklist,
   onOpenChecklist,
   hasHealth = false,
   onOpenHealth,
@@ -235,7 +238,8 @@ export function DeckMenu({
   onOpenMemories: () => void;
   projectTasks: ProjectTask[];
   onOpenTasks: () => void;
-  showChecklist: boolean;
+  /** Kept for callers; the Checklist key is a one-shot opener and no longer reflects it. */
+  showChecklist?: boolean;
   onOpenChecklist: () => void;
   /** A Project Health score exists for this project. */
   hasHealth?: boolean;
@@ -252,125 +256,176 @@ export function DeckMenu({
 }): React.ReactElement {
   const pending = projectTasks.filter((t) => t.status !== "done").length;
   const code = workspaceMode === "code" && !isGoal;
+  const showExport = Boolean(onExport) && !isGoal;
+  const hasAgent = code || Boolean(onOpenGoalSettings);
+  const hasProject = code || !isGoal;
+  const group = (name: string, children: React.ReactNode): React.ReactElement => (
+    <div className="deck-menu-group" role="group" aria-label={name}>
+      <div className="deck-menu-heading" aria-hidden="true">
+        {name}
+      </div>
+      {children}
+    </div>
+  );
   return (
     <>
-      {!isGoal && (
-        <button
-          type="button"
-          className="key"
-          disabled={running}
-          title={
-            workspaceMode === "chat"
-              ? "Start a new chat"
-              : workspaceMode === "motion"
-                ? "Start a new video session"
-                : "Start a new session for this project"
-          }
-          onClick={onNewSession}
-        >
-          {workspaceMode === "chat" ? "New chat" : "New session"}
-        </button>
-      )}
-      {code && (
-        <button
-          type="button"
-          className="key"
-          role="switch"
-          aria-checked={autopilot}
-          disabled={running || autopilotReviewing}
-          title={fl(
-            "Autopilot: after each run, Israel reviews the work and Israel Code continues if it needs changes",
-            "Autopilot: after each run, Israel reviews the work like a proud, critical parent, and Israel Code continues if it needs changes",
+      {group(
+        "Session",
+        <>
+          {!isGoal && (
+            <button
+              type="button"
+              className="key"
+              disabled={running}
+              title={
+                workspaceMode === "chat"
+                  ? "Start a new chat"
+                  : workspaceMode === "motion"
+                    ? "Start a new video session"
+                    : "Start a new session for this project"
+              }
+              onClick={onNewSession}
+            >
+              {workspaceMode === "chat" ? "New chat" : "New session"}
+            </button>
           )}
-          onClick={() => onAutopilotChange(!autopilot)}
-        >
-          Autopilot
-          <span className="led" data-state={autopilot ? "on" : undefined} aria-hidden="true" />
-        </button>
-      )}
-      {code && verify && onVerifyChange && (
-        <VerifyControl verify={verify} running={running} onChange={onVerifyChange} />
-      )}
-      {code && worktreeWorkers && onWorktreeWorkersChange && (
-        <WorktreeReviewControl
-          state={worktreeWorkers}
-          progress={worktreeVerifyProgress}
-          onChange={onWorktreeWorkersChange}
-        />
-      )}
-      {code && (
-        <button
-          type="button"
-          className="key"
-          aria-pressed={showChecklist}
-          title={fl(
-            "Check this project's health: tests, CI, security, design and more",
-            "Check this project's health: tests, CI, security, design and more. A full check-up, no waiting room",
+          {showExport && (
+            <button
+              type="button"
+              className="key"
+              disabled={!canExport || exporting}
+              title="Save this conversation as a Markdown file"
+              onClick={onExport}
+            >
+              {exporting ? "Exporting\u2026" : "Export chat"}
+            </button>
           )}
-          onClick={onOpenChecklist}
-        >
-          Checklist
-        </button>
+          <button type="button" className="key" title={backLabel} onClick={onBack}>
+            {workspaceMode === "chat" ? "All chats" : isGoal ? "All goals" : "All projects"}
+          </button>
+        </>,
       )}
-      {code && hasHealth && onOpenHealth && (
-        <button
-          type="button"
-          className="key"
-          title="Scores for file size, hygiene, safety and debt, with what holds each down"
-          onClick={onOpenHealth}
-        >
-          Project Health
-        </button>
+      {hasAgent &&
+        group(
+          "Agent",
+          <>
+            {code && (
+              <button
+                type="button"
+                className="key"
+                role="switch"
+                aria-checked={autopilot}
+                disabled={running || autopilotReviewing}
+                title={fl(
+                  "Autopilot: after each run, Israel reviews the work and Israel Code continues if it needs changes",
+                  "Autopilot: after each run, Israel reviews the work like a proud, critical parent, and Israel Code continues if it needs changes",
+                )}
+                onClick={() => onAutopilotChange(!autopilot)}
+              >
+                Autopilot
+                <span
+                  className="led"
+                  data-state={autopilot ? "on" : undefined}
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+            {code && verify && onVerifyChange && (
+              <VerifyControl verify={verify} running={running} onChange={onVerifyChange} />
+            )}
+            {code && worktreeWorkers && onWorktreeWorkersChange && (
+              <WorktreeReviewControl
+                state={worktreeWorkers}
+                progress={worktreeVerifyProgress}
+                onChange={onWorktreeWorkersChange}
+              />
+            )}
+            {onOpenGoalSettings && (
+              <button
+                type="button"
+                className="key"
+                title="Change this goal's settings"
+                onClick={onOpenGoalSettings}
+              >
+                Goal settings
+              </button>
+            )}
+          </>,
+        )}
+      {hasProject &&
+        group(
+          "Project",
+          <>
+            {code && (
+              <button
+                type="button"
+                className="key"
+                title={fl(
+                  "Check this project's health: tests, CI, security, design and more",
+                  "Check this project's health: tests, CI, security, design and more. A full check-up, no waiting room",
+                )}
+                onClick={onOpenChecklist}
+              >
+                Checklist
+              </button>
+            )}
+            {code && hasHealth && onOpenHealth && (
+              <button
+                type="button"
+                className="key"
+                title="Scores for file size, hygiene, safety and debt, with what holds each down"
+                onClick={onOpenHealth}
+              >
+                Project health
+              </button>
+            )}
+            {code && (
+              <button
+                type="button"
+                className="key"
+                title="View and run this project's tasks"
+                onClick={onOpenTasks}
+              >
+                Tasks
+                {pending > 0 && <span className="well">{pending}</span>}
+              </button>
+            )}
+            {!isGoal && (
+              <button
+                type="button"
+                className="key"
+                title="Write and keep your notes"
+                onClick={onOpenNotes}
+              >
+                Notes
+              </button>
+            )}
+            {workspaceMode === "chat" && !isGoal && (
+              <button
+                type="button"
+                className="key"
+                title="View and edit what Israel remembers across your chats"
+                onClick={onOpenMemories}
+              >
+                Brain
+              </button>
+            )}
+          </>,
+        )}
+      {group(
+        "Window",
+        <>
+          <WindowLayoutButton onArrange={onArrange} label="Arrange" />
+          <button
+            type="button"
+            className="key"
+            title="Listen to internet radio while you work"
+            onClick={onOpenRadio}
+          >
+            Radio
+          </button>
+        </>,
       )}
-      {!isGoal && (
-        <button type="button" className="key" title="Your notes" onClick={onOpenNotes}>
-          Notes
-        </button>
-      )}
-      {code && (
-        <button
-          type="button"
-          className="key"
-          title="View and run this project's tasks"
-          onClick={onOpenTasks}
-        >
-          Tasks
-          {pending > 0 && <span className="well">{pending}</span>}
-        </button>
-      )}
-      {workspaceMode === "chat" && !isGoal && (
-        <button
-          type="button"
-          className="key"
-          title="View and curate chat memories and Jiwa"
-          onClick={onOpenMemories}
-        >
-          Brain
-        </button>
-      )}
-      {onOpenGoalSettings && (
-        <button type="button" className="key" title="Goal settings" onClick={onOpenGoalSettings}>
-          Goal settings
-        </button>
-      )}
-      <button type="button" className="key" title="Internet radio" onClick={onOpenRadio}>
-        Radio
-      </button>
-      {onExport && !isGoal && (
-        <button
-          type="button"
-          className="key"
-          disabled={!canExport || exporting}
-          title="Save this conversation as a Markdown file"
-          onClick={onExport}
-        >
-          {exporting ? "Exporting\u2026" : "Export chat"}
-        </button>
-      )}
-      <WindowLayoutButton onArrange={onArrange} label="Arrange" />
-      <button type="button" className="key" title={backLabel} onClick={onBack}>
-        {workspaceMode === "chat" ? "All chats" : isGoal ? "All goals" : "Projects"}
-      </button>
     </>
   );
 }

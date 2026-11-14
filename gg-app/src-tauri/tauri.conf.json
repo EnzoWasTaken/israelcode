@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Israel Code",
   "mainBinaryName": "israel-code",
-  "version": "0.110.0",
+  "version": "0.111.0",
   "identifier": "com.israelcode.app",
   "build": {
     "beforeDevCommand": "pnpm dev",

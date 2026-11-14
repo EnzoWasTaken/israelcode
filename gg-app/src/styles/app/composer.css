@@ -544,3 +544,25 @@
   mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.25) 100%);
   -webkit-mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.25) 100%);
 }
+
+.slash-usage {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.slash-group {
+  font-size: var(--fs-xs);
+  padding: var(--space-2) var(--space-4) var(--space-1);
+}
+.slash-empty {
+  font-size: var(--fs-sm);
+  padding: 5px var(--space-4);
+}
+.schedule-slot-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  font-size: var(--fs-sm);
+  padding: var(--space-1) var(--space-4) var(--space-3);
+}

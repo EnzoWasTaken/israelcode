@@ -179,7 +179,21 @@
   gap: var(--space-3);
   padding: var(--space-5);
 }
-.deck-pad > .key,
+.deck-menu-group {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-3);
+}
+.deck-menu-group + .deck-menu-group {
+  margin-top: var(--space-3);
+}
+.deck-menu-heading {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+.deck-pad .key,
 .deck-pad .winlayout .btn {
   justify-content: space-between;
   height: 32px;

@@ -23,9 +23,26 @@ const COMMANDS: SlashCommand[] = [
 ];
 
 describe("SlashMenu", () => {
-  it("is titled 'plays'", () => {
+  it("is a listbox of options and shows a muted row when nothing matches", () => {
+    const { rerender } = render(
+      <SlashMenu commands={COMMANDS} activeIndex={1} onSelect={vi.fn()} onHover={vi.fn()} />,
+    );
+    expect(screen.getAllByRole("option")[1]?.getAttribute("aria-selected")).toBe("true");
+    rerender(
+      <SlashMenu
+        commands={[]}
+        activeIndex={0}
+        noMatch="/zzz"
+        onSelect={vi.fn()}
+        onHover={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("No command matches /zzz")).toBeTruthy();
+  });
+
+  it("is titled Commands", () => {
     render(<SlashMenu commands={COMMANDS} activeIndex={0} onSelect={vi.fn()} onHover={vi.fn()} />);
-    expect(screen.getByText("Plays")).toBeTruthy();
+    expect(screen.getAllByText("Commands")[0]).toBeTruthy();
   });
 
   it("lists each command with its name and description", () => {

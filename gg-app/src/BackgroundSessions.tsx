@@ -287,6 +287,7 @@ export function BackgroundSessionList({
                       type="button"
                       className="bgs-btn bgs-open"
                       disabled={disabled}
+                      title="Open this background session"
                       aria-label={`Open ${title}`}
                       onClick={() => void act(row, async () => onOpen(row), "Couldn't open it")}
                     >
@@ -299,6 +300,7 @@ export function BackgroundSessionList({
                     type="button"
                     className="bgs-btn bgs-stop"
                     disabled={disabled}
+                    title="Stop the work this background session is doing"
                     aria-label={`Stop task: ${title}`}
                     onClick={() =>
                       void act(
@@ -334,7 +336,8 @@ export function BackgroundSessionList({
                     type="button"
                     className="bgs-btn bgs-delete"
                     disabled={disabled}
-                    aria-label={`Delete conversation: ${title}`}
+                    title="Delete this conversation for good"
+                    aria-label={`Delete: ${title}`}
                     onClick={() => setConfirming(row)}
                   >
                     Delete

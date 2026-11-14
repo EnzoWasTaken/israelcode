@@ -80,7 +80,7 @@ describe("session navigation notes", () => {
       // Notes lives in the deck's ⋯ keypad and opens inside the window, over
       // the conversation, rather than as a pop-up dialog.
       const openNotes = async (): Promise<void> => {
-        fireEvent.click(await screen.findByRole("button", { name: "More" }));
+        fireEvent.click(await screen.findByRole("button", { name: "Menu" }));
         expect(
           screen.getByRole("button", {
             name: mode === "chat" ? "Back to chats" : "Back to motion sessions",

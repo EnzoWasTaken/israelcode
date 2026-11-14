@@ -1981,7 +1981,7 @@ function App(): React.ReactElement {
                 health:
                   workspaceMode === "code"
                     ? {
-                        title: "Project Health",
+                        title: "Project health",
                         body: (
                           <ProjectHealthPanel
                             health={projectHealth}

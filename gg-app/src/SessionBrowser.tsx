@@ -15,6 +15,7 @@ import {
 } from "./agent";
 import { BackButton } from "./BackButton";
 import { EmptyState } from "./EmptyState";
+import { MenuKeyHints } from "./MenuKeyHints";
 import { isMacPlatform } from "./platform";
 import { ListSkeleton } from "./Skeleton";
 import { sourceStyle } from "./source-style";
@@ -268,6 +269,7 @@ export function SessionBrowser({
             ref={searchRef}
             className="sb-search-input"
             type="search"
+            autoFocus
             role="combobox"
             aria-expanded={flat.length > 0}
             aria-controls={listId}
@@ -426,27 +428,15 @@ export function SessionBrowser({
         </div>
       </div>
 
-      <div className="sb-hint" aria-hidden="true">
-        <span>
-          <kbd>{"\u2191"}</kbd> <kbd>{"\u2193"}</kbd> move
-        </span>
-        <span>
-          <kbd>{"\u21b5"}</kbd> open
-        </span>
-        {onOpenInNewWindow && (
-          <span>
-            <kbd>{`${mod} \u21b5`}</kbd> new window
-          </span>
-        )}
-        <span>
-          <kbd>/</kbd> search
-        </span>
-        {onBack && (
-          <span>
-            <kbd>Esc</kbd> back
-          </span>
-        )}
-      </div>
+      <MenuKeyHints
+        hints={[
+          { keys: "↑↓", does: "move" },
+          { keys: "Enter", does: "open" },
+          ...(onOpenInNewWindow ? [{ keys: `${mod} Enter`, does: "new window" }] : []),
+          { keys: "/", does: "search" },
+          ...(onBack ? [{ keys: "Esc", does: query ? "clear search" : "go back" }] : []),
+        ]}
+      />
     </div>
   );
 }

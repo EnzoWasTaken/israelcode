@@ -17,7 +17,6 @@ import { AppearancePicker } from "./AppearancePicker";
 import { HomeBackgroundButton } from "./HomeBackgroundButton";
 import { HumorButton } from "./HumorButton";
 import { UpdateCheckButton } from "./UpdateCheckButton";
-import { KeepAwakeButton } from "./KeepAwakeButton";
 import { Dropdown } from "./Dropdown";
 import { DICTATION_MODELS, loadDictationModel, saveDictationModel } from "./dictation";
 import { SettingsSection } from "./settings-section";
@@ -169,14 +168,6 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
             </div>
           </SettingsSection>
           <SettingsSection
-            title="Power"
-            description="Stop your computer sleeping mid-task. The screen can still turn off."
-          >
-            <div className="modal-row">
-              <KeepAwakeButton />
-            </div>
-          </SettingsSection>
-          <SettingsSection
             title="Updates"
             description="New versions come from GitHub releases and install with a restart."
           >
@@ -203,7 +194,11 @@ export function SettingsModal({ onClose, onSaved }: Props): React.ReactElement {
                 style={{ color: theme.text, background: theme.inputBackground }}
                 value={projectsRoot}
                 aria-label="Project folder"
-                placeholder="/Users/you/gg-projects"
+                placeholder={
+                  document.documentElement.classList.contains("platform-windows")
+                    ? "C:\\Users\\you\\gg-projects"
+                    : "/Users/you/gg-projects"
+                }
                 onChange={(e) => setProjectsRoot(e.target.value)}
                 onBlur={embedded ? (e) => void persist(e.currentTarget.value) : undefined}
                 onKeyDown={

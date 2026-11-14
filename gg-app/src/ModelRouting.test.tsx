@@ -82,7 +82,7 @@ describe("model panel routing", () => {
         available: true,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Reset effort to Auto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset to Auto: effort" }));
     expect(setSessionRouting).toHaveBeenCalledWith({
       pins: { model: { provider: "anthropic", model: "claude-sonnet-5-5" } },
     });

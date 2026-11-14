@@ -114,8 +114,8 @@ export function WindowLayoutButton({
           className="winlayout-select"
           value=""
           disabled={busy}
-          title="Arrange into multiple project windows"
-          aria-label="Arrange into multiple project windows"
+          title="Arrange windows: tile this app into 2, 4 or 6 windows, or auto-arrange"
+          aria-label="Arrange windows"
           onChange={(event) => {
             if (event.target.value) void run(event.target.value);
           }}
@@ -138,8 +138,8 @@ export function WindowLayoutButton({
         ref={triggerRef}
         className="btn btn-ghost btn-sm btn-nav-icon"
         disabled={busy}
-        title="Arrange into multiple project windows"
-        aria-label="Arrange into multiple project windows"
+        title="Arrange windows: tile this app into 2, 4 or 6 windows, or auto-arrange"
+        aria-label="Arrange windows"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -157,7 +157,7 @@ export function WindowLayoutButton({
             data-flip={flipUp ? "up" : undefined}
             className="winlayout-menu"
             role="menu"
-            aria-label="Window layout"
+            aria-label="Arrange windows"
             onKeyDown={moveMenuFocus}
             style={{ background: theme.surface2, borderColor: theme.border }}
           >

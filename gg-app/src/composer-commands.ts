@@ -4,17 +4,29 @@ import type { SlashCommand } from "./agent";
 // registers a recurring timer instead of prompting the agent. Declared here so
 // the palette can still discover it alongside the real slash commands.
 // Handled in the webview too: it flips the session's Ultracode setting.
-export const ULTRACODE_COMMAND: SlashCommand = {
+export type ComposerCommand = SlashCommand & { usage?: string };
+
+export const SLASH_MENU_ID = "composer-slash-menu";
+export const MENTION_MENU_ID = "composer-mention-menu";
+export const SHELL_MENU_ID = "composer-shell-menu";
+
+export function menuOptionId(menuId: string, index: number): string {
+  return `${menuId}-opt-${index}`;
+}
+
+export const ULTRACODE_COMMAND: ComposerCommand = {
   name: "ultracode",
   aliases: [],
-  description: "Turn Ultracode on or off — parallel agents for big jobs — [on|off]",
+  description: "Turn Ultracode on or off, so big jobs run with parallel agents",
+  usage: "[on|off]",
   source: "built-in",
 };
 
-export const SCHEDULE_COMMAND: SlashCommand = {
+export const SCHEDULE_COMMAND: ComposerCommand = {
   name: "schedule",
   aliases: ["sched"],
-  description: "Run a prompt on a repeating schedule — <prompt> | 15m | [times]",
+  description: "Run a prompt again and again on a timer",
+  usage: "<prompt> | 15m | [times]",
   source: "built-in",
 };
 

@@ -69,9 +69,9 @@ describe("SettingsScreen", () => {
     expect(heading()).toBe("General");
     expect(screen.getByText("general page")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "MCP" }));
+    fireEvent.click(screen.getByRole("button", { name: "MCP servers" }));
 
-    expect(heading()).toBe("MCP");
+    expect(heading()).toBe("MCP servers");
     expect(screen.getByText("mcp page")).toBeTruthy();
     expect(screen.queryByText("general page")).toBeNull();
   });
@@ -89,7 +89,7 @@ describe("SettingsScreen", () => {
     await renderScreen();
     expect(screen.queryByText("3 connected")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "AI Providers" }));
+    fireEvent.click(screen.getByRole("button", { name: "AI providers" }));
     expect(screen.getByText("3 connected")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "General" }));
@@ -155,7 +155,7 @@ describe("SettingsScreen", () => {
     await renderScreen({ initialTab: "remote" });
     expect(screen.queryByRole("button", { name: "Start serving" })).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "MCP" }));
+    fireEvent.click(screen.getByRole("button", { name: "MCP servers" }));
 
     expect(screen.queryByRole("button", { name: "Start serving" })).toBeNull();
   });
@@ -187,8 +187,14 @@ describe("SettingsScreen", () => {
       screen.getByRole("group", { name: "Integrations" }).querySelectorAll("button").length,
     ).toBe(5);
     expect(nav.querySelectorAll("[aria-current=page]").length).toBe(1);
-    expect(screen.getByRole("button", { name: "MCP" }).getAttribute("aria-current")).toBe("page");
-    expect(screen.getByText("Servers that give your agents extra tools.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "MCP servers" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(
+      screen.getByText(
+        "Connect MCP servers to give your agents extra tools, like browsers or databases.",
+      ),
+    ).toBeTruthy();
   });
 
   it("moves focus with the arrow keys and opens an entry with a click", async () => {
@@ -217,7 +223,7 @@ describe("SettingsScreen", () => {
     const steroids = screen.getByRole("button", { name: /Steroids/ });
     expect(steroids.querySelector(".settings-nav-alert")).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "MCP" }).querySelector(".settings-nav-alert"),
+      screen.getByRole("button", { name: "MCP servers" }).querySelector(".settings-nav-alert"),
     ).toBeNull();
   });
 });

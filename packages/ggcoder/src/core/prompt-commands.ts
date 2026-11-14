@@ -33,7 +33,7 @@ export const PROMPT_COMMANDS: PromptCommand[] = [
   {
     name: "expand",
     aliases: [],
-    description: "Find exciting new features to add",
+    description: "Research similar products and rank the new features this project should add",
     prompt: `# Expand: Exciting Feature Discovery
 
 Find the most exciting new features this project should add by comparing it to similar, adjacent, and best-in-class repositories/tools/products/services. This command is project-agnostic: infer what THIS project is before choosing comparisons. This command is report-first and feature-first — the only deliverable is a single ranked table of exciting, user-facing features. Do not edit, install, or implement anything until the user chooses an option at the end.
@@ -226,7 +226,7 @@ If any check still fails and cannot be fixed, stop before committing and say whi
   {
     name: "setup-commit",
     aliases: [],
-    description: "Generate a /commit command",
+    description: "Create a /commit command that runs this project's checks",
     prompt: `Detect the project type and generate a /commit command that enforces quality checks and an agent code review before committing.
 
 ## Step 1: Detect Project and Extract Commands
@@ -394,7 +394,7 @@ ${checklistSetupStep(["ci", "git-github"])}
   {
     name: "compare",
     aliases: [],
-    description: "Compare real-world code",
+    description: "Check the code you just wrote against how real projects do the same thing",
     prompt: `Compare the code you just created or modified in this conversation against real-world implementations using the \`steroids\` tool (\`search\`, then \`show\` to read the full file).
 
 You already know what you just built. For each file you created or modified, use \`steroids\` \`search\` to find how real projects implement the same patterns. Look at the specific APIs, hooks, functions, and architecture you used.
@@ -415,7 +415,7 @@ If the code aligns well with real-world patterns, say so. That's a good outcome.
   {
     name: "steroids",
     aliases: [],
-    description: "Index real repos like this project",
+    description: "Find real repos like this project and add them to the Steroids code library",
     prompt: `# Steroids: build a code corpus that matches THIS project
 
 Goal: fill the local \`steroids\` corpus with real, current, well-maintained repos that do what this project does, in the same stack, so later work can read proven code instead of guessing.

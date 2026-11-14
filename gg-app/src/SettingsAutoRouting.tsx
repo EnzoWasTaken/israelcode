@@ -202,7 +202,7 @@ export function SettingsAutoRouting(): React.ReactElement {
   return (
     <>
       <SettingsCard
-        title="Auto routing"
+        title="Use Auto"
         description="Auto picks the model, effort and mode for each prompt from a small, fast decision."
       >
         <CheckRow
@@ -279,7 +279,7 @@ export function SettingsAutoRouting(): React.ReactElement {
 
       <SettingsCard
         title="Decision service keys"
-        description="Only needed if the decision model runs through OpenRouter or TypeSafe. Keys are stored on this computer and never shown again."
+        description="A decision service is the hosted model that makes Auto's routing choice. You only need a key if it runs through OpenRouter or TypeSafe. Keys are stored on this computer and never shown again."
       >
         <KeyBlock
           service="openrouter"
@@ -341,26 +341,7 @@ export function SettingsAutoRouting(): React.ReactElement {
         >
           <summary>Advanced options</summary>
           <div className="sp-disclosure-body">
-            <FieldRow
-              label="Confidence threshold"
-              help="Below this confidence Auto falls back to built-in rules. 0 to 1."
-              error={parsed.errors.threshold}
-            >
-              {({ id, describedBy }) => (
-                <input
-                  id={id}
-                  className="sp-input"
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={fields.threshold}
-                  aria-invalid={!!parsed.errors.threshold}
-                  aria-describedby={describedBy}
-                  onChange={setField("threshold")}
-                />
-              )}
-            </FieldRow>
+            <h4 className="sp-subhead">What Auto may use</h4>
             <FieldRow label="Highest effort Auto may use" help="Caps thinking effort.">
               {({ id, describedBy }) => (
                 <select
@@ -419,6 +400,7 @@ export function SettingsAutoRouting(): React.ReactElement {
               checked={draft.allowOrchestrate}
               onChange={(allowOrchestrate) => setDraft({ ...draft, allowOrchestrate })}
             />
+            <h4 className="sp-subhead">When a run struggles</h4>
             <CheckRow
               label="Escalate when a run struggles"
               help="If the first attempt fails, try another suitable model."
@@ -445,6 +427,27 @@ export function SettingsAutoRouting(): React.ReactElement {
                   aria-invalid={!!parsed.errors.attempts}
                   aria-describedby={describedBy}
                   onChange={setField("attempts")}
+                />
+              )}
+            </FieldRow>
+            <h4 className="sp-subhead">The decision</h4>
+            <FieldRow
+              label="Confidence threshold"
+              help="Below this confidence Auto falls back to built-in rules. 0 to 1."
+              error={parsed.errors.threshold}
+            >
+              {({ id, describedBy }) => (
+                <input
+                  id={id}
+                  className="sp-input"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={fields.threshold}
+                  aria-invalid={!!parsed.errors.threshold}
+                  aria-describedby={describedBy}
+                  onChange={setField("threshold")}
                 />
               )}
             </FieldRow>

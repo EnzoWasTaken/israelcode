@@ -98,12 +98,12 @@ export function WorkspaceModalHost({
 
       {confirmNewSession && (
         <ConfirmModal
-          title={workspaceMode === "chat" ? "New Chat" : "New Session"}
+          title={workspaceMode === "chat" ? "New chat" : "New session"}
           // Nothing is cleared: `newSession()` writes a NEW session file and
           // leaves the old one on disk, still listed and re-openable. Saying
           // "will be cleared" made a safe action read as destructive.
           message="Start fresh? This conversation stays saved."
-          confirmLabel={workspaceMode === "chat" ? "New Chat" : "New Session"}
+          confirmLabel={workspaceMode === "chat" ? "New chat" : "New session"}
           busy={newSessionBusy}
           onConfirm={() => void startNewSession()}
           onClose={() => setConfirmNewSession(false)}

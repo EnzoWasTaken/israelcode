@@ -92,6 +92,14 @@ export function ScheduleHint({ input, caret, onPickInterval }: Props): React.Rea
         })}
       </div>
 
+      <div className="schedule-slot-help" style={{ color: theme.textDim }}>
+        {SLOTS.map(({ slot, label, hint }) => (
+          <span key={slot} className="schedule-slot-help-item">
+            {label} {hint}
+          </span>
+        ))}
+      </div>
+
       {!result.ok ? (
         <div className="schedule-status schedule-status-error">
           {/* The rejected text, underlined in place, so the message and the

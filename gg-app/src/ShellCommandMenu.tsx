@@ -4,6 +4,8 @@ import { theme } from "./theme";
 import type { ShellSuggestion } from "./agent";
 import { useScrollEdges } from "./popover";
 import { shellSuggestionNote } from "./shell-menu";
+import { MenuKeyHints } from "./MenuKeyHints";
+import { SHELL_MENU_ID, menuOptionId } from "./composer-commands";
 
 interface Props {
   suggestions: readonly ShellSuggestion[];
@@ -14,6 +16,8 @@ interface Props {
   onRevokeTrust: () => void;
   onSelect: (s: ShellSuggestion) => void;
   onHover: (index: number) => void;
+  /** Enter fills the highlighted command (otherwise Enter runs what was typed). */
+  enterPicks?: boolean;
 }
 
 /**
@@ -28,6 +32,7 @@ export function ShellCommandMenu({
   onRevokeTrust,
   onSelect,
   onHover,
+  enterPicks = true,
 }: Props): React.ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
   const onScroll = useScrollEdges(scrollRef, true);
@@ -37,17 +42,24 @@ export function ShellCommandMenu({
       mounted.current = true;
       return;
     }
-    document
-      .querySelector(`.shell-menu-item[data-idx="${activeIndex}"]`)
+    scrollRef.current
+      ?.querySelector(`.shell-menu-item[data-idx="${activeIndex}"]`)
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
   return (
     <div className="slash-menu" style={{ background: theme.surface2, borderColor: theme.border }}>
       <div className="slash-menu-title" style={{ color: theme.textMuted }}>
-        Commands
+        Shell commands
       </div>
-      <div ref={scrollRef} className="pop-scroll slash-scroll" onScroll={onScroll}>
+      <div
+        ref={scrollRef}
+        id={SHELL_MENU_ID}
+        role="listbox"
+        aria-label="Shell commands"
+        className="pop-scroll slash-scroll"
+        onScroll={onScroll}
+      >
         {suggestions.map((s, i) => {
           const active = i === activeIndex;
           const note = shellSuggestionNote(s);
@@ -55,10 +67,16 @@ export function ShellCommandMenu({
           return (
             <button
               key={s.command}
+              id={menuOptionId(SHELL_MENU_ID, i)}
+              role="option"
+              aria-selected={active}
+              tabIndex={-1}
               type="button"
               data-idx={i}
               className={`slash-item mention-item shell-menu-item${active ? " active" : ""}`}
-              onMouseEnter={() => onHover(i)}
+              onMouseMove={() => {
+                if (!active) onHover(i);
+              }}
               // Keep the caret in the input, as the other pickers do.
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelect(s)}
@@ -78,6 +96,14 @@ export function ShellCommandMenu({
           );
         })}
       </div>
+      <MenuKeyHints
+        hints={[
+          { keys: "↑↓", does: "move" },
+          ...(enterPicks ? [{ keys: "Enter", does: "pick" }] : []),
+          { keys: "Tab", does: "pick" },
+          { keys: "Esc", does: "close" },
+        ]}
+      />
       {trusted && (
         <div className="shell-menu-foot" style={{ color: theme.textMuted }}>
           Commands run here without asking.

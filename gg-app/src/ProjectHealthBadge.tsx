@@ -98,7 +98,7 @@ function CategoryRow({
 }
 
 /**
- * Title-bar Project Health percentage. Click opens a breakdown per category
+ * Title-bar Project health percentage. Click opens a breakdown per category
  * with the worst offenders. "Review" hands findings to the agent, which
  * checks them and asks (with ask_user) what to fix.
  * `onReview` returns false when the prompt couldn't be sent (session not ready).
@@ -242,7 +242,7 @@ export function ProjectHealthBadge({
 }
 
 /**
- * Project Health as a deck tool (⋯ → Project Health): the same breakdown the
+ * Project health as a deck tool (⋯ → Project health): the same breakdown the
  * title-bar popover had, laid out like the deck's other panels. A one-line
  * summary (score, bar, tier), the categories with their findings, and Review
  * all. `onReview` returns false when the prompt couldn't be sent.

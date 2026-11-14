@@ -23,7 +23,7 @@ export function PanelHead({
         type="button"
         className="key key-icon key-sm"
         aria-label={`Close ${title}`}
-        title="Close"
+        title="Close (Esc)"
         onClick={onClose}
       >
         <Icon name="xmark" size={13} />

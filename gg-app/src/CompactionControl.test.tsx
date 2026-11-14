@@ -56,7 +56,7 @@ describe("CompactionControl", () => {
   it("shows the usage and saves a threshold preset", async () => {
     calls.setCompaction.mockResolvedValue({ ...state, pref: { ...state.pref, threshold: 0.7 } });
     const onChange = open();
-    expect(screen.getByRole("dialog", { name: "Compaction" }).textContent).toContain("42% of 200k");
+    expect(screen.getByRole("dialog", { name: "Context" }).textContent).toContain("42% of 200k");
     expect(screen.getByRole("button", { name: "85%" }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "70%" }));
     await waitFor(() => expect(calls.setCompaction).toHaveBeenCalledWith({ threshold: 0.7 }));

@@ -112,7 +112,7 @@ describe("CommandPalette", () => {
   it("runs a row on click", () => {
     const { handlers } = setup();
     press({ key: "k", ctrlKey: true });
-    fireEvent.click(screen.getByRole("option", { name: /What's New/ }));
+    fireEvent.click(screen.getByRole("option", { name: /what's new/i }));
     expect(handlers.openWhatsNew).toHaveBeenCalledOnce();
   });
 });
@@ -133,7 +133,7 @@ describe("ShortcutsSheet", () => {
   it("opens from the palette action", () => {
     setup();
     press({ key: "k", ctrlKey: true });
-    fireEvent.click(screen.getByRole("option", { name: /Keyboard shortcuts/ }));
+    fireEvent.click(screen.getByRole("option", { name: /keyboard shortcuts/i }));
     expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeTruthy();
   });
 });

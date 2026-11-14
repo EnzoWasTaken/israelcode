@@ -234,20 +234,6 @@
   background: rgb(var(--ink-rgb) / 0.09);
 }
 
-.sb-hint {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-4) var(--space-9);
-  padding: var(--space-4) var(--page-pad);
-  border-top: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sb-list,
   .sb-row-running .sb-dot {
