@@ -22,6 +22,17 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.111.0",
+    date: "2026-11-13",
+    items: [
+      "The deck's `⋯` menu finally reads like a menu. It is called `Menu` now and its keys sit in four groups, `Session`, `Agent`, `Project` and `Window`, so `Export chat` or `Autopilot` is a glance away instead of lost among `14` loose buttons.",
+      "Type `/` and know what you are picking. The list is titled `Commands`, every command says what it does in plain words, usage like `<prompt> | 15m | [times]` sits right beside the name, and a typo gets `No command matches` instead of a menu that silently vanishes.",
+      "Every list shows its keys. The `/`, `@` and `!` menus, the command palette and every picker end with one hint line (`↑↓` move, `Enter` pick, `Esc` close), the Home project menu works from the keyboard, and dropdowns jump to an option as you type its name.",
+      "`Ctrl+K` got organised. Commands sit under `This session`, `Navigation`, `Windows`, `View` and `Settings`, each one starts with a verb, and its shortcut shows on the same row.",
+      "Settings in plain words. Every page says what it is for, `AI providers` and `MCP servers` are named for what they hold, Auto routing's limits come in three short groups, and `Keep awake` lives in one place: `Sessions & background`.",
+    ],
+  },
+  {
     version: "0.110.0",
     date: "2026-11-13",
     items: [
