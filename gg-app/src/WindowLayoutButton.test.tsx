@@ -25,7 +25,7 @@ describe("WindowLayoutButton (Windows/Linux fallback)", () => {
     const onArrange = vi.fn();
     render(<WindowLayoutButton onArrange={onArrange} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Arrange into multiple project windows" }));
+    fireEvent.click(screen.getByRole("button", { name: "Arrange windows" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "4 windows" }));
 
     await waitFor(() => expect(setupWindows).toHaveBeenCalledWith(4));
@@ -36,7 +36,7 @@ describe("WindowLayoutButton (Windows/Linux fallback)", () => {
   it("runs auto-arrange from the fallback menu", async () => {
     render(<WindowLayoutButton />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Arrange into multiple project windows" }));
+    fireEvent.click(screen.getByRole("button", { name: "Arrange windows" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Auto-arrange all" }));
 
     await waitFor(() => expect(arrangeAllWindows).toHaveBeenCalledOnce());
@@ -50,7 +50,7 @@ describe("WindowLayoutButton (Windows/Linux fallback)", () => {
     window.innerHeight = 640;
     render(<WindowLayoutButton />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Arrange into multiple project windows" }));
+    fireEvent.click(screen.getByRole("button", { name: "Arrange windows" }));
 
     expect(screen.getByRole("menu").getAttribute("data-flip")).toBe("up");
     rect.mockRestore();

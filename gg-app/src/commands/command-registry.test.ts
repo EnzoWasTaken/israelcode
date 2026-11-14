@@ -58,7 +58,7 @@ describe("filterCommands", () => {
       { id: "p", title: "gg-app", section: "Projects" as const, run: vi.fn() },
     ];
     const all = filterCommands(commands, "");
-    expect(all[0]!.command.section).toBe("Actions");
+    expect(all[0]!.command.section).toBe("Windows");
     expect(all[all.length - 1]!.command.section).toBe("Settings");
     expect(filterCommands(commands, "", ["Projects"]).map((m) => m.command.id)).toEqual(["p"]);
     expect(filterCommands(commands, "theme")[0]!.command.id).toBe("toggle-theme");

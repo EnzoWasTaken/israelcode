@@ -287,6 +287,22 @@ describe("HomeScreen", () => {
 });
 
 describe("HomeScreen quick start", () => {
+  it("project menu: focuses the current project, arrows move, Escape returns to the chip", async () => {
+    setUp();
+    renderHome();
+    await whenReady();
+    const chip = await screen.findByRole("button", { name: "Project: aurora" });
+    fireEvent.click(chip);
+    const current = screen.getByRole("menuitemradio", { name: /aurora/ });
+    await waitFor(() => expect(document.activeElement).toBe(current));
+    fireEvent.keyDown(current, { key: "ArrowDown" });
+    expect(document.activeElement).not.toBe(current);
+    expect(document.activeElement?.getAttribute("role")).toBe("menuitem");
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(chip);
+  });
+
   it("opens a new session in the chosen project and queues the text once", async () => {
     setUp();
     const props = renderHome();

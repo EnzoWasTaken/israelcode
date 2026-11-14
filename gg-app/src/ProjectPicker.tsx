@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
 import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
@@ -27,6 +27,7 @@ import { RadioButton } from "./RadioButton";
 import { LazyNewProjectModal } from "./lazy-surfaces";
 import { toast } from "./toast";
 import { EmptyState } from "./EmptyState";
+import { MenuKeyHints } from "./MenuKeyHints";
 import { SessionBrowser } from "./SessionBrowser";
 
 /**
@@ -57,6 +58,17 @@ interface Props {
 function projectFromPath(path: string): DiscoveredProject {
   const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path;
   return { name, path, lastActiveDisplay: "", sources: [] };
+}
+
+function stepFocus(e: ReactKeyboardEvent<HTMLElement>): void {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(".picker-item"));
+  if (items.length === 0) return;
+  const at = items.indexOf(document.activeElement as HTMLElement);
+  const next = e.key === "ArrowDown" ? Math.min(items.length - 1, at + 1) : at - 1;
+  e.preventDefault();
+  if (next < 0) e.currentTarget.querySelector<HTMLElement>(".picker-search")?.focus();
+  else items[next]?.focus();
 }
 
 /**
@@ -187,8 +199,8 @@ export function ProjectPicker({
         const message = reason instanceof Error ? reason.message : String(reason);
         setResumeError(
           message
-            .replace(/Run ["'`]?ggcoder login["'`]?/gi, "Use AI Providers to sign in")
-            .replace(/ggcoder login/gi, "AI Providers"),
+            .replace(/Run ["'`]?ggcoder login["'`]?/gi, "Use AI providers to sign in")
+            .replace(/ggcoder login/gi, "AI providers"),
         );
         setBusy(false);
       });
@@ -341,7 +353,7 @@ export function ProjectPicker({
   }
 
   return (
-    <div className="picker">
+    <div className="picker" onKeyDown={stepFocus}>
       <div className="picker-head" data-tauri-drag-region>
         {onClose ? <BackButton label="Back" onClick={onClose} /> : null}
         <span className="picker-title">Choose a project</span>
@@ -350,6 +362,7 @@ export function ProjectPicker({
           <input
             className="picker-search"
             type="text"
+            autoFocus
             placeholder={"Search projects\u2026"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -369,7 +382,6 @@ export function ProjectPicker({
               }
             }}
             aria-label="Search projects"
-            title="Enter opens the top match · Esc clears"
           />
         )}
         <span className="picker-head-actions">
@@ -464,8 +476,8 @@ export function ProjectPicker({
                 </button>
                 <button
                   className="picker-hide"
-                  aria-label={`Hide ${p.name}`}
-                  title="Hide from this list"
+                  aria-label={`Hide ${p.name} from this list`}
+                  title={`Hide ${p.name} from this list`}
                   onClick={() => hideProject(p)}
                 >
                   {/* The same drawn X as the modal close buttons: a text ×
@@ -492,6 +504,13 @@ export function ProjectPicker({
           </EmptyState>
         )}
       </div>
+      <MenuKeyHints
+        hints={[
+          { keys: "↑↓", does: "move" },
+          { keys: "Enter", does: "open" },
+          { keys: "Esc", does: "clear search" },
+        ]}
+      />
 
       {showNew && (
         <Suspense fallback={null}>

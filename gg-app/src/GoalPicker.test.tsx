@@ -119,14 +119,14 @@ describe("GoalPicker", () => {
     await screen.findByText("API latency");
     vi.mocked(deleteGoal).mockRejectedValueOnce(new Error("This goal is open in another window."));
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete API latency" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete goal API latency" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
     expect(await screen.findByText("This goal is open in another window.")).toBeDefined();
     expect(screen.getByText("API latency")).toBeDefined();
 
     vi.mocked(deleteGoal).mockResolvedValueOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Delete API latency" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete goal API latency" }));
     expect(screen.getByText(/attached folders and files are not touched/)).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 

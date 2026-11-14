@@ -87,14 +87,14 @@ describe("helpers", () => {
 });
 
 describe("BackgroundSessionList", () => {
-  it("offers Open and Stop task on a running row, and opens it", async () => {
+  it("offers Open and Stop on a running row, and opens it", async () => {
     const onOpen = vi.fn();
     render(<BackgroundSessionList rows={[row()]} onOpen={onOpen} />);
     expect(screen.getByText("Running")).toBeTruthy();
     expect(screen.queryByText("Remove from list")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open Fix login" }));
     await waitFor(() => expect(onOpen).toHaveBeenCalledOnce());
-    fireEvent.click(screen.getByRole("button", { name: /Stop task/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Stop task/ }));
     await waitFor(() => expect(agent.stopBackgroundSession).toHaveBeenCalledWith("s1"));
   });
 
@@ -115,7 +115,7 @@ describe("BackgroundSessionList", () => {
 
   it("confirms before deleting", async () => {
     render(<BackgroundSessionList rows={[row()]} onOpen={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /Delete conversation/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Delete/ }));
     expect(screen.getByText(/can't be undone/)).toBeTruthy();
     expect(agent.deleteBackgroundSession).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -148,14 +148,14 @@ describe("BackgroundSessionList", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.queryByRole("button", { name: /Delete conversation/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull();
   });
 
   it("offers no Delete in Settings (no own path) for attached rows", () => {
     render(
       <BackgroundSessionList rows={[row({ attached: true })]} onOpen={vi.fn()} canOpen={false} />,
     );
-    expect(screen.queryByRole("button", { name: /Delete conversation/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull();
   });
 
   it("toasts the daemon's refusal to delete", async () => {
@@ -163,7 +163,7 @@ describe("BackgroundSessionList", () => {
       new Error("409: in use by a window"),
     );
     render(<BackgroundSessionList rows={[row()]} onOpen={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /Delete conversation/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Delete/ }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith("Couldn't delete it: 409: in use by a window", "error"),
@@ -173,7 +173,7 @@ describe("BackgroundSessionList", () => {
   it("reports a failed action", async () => {
     vi.mocked(agent.stopBackgroundSession).mockRejectedValueOnce(new Error("nope"));
     render(<BackgroundSessionList rows={[row()]} onOpen={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /Stop task/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Stop task/ }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Couldn't stop it: nope", "error"));
   });
 });

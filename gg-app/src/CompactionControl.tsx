@@ -136,7 +136,7 @@ export function CompactionControl({
         data-hot={hot || undefined}
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
-        title={`Context used: ${contextPct}%. Compaction at ${Math.round(info.threshold * 100)}%`}
+        title={`Context: ${contextPct}% used. Compaction at ${Math.round(info.threshold * 100)}%`}
         aria-label={`Context ${contextPct}% used. Compaction`}
         onClick={() => setOpen((v) => !v)}
       >
@@ -156,7 +156,7 @@ export function CompactionControl({
               className="pop-panel compaction-popover"
               data-side="below"
               role="dialog"
-              aria-label="Compaction"
+              aria-label="Context"
               style={style}
             >
               <h2 className="pop-title">Context</h2>

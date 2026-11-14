@@ -106,7 +106,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "General",
     group: "app",
     icon: GearSixIcon,
-    description: "Appearance, effects and your project folder.",
+    description: "Look and feel, sounds, dictation, updates and where new projects are created.",
     render: ({ stay }) => (
       <EmbeddedModal>
         <SettingsModal onClose={stay} onSaved={() => toast("Project folder saved.", "success")} />
@@ -114,11 +114,20 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     ),
   },
   {
+    id: "sessions",
+    label: "Sessions & background",
+    group: "app",
+    icon: StackIcon,
+    description:
+      "Keep tasks running in the background, and what closing or stopping a window does.",
+    render: () => <SettingsSessions />,
+  },
+  {
     id: "providers",
-    label: "AI Providers",
+    label: "AI providers",
     group: "models",
     icon: KeyIcon,
-    description: "Connect the accounts and keys your agents use.",
+    description: "Sign in to the AI accounts and add the API keys your agents run on.",
     fill: true,
     render: () => <LoginScreen />,
   },
@@ -135,7 +144,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Execution modes",
     group: "models",
     icon: LightningIcon,
-    description: "Standard, Ultracode and Orchestrate: how a run is carried out.",
+    description:
+      "Choose how a run is carried out: Standard, Ultracode (deep) or Orchestrate (parallel).",
     render: ({ goTo }) => <SettingsExecutionModes onOpenAutoRouting={() => goTo("auto-routing")} />,
   },
   {
@@ -143,16 +153,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Cost & usage",
     group: "models",
     icon: CoinsIcon,
-    description: "Where Auto limits cost and where token budgets are set.",
+    description: "See what Auto may spend, and where to set token budgets and usage limits.",
     render: ({ goTo }) => <SettingsCost onOpenAutoRouting={() => goTo("auto-routing")} />,
-  },
-  {
-    id: "sessions",
-    label: "Sessions & background",
-    group: "app",
-    icon: StackIcon,
-    description: "Tasks that keep running, and what closing a window does.",
-    render: () => <SettingsSessions />,
   },
   {
     id: "remote",
@@ -164,10 +166,10 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   },
   {
     id: "mcp",
-    label: "MCP",
+    label: "MCP servers",
     group: "integrations",
     icon: PuzzlePieceIcon,
-    description: "Servers that give your agents extra tools.",
+    description: "Connect MCP servers to give your agents extra tools, like browsers or databases.",
     render: ({ stay }) => (
       <EmbeddedModal>
         <McpModal onClose={stay} />
@@ -179,7 +181,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Skills",
     group: "integrations",
     icon: SparkleIcon,
-    description: "Reusable instructions your agents can pick up.",
+    description: "Reusable instructions your agents load when a task needs them.",
     render: ({ stay }) => (
       <EmbeddedModal>
         <SkillsModal onClose={stay} />
@@ -191,7 +193,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Hooks",
     group: "integrations",
     icon: ShieldCheckIcon,
-    description: "Commands that run around tool calls.",
+    description: "Run your own commands before or after the agent uses a tool.",
     render: () => <HooksPanel />,
   },
   {
@@ -199,7 +201,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Steroids",
     group: "integrations",
     icon: SyringeIcon,
-    description: "Connect the Steroids companion.",
+    description: "Give the agent a local library of real repos to read before it writes code.",
     alert: ({ steroids }) => steroids !== null && !steroids.connected,
     render: ({ steroids, setSteroids, stay }) => (
       <EmbeddedModal>
@@ -212,7 +214,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     label: "Diagnostics",
     group: "advanced",
     icon: BugBeetleIcon,
-    description: "Recent Auto routing decisions and where the app log lives.",
+    description: "Check recent Auto routing decisions and find the app log.",
     render: () => <SettingsDiagnostics />,
   },
   {

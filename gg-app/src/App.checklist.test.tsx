@@ -155,12 +155,12 @@ function harness(
  * keypad (when it isn't already) and presses the named key.
  */
 async function findTool(name: string): Promise<string> {
-  await screen.findByRole("button", { name: "More" });
+  await screen.findByRole("button", { name: "Menu" });
   return name;
 }
 function clickTool(name: string): void {
-  if (!screen.queryByRole("region", { name: "More" })) {
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
+  if (!screen.queryByRole("region", { name: "Menu" })) {
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
   }
   fireEvent.click(screen.getByRole("button", { name }));
 }
@@ -407,7 +407,7 @@ describe("project health in a goal window", () => {
     });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: /Usage$/ }));
-    fireEvent.click(await screen.findByTitle("Open the Project Health breakdown"));
+    fireEvent.click(await screen.findByTitle("Open the Project health breakdown"));
     expect(await screen.findByRole("meter", { name: "Project health" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review all" }));
     await waitFor(() => expect(sends).toHaveBeenCalledOnce());

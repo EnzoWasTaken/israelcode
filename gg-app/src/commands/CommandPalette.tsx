@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from "
 import { Modal } from "../Modal";
 import { comboParts, SHORTCUTS, type Command, type CommandSection } from "./command-registry";
 import type { CommandLoader } from "./dynamic-commands";
+import { MenuKeyHints } from "../MenuKeyHints";
 import { filterCommands, type CommandMatch } from "./fuzzy";
 
 /** Title text with the matched characters wrapped in <mark>. */
@@ -184,9 +185,10 @@ export function CommandPalette({
       </div>
       {matches.length === 0 && (
         <p className="cmdk-empty" role="status">
-          Nothing matches “{query.trim()}”.
+          No matching command
         </p>
       )}
+      <MenuKeyHints />
     </Modal>
   );
 }

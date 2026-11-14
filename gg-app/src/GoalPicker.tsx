@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { TrashIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import {
@@ -19,6 +19,7 @@ import { RadioButton } from "./RadioButton";
 import { NewGoalModal } from "./NewGoalModal";
 import { ConfirmModal } from "./ConfirmModal";
 import { EmptyState } from "./EmptyState";
+import { MenuKeyHints } from "./MenuKeyHints";
 
 interface Props {
   /** Called after this window has been pointed at the goal's coordinator. */
@@ -75,6 +76,17 @@ function GoalStatusPill({ status }: { status: GoalSummary["status"] }): React.Re
     );
   }
   return null;
+}
+
+function stepFocus(e: ReactKeyboardEvent<HTMLElement>): void {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(".picker-item"));
+  if (items.length === 0) return;
+  const at = items.indexOf(document.activeElement as HTMLElement);
+  const next = e.key === "ArrowDown" ? Math.min(items.length - 1, at + 1) : at - 1;
+  e.preventDefault();
+  if (next < 0) e.currentTarget.querySelector<HTMLElement>(".picker-search")?.focus();
+  else items[next]?.focus();
 }
 
 export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
@@ -167,7 +179,7 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
   );
 
   return (
-    <div className="picker">
+    <div className="picker" onKeyDown={stepFocus}>
       <div className="picker-head" data-tauri-drag-region>
         {onClose && <BackButton label="Back" onClick={onClose} />}
         <span className="picker-title">Choose a goal</span>
@@ -176,6 +188,7 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
           <input
             className="picker-search"
             type="text"
+            autoFocus
             placeholder={"Search goals\u2026"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -195,7 +208,6 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
               }
             }}
             aria-label="Search goals"
-            title="Enter opens the top match · Esc clears"
           />
         )}
         <span className="picker-head-actions">
@@ -265,8 +277,8 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
                   </button>
                   <button
                     className="picker-hide"
-                    aria-label={`Delete ${g.name}`}
-                    title="Delete goal"
+                    aria-label={`Delete goal ${g.name}`}
+                    title={`Delete goal ${g.name}`}
                     disabled={busy || deleting}
                     onClick={() => setPendingDelete(g)}
                   >
@@ -278,6 +290,13 @@ export function GoalPicker({ onChosen, onClose }: Props): React.ReactElement {
           </div>
         )}
       </div>
+      <MenuKeyHints
+        hints={[
+          { keys: "↑↓", does: "move" },
+          { keys: "Enter", does: "open" },
+          { keys: "Esc", does: "clear search" },
+        ]}
+      />
 
       {pendingDelete && (
         <ConfirmModal

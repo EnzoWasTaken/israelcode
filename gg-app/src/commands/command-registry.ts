@@ -7,13 +7,13 @@ import type { SettingsTabId } from "../settings-sections";
  */
 export const SETTINGS_PAGES: ReadonlyArray<{ id: SettingsTabId; label: string }> = [
   { id: "general", label: "General" },
-  { id: "providers", label: "AI Providers" },
+  { id: "sessions", label: "Sessions & background" },
+  { id: "providers", label: "AI providers" },
   { id: "auto-routing", label: "Auto routing" },
   { id: "execution-modes", label: "Execution modes" },
   { id: "cost", label: "Cost & usage" },
-  { id: "sessions", label: "Sessions & background" },
   { id: "remote", label: "Remote" },
-  { id: "mcp", label: "MCP" },
+  { id: "mcp", label: "MCP servers" },
   { id: "skills", label: "Skills" },
   { id: "hooks", label: "Hooks" },
   { id: "steroids", label: "Steroids" },
@@ -27,12 +27,25 @@ export const SETTINGS_PAGES: ReadonlyArray<{ id: SettingsTabId; label: string }>
  * row shows its key from `SHORTCUTS`, so the two can't drift.
  */
 
-export type CommandSection = "Actions" | "Projects" | "Sessions" | "Models" | "Settings";
+export type CommandSection =
+  | "This session"
+  | "Navigation"
+  | "Windows"
+  | "View"
+  | "Projects"
+  | "Sessions"
+  | "Models"
+  | "Settings"
+  | "Help";
 export const SECTION_ORDER: readonly CommandSection[] = [
-  "Actions",
+  "This session",
+  "Navigation",
+  "Windows",
+  "View",
   "Projects",
   "Sessions",
   "Models",
+  "Help",
   "Settings",
 ];
 
@@ -45,12 +58,12 @@ export interface KeyCombo {
   key: string;
 }
 
-export type ShortcutGroup = "General" | "Windows" | "View" | "Composer" | "Dialogs";
+export type ShortcutGroup = "Composer" | "Navigation" | "Windows" | "View" | "Dialogs";
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
-  "General",
+  "Composer",
+  "Navigation",
   "Windows",
   "View",
-  "Composer",
   "Dialogs",
 ];
 
@@ -62,24 +75,24 @@ export interface ShortcutDef {
 }
 
 export const SHORTCUTS = {
-  palette: { label: "Command palette", group: "General", keys: [{ mod: true, key: "K" }] },
+  palette: { label: "Command palette", group: "Navigation", keys: [{ mod: true, key: "K" }] },
   quickSwitch: {
     label: "Switch project or session",
-    group: "General",
+    group: "Navigation",
     keys: [{ mod: true, key: "P" }],
   },
   switchModel: {
     label: "Switch model",
-    group: "General",
+    group: "Navigation",
     keys: [{ mod: true, shift: true, key: "M" }],
   },
-  shortcuts: { label: "Keyboard shortcuts", group: "General", keys: [{ mod: true, key: "/" }] },
+  shortcuts: { label: "Keyboard shortcuts", group: "Navigation", keys: [{ mod: true, key: "/" }] },
   // Home's mode row, while focus isn't in a text field.
-  homeCode: { label: "Home: Code", group: "General", keys: [{ key: "1" }] },
-  homeGoals: { label: "Home: Goals", group: "General", keys: [{ key: "2" }] },
-  homeChat: { label: "Home: Chat", group: "General", keys: [{ key: "3" }] },
-  homeMotion: { label: "Home: Motion", group: "General", keys: [{ key: "4" }] },
-  homeWorld: { label: "Home: World", group: "General", keys: [{ key: "5" }] },
+  homeCode: { label: "Home: Code", group: "Navigation", keys: [{ key: "1" }] },
+  homeGoals: { label: "Home: Goals", group: "Navigation", keys: [{ key: "2" }] },
+  homeChat: { label: "Home: Chat", group: "Navigation", keys: [{ key: "3" }] },
+  homeMotion: { label: "Home: Motion", group: "Navigation", keys: [{ key: "4" }] },
+  homeWorld: { label: "Home: World", group: "Navigation", keys: [{ key: "5" }] },
   newWindow: { label: "New window", group: "Windows", keys: [{ mod: true, key: "N" }] },
   nextWindow: { label: "Next window", group: "Windows", keys: [{ mod: true, key: "`" }] },
   prevWindow: {
@@ -228,47 +241,83 @@ export function buildCommands(h: CommandHandlers): Command[] {
     run: (() => void) | undefined,
     extra: Partial<Command> = {},
   ): void => {
-    if (run) out.push({ id, title, section: "Actions", run, ...extra });
+    if (run) out.push({ id, title, section: "This session", run, ...extra });
   };
-  add("new-session", "New session", h.newSession, { keywords: "fresh clear restart" });
-  add("open-project", "Open project…", h.openProjects, { keywords: "switch folder" });
-  add("back-to-sessions", "Recent sessions…", h.backToSessions, { keywords: "history resume" });
-  add("go-home", "Go home", h.goHome);
-  add("toggle-plan", `Turn plan mode ${onOff(h.planOn)}`, h.togglePlan, { keywords: "read only" });
+  const S = "This session" as const;
+  const N = "Navigation" as const;
+  add("new-session", "New session", h.newSession, { section: S, keywords: "fresh clear restart" });
+  add("toggle-plan", `Turn plan mode ${onOff(h.planOn)}`, h.togglePlan, {
+    section: S,
+    keywords: "read only",
+  });
   add("cycle-permission", "Cycle permission mode", h.cyclePermission, {
+    section: S,
     shortcut: "cyclePermission",
     keywords: "ask accept edits bypass",
   });
   add("toggle-autopilot", `Turn Autopilot ${onOff(h.autopilotOn)}`, h.toggleAutopilot, {
+    section: S,
     keywords: "israel mentor review",
   });
-  add("toggle-ultracode", `Turn Ultracode ${onOff(h.ultracodeOn)}`, h.toggleUltracode);
+  add("toggle-ultracode", `Turn Ultracode ${onOff(h.ultracodeOn)}`, h.toggleUltracode, {
+    section: S,
+  });
   add("toggle-orchestrate", `Turn Orchestrate ${onOff(h.orchestrateOn)}`, h.toggleOrchestrate, {
+    section: S,
     keywords: "workers parallel",
   });
-  add("open-checklist", "Open checklist", h.openChecklist, { keywords: "todo" });
-  add("open-notes", "Open notes", h.openNotes);
-  add("open-memories", "Open memories", h.openMemories, { keywords: "brain" });
-  add("open-tasks", "Open tasks", h.openTasks);
-  add("toggle-tools", "Show or hide tool activity", h.toggleTools, { keywords: "feed" });
-  add("export-transcript", "Export transcript", h.exportTranscript, { keywords: "save markdown" });
-  add("toggle-theme", "Toggle light / dark theme", h.toggleTheme, {
-    keywords: "appearance color scheme",
+  add("open-checklist", "Open checklist", h.openChecklist, { section: S, keywords: "todo" });
+  add("open-notes", "Open notes", h.openNotes, { section: S });
+  add("open-memories", "Open memories", h.openMemories, { section: S, keywords: "brain" });
+  add("open-tasks", "Open tasks", h.openTasks, { section: S });
+  add("export-transcript", "Export chat", h.exportTranscript, {
+    section: S,
+    keywords: "save markdown transcript",
   });
-  add("shortcuts", "Keyboard shortcuts", h.openShortcuts, { shortcut: "shortcuts" });
-  add("whats-new", "What's New", h.openWhatsNew, { keywords: "changelog release" });
-  add("about", "About Israel Code", () => h.openSettings("about"), { keywords: "version" });
-  add("new-window", "New window", h.newWindow, { shortcut: "newWindow" });
-  add("next-window", "Next window", h.nextWindow, { shortcut: "nextWindow" });
-  add("prev-window", "Previous window", h.prevWindow, { shortcut: "prevWindow" });
+  add("open-project", "Open project…", h.openProjects, { section: N, keywords: "switch folder" });
+  add("back-to-sessions", "Open recent sessions…", h.backToSessions, {
+    section: N,
+    keywords: "history resume",
+  });
+  add("go-home", "Go home", h.goHome, { section: N });
+  add("new-window", "New window", h.newWindow, { section: "Windows", shortcut: "newWindow" });
+  add("next-window", "Switch to next window", h.nextWindow, {
+    section: "Windows",
+    shortcut: "nextWindow",
+  });
+  add("prev-window", "Switch to previous window", h.prevWindow, {
+    section: "Windows",
+    shortcut: "prevWindow",
+  });
   add("arrange-windows", "Arrange all windows", h.arrangeWindows, {
+    section: "Windows",
     shortcut: "arrangeWindows",
     keywords: "grid tile",
+  });
+  add("toggle-tools", "Show or hide tool activity", h.toggleTools, {
+    section: "View",
+    keywords: "feed",
+  });
+  add("toggle-theme", "Toggle light / dark theme", h.toggleTheme, {
+    section: "View",
+    keywords: "appearance color scheme",
+  });
+  add("shortcuts", "Show keyboard shortcuts", h.openShortcuts, {
+    section: "Help",
+    shortcut: "shortcuts",
+  });
+  add("whats-new", "Show what's new", h.openWhatsNew, {
+    section: "Help",
+    keywords: "changelog release",
+  });
+  add("about", "Open About Israel Code", () => h.openSettings("about"), {
+    section: "Help",
+    keywords: "version",
   });
   if (h.setThinking) {
     const set = h.setThinking;
     for (const level of h.thinkingLevels ?? []) {
-      add(`thinking-${level}`, `Thinking: ${level}`, () => set(level), {
+      add(`thinking-${level}`, `Set thinking to ${level}`, () => set(level), {
         section: "Models",
         keywords: "reasoning effort",
         detail: level === h.thinkingLevel ? "current" : undefined,

@@ -89,7 +89,7 @@ export function TelegramSettingsModal({ onClose, onSaved }: Props): React.ReactE
   );
 
   return (
-    <Modal title="Telegram setup" onClose={onClose}>
+    <Modal title={embedded ? "Remote" : "Telegram setup"} onClose={onClose}>
       {embedded && <SettingsHeaderAction>{saveButton}</SettingsHeaderAction>}
       <SettingsSection
         title="Bot token"

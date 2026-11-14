@@ -24,6 +24,22 @@ function open(): HTMLElement {
 }
 
 describe("Dropdown", () => {
+  it("type-ahead activates the matching option and a quick second letter narrows it", () => {
+    const options = [
+      { value: "a", label: "Alpha" },
+      { value: "b", label: "Beta" },
+      { value: "bl", label: "Blue" },
+      { value: "bu", label: "Bus" },
+    ];
+    render(<Dropdown label="Station" options={options} value="a" onChange={vi.fn()} />);
+    const list = open();
+    const active = (): string | null => list.getAttribute("aria-activedescendant");
+    fireEvent.keyDown(list, { key: "b", timeStamp: 1000 });
+    expect(active()).toBe(screen.getByRole("option", { name: "Beta" }).id);
+    fireEvent.keyDown(list, { key: "u", timeStamp: 1300 });
+    expect(active()).toBe(screen.getByRole("option", { name: "Bus" }).id);
+  });
+
   it("opens, moves with arrows past disabled options, and commits on Enter", () => {
     const onChange = vi.fn();
     render(<Dropdown label="Station" options={OPTIONS} value="lofi" onChange={onChange} />);

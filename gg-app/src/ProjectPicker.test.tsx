@@ -110,7 +110,7 @@ describe("ProjectPicker hide", () => {
     setProjectHiddenMock.mockResolvedValue();
     await renderProjectList([PROJECT, OTHER_PROJECT]);
 
-    fireEvent.click(screen.getByLabelText("Hide scratch"));
+    fireEvent.click(screen.getByLabelText("Hide scratch from this list"));
 
     await waitFor(() => expect(screen.queryByText("scratch")).toBeNull());
     expect(setProjectHiddenMock).toHaveBeenCalledWith("/private/tmp", true);
@@ -122,7 +122,7 @@ describe("ProjectPicker hide", () => {
     setProjectHiddenMock.mockRejectedValue(new Error("disk full"));
     await renderProjectList([PROJECT, OTHER_PROJECT]);
 
-    fireEvent.click(screen.getByLabelText("Hide ui-test"));
+    fireEvent.click(screen.getByLabelText("Hide ui-test from this list"));
 
     // Comes back rather than lying about what the next launch will show, and
     // returns to its original position rather than the end of the list.

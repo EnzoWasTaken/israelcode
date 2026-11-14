@@ -91,8 +91,8 @@ function isTextField(target: EventTarget | null): boolean {
 function message(reason: unknown): string {
   const text = reason instanceof Error ? reason.message : String(reason);
   return text
-    .replace(/Run ["'`]?ggcoder login["'`]?/gi, "Use AI Providers to sign in")
-    .replace(/ggcoder login/gi, "AI Providers");
+    .replace(/Run ["'`]?ggcoder login["'`]?/gi, "Use AI providers to sign in")
+    .replace(/ggcoder login/gi, "AI providers");
 }
 
 function Kbd({ children }: { children: ReactNode }): ReactElement {
@@ -180,8 +180,12 @@ export function HomeLaunchpad({
       if (e.key === "Escape") {
         e.stopPropagation();
         setMenuOpen(false);
+        chipRef.current?.querySelector<HTMLElement>(".home-chip")?.focus();
       }
     };
+    const items = chipRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']");
+    const current = chipRef.current?.querySelector<HTMLElement>("[aria-checked='true']");
+    (current ?? items?.[0])?.focus();
     document.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey, true);
     return () => {
@@ -189,6 +193,25 @@ export function HomeLaunchpad({
       window.removeEventListener("keydown", onKey, true);
     };
   }, [menuOpen]);
+
+  function onProjectMenuKey(e: React.KeyboardEvent<HTMLDivElement>): void {
+    if (e.key === "Tab") {
+      setMenuOpen(false);
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[role^='menuitem']"));
+    if (items.length === 0) return;
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    const next =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? items.length - 1
+          : (at + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+    items[next]?.focus();
+  }
 
   function fail(reason: unknown, prefix = "Couldn't open that"): void {
     setError(`${prefix}: ${message(reason)}`);
@@ -344,7 +367,13 @@ export function HomeLaunchpad({
               <CaretDownIcon size={12} aria-hidden="true" />
             </button>
             {menuOpen && (
-              <div id={ids.menu} className="home-menu" role="menu" aria-label="Projects">
+              <div
+                id={ids.menu}
+                className="home-menu"
+                role="menu"
+                aria-label="Projects"
+                onKeyDown={onProjectMenuKey}
+              >
                 {projects.slice(0, 8).map((p) => (
                   <button
                     key={p.path}
@@ -430,6 +459,7 @@ export function HomeLaunchpad({
           type="button"
           className="home-link-btn"
           aria-label="All sessions"
+          title="Search all projects and sessions"
           onClick={() => openPalette(["Projects", "Sessions"])}
         >
           All sessions <Kbd>{formatShortcut("quickSwitch", mac)}</Kbd>
@@ -540,10 +570,11 @@ export function HomeLaunchpad({
         <button
           type="button"
           className="home-link-btn home-foot-all"
-          aria-label="Everything: command palette"
+          aria-label="Command palette"
+          title="Search every command, project and session"
           onClick={() => openPalette()}
         >
-          Everything: <Kbd>{formatShortcut("palette", mac)}</Kbd>
+          Command palette <Kbd>{formatShortcut("palette", mac)}</Kbd>
         </button>
       </div>
       {showBgFooter && showBackground && onOpenBackground && (

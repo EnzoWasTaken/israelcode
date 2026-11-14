@@ -208,7 +208,7 @@ describe("DeckMenu", () => {
       "Tasks1",
       "Radio",
       "Arrange",
-      "Projects",
+      "All projects",
     ]) {
       expect(labels).toContain(label);
     }
@@ -246,6 +246,6 @@ describe("DeckMenu", () => {
   it("keeps a Goal window to its settings, radio, layout and the way back", () => {
     renderMenu("code", true);
     const labels = screen.getAllByRole("button").map((b) => b.textContent);
-    expect(labels).toEqual(["Goal settings", "Radio", "Arrange", "All goals"]);
+    expect(labels).toEqual(["All goals", "Goal settings", "Arrange", "Radio"]);
   });
 });

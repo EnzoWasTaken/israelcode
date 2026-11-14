@@ -90,7 +90,7 @@ export function ModelRouting({
         <button
           type="button"
           className="key key-sm"
-          aria-label={`Reset ${name.toLowerCase()} to Auto`}
+          aria-label={`Reset to Auto: ${name.toLowerCase()}`}
           onClick={resetRow}
         >
           Reset to Auto

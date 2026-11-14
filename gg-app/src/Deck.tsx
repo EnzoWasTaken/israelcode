@@ -227,12 +227,12 @@ const PANEL_NAMES: Readonly<Record<DeckPanelId, string>> = {
   usage: "Usage",
   bg: "Background tasks",
   radio: "Radio",
-  more: "More",
+  more: "Menu",
   notes: "Notes",
   todo: "Tasks",
   brain: "Brain",
   checklist: "Checklist",
-  health: "Project Health",
+  health: "Project health",
   scorecard: "Scorecard",
   goal: "Goal settings",
   trophies: "Trophies",
@@ -259,6 +259,7 @@ function Rail({
   toggle: (id: DeckPanelId, event: React.MouseEvent<HTMLElement>) => void;
 }): React.ReactElement {
   const key = (id: DeckPanelId) => ({
+    "aria-haspopup": "dialog" as const,
     "aria-expanded": panel === id,
     onClick: (event: React.MouseEvent<HTMLElement>) => toggle(id, event),
   });
@@ -353,8 +354,8 @@ function Rail({
       <button
         type="button"
         className="key rail-key more-key"
-        title="More: new session, notes, tasks, radio and more"
-        aria-label="More"
+        title="Menu: Session, Agent, Project and Window tools"
+        aria-label="Menu"
         {...key("more")}
       >
         <Icon name="more-horiz" size={16} />
@@ -436,8 +437,8 @@ function PanelBody(
     case "more":
       return (
         <div className="deck-panel">
-          <PanelHead title="More" onClose={close} />
-          <div className="deck-pad" role="group" aria-label="More">
+          <PanelHead title="Menu" onClose={close} />
+          <div className="deck-pad" role="group" aria-label="Menu">
             {props.menu}
           </div>
         </div>
@@ -568,7 +569,6 @@ function GitPanel({
               role="tab"
               className="key key-sm"
               aria-selected={tab === id}
-              aria-pressed={tab === id}
               onClick={() => setTab(id)}
             >
               {label}
@@ -579,7 +579,12 @@ function GitPanel({
         <span className="deck-spacer" />
         <CIIndicator ci={ci} />
         {repo && (
-          <button type="button" className="key key-sm" onClick={() => void openUrl(repo)}>
+          <button
+            type="button"
+            className="key key-sm"
+            title="Open this repository on GitHub"
+            onClick={() => void openUrl(repo)}
+          >
             Open on GitHub
           </button>
         )}
@@ -798,10 +803,10 @@ function UsagePanel({
             type="button"
             className="meter meter-link"
             data-tier={projectHealthTier(projectHealth.score)}
-            title="Open the Project Health breakdown"
+            title="Open the Project health breakdown"
             onClick={onOpenHealth}
           >
-            <span className="meter-k">Project Health</span>
+            <span className="meter-k">Project health</span>
             <span
               className="cbar wide"
               aria-hidden="true"

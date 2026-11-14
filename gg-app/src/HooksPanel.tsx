@@ -193,7 +193,7 @@ export function HooksPanel(): React.ReactElement {
     <div className="hooks-panel">
       <SettingsCard
         title="Hooks"
-        description="Built-in hooks around the agent's tool calls, no scripts needed. This page edits the current project's .gg/hooks.json (shared through git); the switch is per project on this machine."
+        description="Built-in hooks run around the agent's tool calls, no scripts needed. Settings are saved in this project's .gg/hooks.json; the on/off switch is per project on this machine."
       >
         <label className="hooks-switch hooks-master">
           <input
