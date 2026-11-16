@@ -8,7 +8,7 @@ import {
 import { getModel } from "../core/model-registry.js";
 import { isModelUnavailableFailure } from "../core/model-unavailable.js";
 import { log } from "../core/logger.js";
-import { getSupportedThinkingLevels, isThinkingLevelSupported } from "../core/thinking-level.js";
+import { clampThinkingLevel, getSupportedThinkingLevels } from "../core/thinking-level.js";
 import {
   nextEscalation,
   routeTask,
@@ -202,13 +202,12 @@ export async function applyDecision(
   const now = ctx.session.getState();
   const prev = ctx.session.getThinkingLevel();
   let level = d.effort ?? prev;
-  if (level && !isThinkingLevelSupported(now.provider, now.model, level)) {
-    level = undefined;
-  }
+  const levelOpts = { provider: now.provider, accountId: now.accountId };
+  level = clampThinkingLevel(now.provider, now.model, level, levelOpts);
   if (level !== prev) ctx.session.setThinkingLevel(level);
   ctx.broadcast("thinking_change", {
     thinkingLevel: ctx.session.getThinkingLevel() ?? null,
-    supportedThinkingLevels: getSupportedThinkingLevels(now.provider, now.model),
+    supportedThinkingLevels: getSupportedThinkingLevels(now.provider, now.model, levelOpts),
   });
 
   if (d.executionMode === "ultracode" && !ctx.session.isUltracode()) {
@@ -265,14 +264,12 @@ export async function restoreBaseline(ctx: SessionRouteContext): Promise<void> {
     ctx.broadcast("extras", ctx.footerExtras());
   }
   const now = ctx.session.getState();
-  const level =
-    b.thinkingLevel && isThinkingLevelSupported(now.provider, now.model, b.thinkingLevel)
-      ? b.thinkingLevel
-      : undefined;
+  const levelOpts = { provider: now.provider, accountId: now.accountId };
+  const level = clampThinkingLevel(now.provider, now.model, b.thinkingLevel, levelOpts);
   if (level !== ctx.session.getThinkingLevel()) ctx.session.setThinkingLevel(level);
   ctx.broadcast("thinking_change", {
     thinkingLevel: ctx.session.getThinkingLevel() ?? null,
-    supportedThinkingLevels: getSupportedThinkingLevels(now.provider, now.model),
+    supportedThinkingLevels: getSupportedThinkingLevels(now.provider, now.model, levelOpts),
   });
 }
 

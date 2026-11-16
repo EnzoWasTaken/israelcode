@@ -6,4 +6,5 @@ export {
   isThinkingLevelSupported,
   getNextThinkingLevel,
   clampThinkingForPlanMode,
+  clampThinkingLevel,
 } from "@kenkaiiii/gg-core";

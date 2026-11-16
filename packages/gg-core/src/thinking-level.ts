@@ -1,10 +1,16 @@
 import type { Provider, ThinkingLevel } from "@kenkaiiii/gg-ai";
-import { getMaxThinkingLevel, getModel } from "./model-registry.js";
+import {
+  getMaxThinkingLevel,
+  getModel,
+  usesOpenAICodexTransport,
+  type ContextWindowOptions,
+} from "./model-registry.js";
 
 const OPENAI_GPT_THINKING_LEVELS: readonly ThinkingLevel[] = ["medium", "high", "xhigh"];
 // GPT-5.6 and GPT-6.x (gpt-6-*, plus point releases like gpt-6.1-sol) share the
 // six-rung Codex ladder (low → ultra); older GPT models only expose
 // medium/high/xhigh.
+// The ChatGPT (Codex) ladder; API-key requests drop `ultra`, which the API does not accept.
 const OPENAI_GPT_56_THINKING_LEVELS: readonly ThinkingLevel[] = [
   "low",
   "medium",
@@ -22,7 +28,7 @@ const DEEPSEEK_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "high", "max"
 // rung (docs: low/medium/high default/xhigh); each model slices this ladder
 // by its registry maxThinkingLevel.
 const XAI_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "medium", "high", "xhigh"];
-// Opus 5.x / 4.7, Sonnet 5.5 and Haiku 5.5 expose the full ladder including xhigh.
+// Opus 5.x / 4.7, Sonnet 5.5, Haiku 5.5, Fable 5 and Mythos 5 expose the full ladder including xhigh.
 // Other adaptive Anthropic models omit xhigh and would 400.
 const ANTHROPIC_XHIGH_THINKING_LEVELS: readonly ThinkingLevel[] = [
   "low",
@@ -42,14 +48,10 @@ const ANTHROPIC_ADAPTIVE_THINKING_LEVELS: readonly ThinkingLevel[] = [
 // Coding OAuth endpoint (default high) — verified live 2026-07-21. Unlisted
 // efforts are rejected with a 400, so expose exactly the declared rungs.
 const MOONSHOT_K3_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "high", "max"];
-// GLM's ladder is declared by the endpoint itself: an unknown effort 400s with
-// `reasoning_effort must be one of: none, minimal, low, medium, high, xhigh,
-// max` (verified live against glm-5.3, 2026-08-14). `none` is the thinking
-// toggle's job and `minimal` has no ThinkingLevel counterpart, so expose the
-// five rungs we can actually name. Effort is real, not cosmetic — measured
-// end-to-end on one hard reasoning prompt: low 0.8K reasoning chars / 15s,
-// high 3.2K / 28s, max 24.9K / 129s.
-const GLM_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "medium", "high", "xhigh", "max"];
+// docs.z.ai lists only low/high/max for GLM; medium and xhigh are server aliases,
+// so offering them would show rungs that do nothing distinct.
+const GLM_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "high", "max"];
+const LOW_MEDIUM_HIGH_THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "medium", "high"];
 // MiniMax M3.1 Flash: output_config.effort accepts low/medium/high/xhigh/max
 // (platform.minimax.io Anthropic API docs); M3 has only on/off thinking.
 const MINIMAX_EFFORT_THINKING_LEVELS: readonly ThinkingLevel[] = [
@@ -95,7 +97,8 @@ function isMiniMaxEffortModel(provider: Provider, model: string): boolean {
 
 function isAnthropicXhighModel(provider: Provider, model: string): boolean {
   return (
-    provider === "anthropic" && /opus-5|opus-4-8|opus-4-7|sonnet-5[-.]5|haiku-5[-.]5/.test(model)
+    provider === "anthropic" &&
+    /opus-5|opus-4-8|opus-4-7|sonnet-5[-.]5|haiku-5[-.]5|fable-5|mythos-5/.test(model)
   );
 }
 
@@ -109,7 +112,9 @@ function isAnthropicAdaptiveModel(provider: Provider, model: string): boolean {
 export function getSupportedThinkingLevels(
   provider: Provider,
   model: string,
+  options?: ContextWindowOptions,
 ): readonly ThinkingLevel[] {
+  if (provider !== "local" && getModel(model)?.supportsThinking === false) return [];
   // Local models: reasoning support is per-model and probed, not assumed. A
   // non-reasoning local model must never be sent a reasoning_effort — Ollama
   // hard-400s (`"llama3.2" does not support thinking`) — so it offers no levels
@@ -154,6 +159,11 @@ export function getSupportedThinkingLevels(
 
   if (isMiniMaxEffortModel(provider, model)) return MINIMAX_EFFORT_THINKING_LEVELS;
 
+  if (provider === "gemini") return LOW_MEDIUM_HIGH_THINKING_LEVELS;
+  if (provider === "huggingface" && model.endsWith("gpt-oss-120b")) {
+    return LOW_MEDIUM_HIGH_THINKING_LEVELS;
+  }
+
   if (isGlmModel(provider)) {
     const maxIndex = GLM_THINKING_LEVELS.indexOf(maxLevel);
     if (maxIndex === -1) return GLM_THINKING_LEVELS;
@@ -168,7 +178,11 @@ export function getSupportedThinkingLevels(
       : OPENAI_GPT_THINKING_LEVELS;
   const maxIndex = levels.indexOf(maxLevel);
   if (maxIndex === -1) return ["medium"];
-  return levels.slice(0, maxIndex + 1);
+  const sliced = levels.slice(0, maxIndex + 1);
+  // `ultra` is Codex-only; the codex models.json ladders match the registry ceilings.
+  return levels === OPENAI_GPT_56_THINKING_LEVELS && !usesOpenAICodexTransport(options)
+    ? sliced.filter((level) => level !== "ultra")
+    : sliced;
 }
 
 /**
@@ -181,40 +195,30 @@ export function getSupportedThinkingLevels(
 export function getLowestThinkingLevel(
   provider: Provider,
   model: string,
+  options?: ContextWindowOptions,
 ): ThinkingLevel | undefined {
   if (getModel(model)?.supportsThinking === false) return undefined;
-  return getSupportedThinkingLevels(provider, model)[0];
+  return getSupportedThinkingLevels(provider, model, options)[0];
 }
 
 export function isThinkingLevelSupported(
   provider: Provider,
   model: string,
   level: ThinkingLevel,
+  options?: ContextWindowOptions,
 ): boolean {
-  return getSupportedThinkingLevels(provider, model).includes(level);
+  return getSupportedThinkingLevels(provider, model, options).includes(level);
 }
 
 export function getNextThinkingLevel(
   provider: Provider,
   model: string,
   current: ThinkingLevel | undefined,
+  options?: ContextWindowOptions,
 ): ThinkingLevel | undefined {
-  const supportedLevels = getSupportedThinkingLevels(provider, model);
-  const shouldCycleLevels =
-    isOpenAIGptModel(provider, model) ||
-    isAnthropicAdaptiveModel(provider, model) ||
-    isSakanaModel(provider) ||
-    isXaiModel(provider) ||
-    isMoonshotK3Model(provider, model) ||
-    isGlmModel(provider) ||
-    isMiniMaxEffortModel(provider, model) ||
-    provider === "deepseek" ||
-    // Local servers take a real effort level, not just on/off: Ollama accepts
-    // low/medium/high on `reasoning_effort` (verified against 0.32) and the
-    // other OpenAI-compatible servers use the same three. A model that can't
-    // reason at all already has no supported levels, so it never gets here.
-    provider === "local";
-  if (!shouldCycleLevels) {
+  const supportedLevels = getSupportedThinkingLevels(provider, model, options);
+  // A single-rung model is an on/off toggle.
+  if (supportedLevels.length <= 1) {
     return current ? undefined : supportedLevels[0];
   }
 
@@ -251,4 +255,28 @@ export function clampThinkingForPlanMode(
   return THINKING_LADDER.indexOf(level) > THINKING_LADDER.indexOf(PLAN_MODE_THINKING_CAP)
     ? PLAN_MODE_THINKING_CAP
     : level;
+}
+
+/** Nearest supported rung to `level`; ties go lower. */
+export function clampThinkingLevel(
+  provider: Provider,
+  model: string,
+  level: ThinkingLevel | undefined,
+  options?: ContextWindowOptions,
+): ThinkingLevel | undefined {
+  if (!level) return undefined;
+  const supported = getSupportedThinkingLevels(provider, model, options);
+  if (supported.length === 0) return undefined;
+  if (supported.includes(level)) return level;
+  const target = THINKING_LADDER.indexOf(level);
+  let best = supported[0]!;
+  let bestDistance = Infinity;
+  for (const candidate of supported) {
+    const distance = Math.abs(THINKING_LADDER.indexOf(candidate) - target);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }

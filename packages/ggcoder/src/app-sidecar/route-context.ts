@@ -20,11 +20,15 @@ import type { TrophyManager } from "./trophy-manager.js";
 import type { ShellRunner } from "./shell-runs.js";
 import type { HfPullState, SseClient, WorkspaceMode } from "./session-types.js";
 import type { Provider } from "@kenkaiiii/gg-ai";
+import type { OllamaServerManager } from "../core/ollama-server.js";
 import type {
   AppPaths,
   AuthStorage,
   LocalEndpointKind,
   LocalEndpointProbe,
+  LocalEndpointSettings,
+  LocalModel,
+  LocalModelSettings,
   OAuthLoginCallbacks,
 } from "@kenkaiiii/gg-core";
 import type { ApprovalBridge } from "./approvals.js";
@@ -172,6 +176,8 @@ export interface SessionRouteContext {
       custom: boolean;
       reachable: boolean;
       reason?: string | undefined;
+      settings: LocalEndpointSettings;
+      server?: { managed: boolean; running: boolean; canStart: boolean; restartNeeded: boolean };
       models: {
         id: string;
         rawId: string;
@@ -180,11 +186,16 @@ export interface SessionRouteContext {
         supportsTools: boolean;
         supportsImages: boolean;
         supportsThinking: boolean;
+        maxOutputTokens: number;
+        detected: NonNullable<LocalModel["detected"]>;
+        settings: LocalModelSettings;
         loaded?: boolean | undefined;
       }[];
     }[];
   };
   readonly scanLocalModels: (force: boolean) => Promise<LocalEndpointProbe[]>;
+  readonly clampLocalThinking: () => void;
+  readonly ollamaServer: OllamaServerManager;
   hfPull: HfPullState | null;
   readonly hfPullPayload: (s: HfPullState) => Record<string, unknown>;
   readonly hfSearch: (query: string) => Promise<HfSearchRow[]>;

@@ -54,6 +54,51 @@ export interface LocalModel {
   supportsThinking: boolean;
   /** LM Studio only: whether the model is currently resident in memory. */
   loaded?: boolean;
+  /** Probed values before user overrides; set by `applyLocalModelSettings`. */
+  detected?: Pick<
+    LocalModel,
+    "contextWindow" | "contextWindowKnown" | "supportsTools" | "supportsImages" | "supportsThinking"
+  >;
+}
+
+export interface LocalModelSettings {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  repeatPenalty?: number;
+  seed?: number;
+  supportsTools?: boolean;
+  supportsImages?: boolean;
+  supportsThinking?: boolean;
+  extraBody?: Record<string, unknown>;
+  /** Ollama only → `num_gpu`. Absent = Ollama fits layers automatically. */
+  gpuLayers?: number;
+  /** Ollama only → `num_batch`. */
+  batchSize?: number;
+  /** Ollama only → `num_thread`. */
+  threads?: number;
+}
+
+export interface OllamaServerSettings {
+  flashAttention?: boolean;
+  kvCacheType?: "f16" | "q8_0" | "q4_0";
+  contextLength?: number;
+  fit?: boolean;
+  fitTargetMiB?: number;
+  cpuMoeLayers?: number;
+  autoStart?: boolean;
+}
+
+export interface LocalEndpointSettings {
+  headers?: Record<string, string>;
+  ollama?: OllamaServerSettings;
+}
+
+export interface LocalSettings {
+  models: Record<string, LocalModelSettings>;
+  endpoints: Record<string, LocalEndpointSettings>;
 }
 
 export interface LocalEndpointProbe {
@@ -278,7 +323,10 @@ export async function probeEndpoint(
 
   const entries = (list.data ?? []).filter(
     (entry): entry is OpenAIModelListEntry & { id: string } =>
-      typeof entry.id === "string" && entry.id.length > 0 && !NON_CHAT_ID_PATTERN.test(entry.id),
+      typeof entry.id === "string" &&
+      entry.id.length > 0 &&
+      !NON_CHAT_ID_PATTERN.test(entry.id) &&
+      !(endpoint.kind === "ollama" && isOllamaDerivedName(entry.id)),
   );
 
   const enriched = await enrich(endpoint, entries, { timeoutMs, signal });
@@ -572,21 +620,378 @@ function maxThinkingLevelFor(endpoint: LocalEndpoint): "high" | "max" {
   return endpoint.kind === "ollama" ? "max" : "high";
 }
 
-/** Convert a probed local model into the registry shape the whole app speaks. */
-export function toModelInfo(model: LocalModel, endpoint: LocalEndpoint): ModelInfo {
-  return {
-    id: formatLocalModelId(model.endpointId, model.rawId),
-    name: `${model.rawId} (${endpoint.label})`,
-    provider: "local",
+const MAX_EXTRA_BODY_LENGTH = 8192;
+const MAX_HEADERS = 20;
+const FORBIDDEN_HEADERS = new Set([
+  "host",
+  "content-length",
+  "content-type",
+  "transfer-encoding",
+  "connection",
+]);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+type NumericSetting =
+  | "contextWindow"
+  | "maxOutputTokens"
+  | "temperature"
+  | "topP"
+  | "topK"
+  | "repeatPenalty"
+  | "seed"
+  | "gpuLayers"
+  | "batchSize"
+  | "threads";
+
+/** Validate user-entered model settings; bad fields are dropped with one sentence each. */
+export function parseLocalModelSettings(raw: unknown): {
+  settings: LocalModelSettings;
+  errors: string[];
+} {
+  const settings: LocalModelSettings = {};
+  const errors: string[] = [];
+  if (raw === null || raw === undefined) return { settings, errors };
+  if (!isPlainObject(raw)) return { settings, errors: ["Settings must be an object."] };
+
+  const num = (key: NumericSetting, label: string, ok: (n: number) => boolean, rule: string) => {
+    const value = raw[key];
+    if (value === undefined || value === null) return;
+    if (typeof value === "number" && Number.isFinite(value) && ok(value)) settings[key] = value;
+    else errors.push(`${label} must be ${rule}.`);
+  };
+  const int = (n: number) => Number.isSafeInteger(n);
+  num(
+    "contextWindow",
+    "Context window",
+    (n) => int(n) && n >= 1024 && n <= 4_000_000,
+    "a whole number between 1024 and 4000000",
+  );
+  num(
+    "maxOutputTokens",
+    "Max output",
+    (n) => int(n) && n >= 256 && n <= 1_000_000,
+    "a whole number between 256 and 1000000",
+  );
+  num("temperature", "Temperature", (n) => n >= 0 && n <= 2, "between 0 and 2");
+  num("topP", "Top P", (n) => n >= 0 && n <= 1, "between 0 and 1");
+  num("topK", "Top K", (n) => int(n) && n >= 1 && n <= 1000, "a whole number between 1 and 1000");
+  num("repeatPenalty", "Repeat penalty", (n) => n > 0 && n <= 3, "greater than 0 and at most 3");
+  num(
+    "seed",
+    "Seed",
+    (n) => int(n) && n >= -1 && n <= 2_147_483_647,
+    "a whole number between -1 and 2147483647",
+  );
+  num(
+    "gpuLayers",
+    "GPU layers",
+    (n) => int(n) && n >= 0 && n <= 999,
+    "a whole number between 0 and 999",
+  );
+  num(
+    "batchSize",
+    "Batch size",
+    (n) => int(n) && n >= 1 && n <= 8192,
+    "a whole number between 1 and 8192",
+  );
+  num(
+    "threads",
+    "CPU threads",
+    (n) => int(n) && n >= 1 && n <= 512,
+    "a whole number between 1 and 512",
+  );
+
+  for (const [key, label] of [
+    ["supportsTools", "Tool support"],
+    ["supportsImages", "Image support"],
+    ["supportsThinking", "Thinking support"],
+  ] as const) {
+    const value = raw[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value === "boolean") settings[key] = value;
+    else errors.push(`${label} must be true or false.`);
+  }
+
+  const extra = raw.extraBody;
+  if (extra !== undefined && extra !== null) {
+    if (!isPlainObject(extra)) errors.push("Extra body must be a JSON object.");
+    else if (JSON.stringify(extra).length > MAX_EXTRA_BODY_LENGTH) {
+      errors.push(`Extra body must be at most ${MAX_EXTRA_BODY_LENGTH} characters of JSON.`);
+    } else settings.extraBody = extra;
+  }
+  return { settings, errors };
+}
+
+/** Validate per-endpoint request headers and Ollama server settings. */
+export function parseLocalEndpointSettings(raw: unknown): {
+  settings: LocalEndpointSettings;
+  errors: string[];
+} {
+  const settings: LocalEndpointSettings = {};
+  const errors: string[] = [];
+  if (raw === null || raw === undefined) return { settings, errors };
+  if (!isPlainObject(raw)) return { settings, errors: ["Settings must be an object."] };
+  const rawHeaders = raw.headers;
+  if (rawHeaders !== undefined && rawHeaders !== null) {
+    if (!isPlainObject(rawHeaders)) {
+      errors.push("Headers must be an object of names and values.");
+    } else {
+      const entries = Object.entries(rawHeaders);
+      if (entries.length > MAX_HEADERS) {
+        errors.push(`At most ${MAX_HEADERS} headers are allowed.`);
+        entries.length = MAX_HEADERS;
+      }
+      const headers: Record<string, string> = {};
+      for (const [name, value] of entries) {
+        if (!/^[A-Za-z0-9-]{1,64}$/.test(name)) {
+          errors.push(`Header name "${name}" must be 1-64 letters, digits or hyphens.`);
+        } else if (FORBIDDEN_HEADERS.has(name.toLowerCase())) {
+          errors.push(`Header "${name}" cannot be set.`);
+        } else if (
+          typeof value !== "string" ||
+          value.length < 1 ||
+          value.length > 4096 ||
+          /[\r\n]/.test(value)
+        ) {
+          errors.push(`Header "${name}" must have a value of 1-4096 characters on a single line.`);
+        } else headers[name] = value;
+      }
+      if (Object.keys(headers).length > 0) settings.headers = headers;
+    }
+  }
+  if (raw.ollama !== undefined && raw.ollama !== null) {
+    const parsed = parseOllamaServerSettings(raw.ollama, errors);
+    if (Object.keys(parsed).length > 0) settings.ollama = parsed;
+  }
+  return { settings, errors };
+}
+
+function parseOllamaServerSettings(raw: unknown, errors: string[]): OllamaServerSettings {
+  const out: OllamaServerSettings = {};
+  if (!isPlainObject(raw)) {
+    errors.push("Ollama settings must be an object.");
+    return out;
+  }
+  for (const [key, label] of [
+    ["flashAttention", "Flash attention"],
+    ["fit", "Automatic memory fitting"],
+    ["autoStart", "Auto-start"],
+  ] as const) {
+    const value = raw[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value === "boolean") out[key] = value;
+    else errors.push(`${label} must be true or false.`);
+  }
+  const kv = raw.kvCacheType;
+  if (kv !== undefined && kv !== null) {
+    if (kv === "f16" || kv === "q8_0" || kv === "q4_0") out.kvCacheType = kv;
+    else errors.push("KV cache type must be f16, q8_0 or q4_0.");
+  }
+  for (const [key, label, min, max] of [
+    ["contextLength", "Server context length", 1024, 4_000_000],
+    ["fitTargetMiB", "Fit target", 0, 1_000_000],
+    ["cpuMoeLayers", "CPU MoE layers", 0, 999],
+  ] as const) {
+    const value = raw[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value === "number" && Number.isSafeInteger(value) && value >= min && value <= max) {
+      out[key] = value;
+    } else errors.push(`${label} must be a whole number between ${min} and ${max}.`);
+  }
+  return out;
+}
+
+/** Environment for `ollama serve`; only the fields the user set. */
+export function ollamaServerEnv(s?: OllamaServerSettings): Record<string, string> {
+  const env: Record<string, string> = {};
+  if (!s) return env;
+  if (s.flashAttention !== undefined) env.OLLAMA_FLASH_ATTENTION = s.flashAttention ? "1" : "0";
+  if (s.kvCacheType !== undefined) env.OLLAMA_KV_CACHE_TYPE = s.kvCacheType;
+  if (s.contextLength !== undefined) env.OLLAMA_CONTEXT_LENGTH = String(s.contextLength);
+  if (s.fit !== undefined) env.LLAMA_ARG_FIT = s.fit ? "on" : "off";
+  if (s.fitTargetMiB !== undefined) env.LLAMA_ARG_FIT_TARGET = String(s.fitTargetMiB);
+  if (s.cpuMoeLayers !== undefined) env.LLAMA_ARG_N_CPU_MOE = String(s.cpuMoeLayers);
+  return env;
+}
+
+/** Per-model options Ollama's /v1 cannot carry; they go into a derived model. */
+export function ollamaModelParameters(s?: LocalModelSettings): Record<string, number> | undefined {
+  if (!s) return undefined;
+  const params: Record<string, number> = {};
+  if (s.contextWindow !== undefined) params.num_ctx = s.contextWindow;
+  if (s.gpuLayers !== undefined) params.num_gpu = s.gpuLayers;
+  if (s.batchSize !== undefined) params.num_batch = s.batchSize;
+  if (s.threads !== undefined) params.num_thread = s.threads;
+  return Object.keys(params).length > 0 ? params : undefined;
+}
+
+export const OLLAMA_DERIVED_SUFFIX = "-israelcode";
+
+function hasOllamaTag(rawId: string): boolean {
+  return rawId.lastIndexOf(":") > rawId.lastIndexOf("/");
+}
+
+export function ollamaDerivedName(rawId: string): string {
+  return hasOllamaTag(rawId)
+    ? `${rawId}${OLLAMA_DERIVED_SUFFIX}`
+    : `${rawId}:latest${OLLAMA_DERIVED_SUFFIX}`;
+}
+
+export function isOllamaDerivedName(rawId: string): boolean {
+  return hasOllamaTag(rawId) && rawId.endsWith(OLLAMA_DERIVED_SUFFIX);
+}
+
+async function ollamaRequest(
+  endpoint: LocalEndpoint,
+  path: string,
+  method: "POST" | "DELETE",
+  body: unknown,
+  { timeoutMs = 120_000, signal }: ProbeOptions,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    return await fetch(`${endpointRoot(endpoint.baseUrl)}${path}`, {
+      method,
+      signal: controller.signal,
+      headers: { ...authHeaders(endpoint), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new Error(unreachableReason(endpoint, err), { cause: err });
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
+async function ollamaErrorText(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "");
+  try {
+    const error = (JSON.parse(text) as { error?: unknown }).error;
+    if (typeof error === "string" && error) return error;
+  } catch {
+    // not JSON
+  }
+  return text.trim() || `HTTP ${res.status}`;
+}
+
+/** Create (or replace) the derived model carrying `parameters`; resolves its name. */
+export async function ensureOllamaDerivedModel(
+  endpoint: LocalEndpoint,
+  rawId: string,
+  parameters: Record<string, number>,
+  opts: ProbeOptions = {},
+): Promise<string> {
+  const derived = ollamaDerivedName(rawId);
+  const res = await ollamaRequest(
+    endpoint,
+    "/api/create",
+    "POST",
+    { model: derived, from: rawId, parameters, stream: false },
+    opts,
+  );
+  if (!res.ok) throw new Error(await ollamaErrorText(res));
+  return derived;
+}
+
+export async function deleteOllamaDerivedModel(
+  endpoint: LocalEndpoint,
+  rawId: string,
+  opts: ProbeOptions = {},
+): Promise<void> {
+  const res = await ollamaRequest(
+    endpoint,
+    "/api/delete",
+    "DELETE",
+    { model: ollamaDerivedName(rawId) },
+    opts,
+  );
+  if (!res.ok && res.status !== 404) throw new Error(await ollamaErrorText(res));
+}
+
+/** Override detected values with the user's; `detected` keeps the probed ones. */
+export function applyLocalModelSettings(
+  model: LocalModel,
+  settings?: LocalModelSettings,
+): LocalModel {
+  if (!settings) return model;
+  const detected = model.detected ?? {
     contextWindow: model.contextWindow,
-    // Leave real headroom for the prompt on small local windows.
-    maxOutputTokens: Math.max(512, Math.min(4096, Math.floor(model.contextWindow / 4))),
-    supportsThinking: model.supportsThinking,
+    contextWindowKnown: model.contextWindowKnown,
+    supportsTools: model.supportsTools,
     supportsImages: model.supportsImages,
+    supportsThinking: model.supportsThinking,
+  };
+  return {
+    ...model,
+    detected,
+    ...(settings.contextWindow !== undefined
+      ? { contextWindow: settings.contextWindow, contextWindowKnown: true }
+      : {}),
+    ...(settings.supportsTools !== undefined ? { supportsTools: settings.supportsTools } : {}),
+    ...(settings.supportsImages !== undefined ? { supportsImages: settings.supportsImages } : {}),
+    ...(settings.supportsThinking !== undefined
+      ? { supportsThinking: settings.supportsThinking }
+      : {}),
+  };
+}
+
+/** Request-body fields for a local model; typed fields win over extraBody. */
+export function localRequestBody(
+  settings?: LocalModelSettings,
+): Record<string, unknown> | undefined {
+  if (!settings) return undefined;
+  const typed: Record<string, unknown> = {
+    temperature: settings.temperature,
+    top_p: settings.topP,
+    top_k: settings.topK,
+    repeat_penalty: settings.repeatPenalty,
+    seed: settings.seed,
+  };
+  const body: Record<string, unknown> = { ...settings.extraBody };
+  for (const [key, value] of Object.entries(typed)) if (value !== undefined) body[key] = value;
+  return Object.keys(body).length > 0 ? body : undefined;
+}
+
+/** Convert a probed local model into the registry shape the whole app speaks. */
+export function toModelInfo(
+  model: LocalModel,
+  endpoint: LocalEndpoint,
+  settings?: LocalModelSettings,
+  endpointSettings?: LocalEndpointSettings,
+): ModelInfo {
+  const effective = applyLocalModelSettings(model, settings);
+  const headers = endpointSettings?.headers;
+  const requestBody = localRequestBody(settings);
+  const derived =
+    endpoint.kind === "ollama" && ollamaModelParameters(settings)
+      ? formatLocalModelId(effective.endpointId, ollamaDerivedName(effective.rawId))
+      : undefined;
+  return {
+    id: formatLocalModelId(effective.endpointId, effective.rawId),
+    name: `${effective.rawId} (${endpoint.label})`,
+    provider: "local",
+    contextWindow: effective.contextWindow,
+    // Leave real headroom for the prompt on small local windows.
+    maxOutputTokens:
+      settings?.maxOutputTokens !== undefined
+        ? Math.min(settings.maxOutputTokens, Math.max(512, Math.floor(effective.contextWindow / 2)))
+        : Math.max(512, Math.min(4096, Math.floor(effective.contextWindow / 4))),
+    supportsThinking: effective.supportsThinking,
+    supportsImages: effective.supportsImages,
     supportsVideo: false,
     costTier: "low",
     maxThinkingLevel: maxThinkingLevelFor(endpoint),
-    authStorageKeys: [localAuthStorageKey(model.endpointId)],
+    authStorageKeys: [localAuthStorageKey(effective.endpointId)],
+    ...(requestBody ? { requestBody } : {}),
+    ...(derived ? { requestModel: derived } : {}),
+    ...(headers && Object.keys(headers).length > 0 ? { requestHeaders: headers } : {}),
   };
 }
 
@@ -612,6 +1017,8 @@ function cacheKey(endpoints: readonly LocalEndpoint[]): string {
 export interface DiscoverOptions extends ProbeOptions {
   /** Skip the 30s cache (the UI's "Scan" button). */
   force?: boolean;
+  /** Applied after the probe cache, so a settings change needs no re-probe. */
+  settings?: LocalSettings;
 }
 
 /**
@@ -625,16 +1032,36 @@ export async function discoverLocalModels(
   options: DiscoverOptions = {},
 ): Promise<DiscoveryResult> {
   const key = cacheKey(endpoints);
+  let raw: DiscoveryResult;
   if (!options.force && cache && cache.key === key && Date.now() - cache.at < CACHE_TTL_MS) {
-    return cache.result;
+    raw = cache.result;
+  } else {
+    const probes = await Promise.all(endpoints.map((endpoint) => probeEndpoint(endpoint, options)));
+    const models = probes.flatMap((probe) =>
+      probe.models.map((model) => toModelInfo(model, probe.endpoint)),
+    );
+    raw = { probes, models };
+    cache = { key, at: Date.now(), result: raw };
   }
-  const probes = await Promise.all(endpoints.map((endpoint) => probeEndpoint(endpoint, options)));
-  const models = probes.flatMap((probe) =>
-    probe.models.map((model) => toModelInfo(model, probe.endpoint)),
+  const { settings } = options;
+  if (!settings) return raw;
+  const modelSettings = (model: LocalModel) =>
+    settings.models[formatLocalModelId(model.endpointId, model.rawId)];
+  const models = raw.probes.flatMap((probe) =>
+    probe.models.map((model) =>
+      toModelInfo(
+        model,
+        probe.endpoint,
+        modelSettings(model),
+        settings.endpoints[probe.endpoint.id],
+      ),
+    ),
   );
-  const result: DiscoveryResult = { probes, models };
-  cache = { key, at: Date.now(), result };
-  return result;
+  const probes = raw.probes.map((probe) => ({
+    ...probe,
+    models: probe.models.map((model) => applyLocalModelSettings(model, modelSettings(model))),
+  }));
+  return { probes, models };
 }
 
 /** Drop the discovery cache (used by tests and after an endpoint is added/removed). */

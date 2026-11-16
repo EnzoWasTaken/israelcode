@@ -41,6 +41,7 @@ export {
   getMaxThinkingLevel,
   getDefaultThinkingLevel,
   getNextThinkingLevel,
+  clampThinkingLevel,
   getSupportedThinkingLevels,
   isThinkingLevelSupported,
   shouldCompact,

@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_LOCAL_ENDPOINTS,
   FALLBACK_CONTEXT_WINDOW,
+  applyLocalModelSettings,
   clearLocalDiscoveryCache,
+  localRequestBody,
+  parseLocalEndpointSettings,
+  parseLocalModelSettings,
   discoverLocalModels,
   endpointRoot,
   findProbedModel,
@@ -13,6 +17,12 @@ import {
   localAuthStorageKey,
   localModelShortName,
   ollamaServedContext,
+  deleteOllamaDerivedModel,
+  ensureOllamaDerivedModel,
+  isOllamaDerivedName,
+  ollamaDerivedName,
+  ollamaModelParameters,
+  ollamaServerEnv,
   parseLocalModelId,
   probeEndpoint,
   toModelInfo,
@@ -604,5 +614,317 @@ describe("Ollama context sizes", () => {
     expect(requests).toEqual(["GET /api/ps"]);
     expect(await ollamaServedContext(endpoint, "qwen3:0.6b", { load: true })).toBe(16384);
     expect(requests.slice(1)).toEqual(["POST /api/generate", "GET /api/ps"]);
+  });
+});
+
+const sampleModel = {
+  rawId: "m",
+  endpointId: "ollama",
+  contextWindow: 8192,
+  contextWindowKnown: false,
+  supportsTools: false,
+  supportsImages: false,
+  supportsThinking: false,
+};
+const ollamaEp: LocalEndpoint = {
+  id: "ollama",
+  label: "Ollama",
+  baseUrl: "http://x/v1",
+  kind: "ollama",
+};
+
+describe("parseLocalModelSettings", () => {
+  it("accepts valid values and ignores unknown keys", () => {
+    const full = {
+      contextWindow: 32768,
+      maxOutputTokens: 8192,
+      temperature: 0.2,
+      topP: 1,
+      topK: 40,
+      repeatPenalty: 1.1,
+      seed: -1,
+      supportsTools: true,
+      extraBody: { a: 1 },
+    };
+    expect(parseLocalModelSettings({ ...full, bogus: 1 })).toEqual({ settings: full, errors: [] });
+    expect(parseLocalModelSettings(null)).toEqual({ settings: {}, errors: [] });
+  });
+
+  it("drops out-of-range fields with one sentence each", () => {
+    const { settings, errors } = parseLocalModelSettings({
+      contextWindow: 100,
+      maxOutputTokens: 255,
+      temperature: 2.5,
+      topP: 1.5,
+      topK: 0,
+      repeatPenalty: 0,
+      seed: -2,
+      supportsImages: "yes",
+    });
+    expect(settings).toEqual({});
+    expect(errors).toHaveLength(8);
+    expect(errors).toContain("Temperature must be between 0 and 2.");
+  });
+
+  it("rejects non-object and oversized extraBody", () => {
+    expect(parseLocalModelSettings({ extraBody: [1] }).errors).toHaveLength(1);
+    const big = parseLocalModelSettings({ extraBody: { k: "x".repeat(9000) } });
+    expect(big.errors).toHaveLength(1);
+    expect(big.settings.extraBody).toBeUndefined();
+  });
+});
+
+describe("parseLocalEndpointSettings", () => {
+  it("keeps valid headers and rejects bad names and values", () => {
+    const { settings, errors } = parseLocalEndpointSettings({
+      headers: {
+        "X-Api-Key": "abc",
+        Host: "evil",
+        "bad name": "v",
+        "X-Empty": "",
+        "X-Nl": "a\nb",
+      },
+    });
+    expect(settings.headers).toEqual({ "X-Api-Key": "abc" });
+    expect(errors).toHaveLength(4);
+  });
+
+  it("caps header count and handles empty input", () => {
+    const headers = Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`H${i}`, "v"]));
+    const { settings, errors } = parseLocalEndpointSettings({ headers });
+    expect(errors).toHaveLength(1);
+    expect(Object.keys(settings.headers ?? {})).toHaveLength(20);
+    expect(parseLocalEndpointSettings(undefined)).toEqual({ settings: {}, errors: [] });
+  });
+});
+
+describe("applyLocalModelSettings / toModelInfo with settings", () => {
+  it("overrides values and records detected ones", () => {
+    const out = applyLocalModelSettings(sampleModel, { contextWindow: 32768, supportsTools: true });
+    expect(out).toMatchObject({
+      contextWindow: 32768,
+      contextWindowKnown: true,
+      supportsTools: true,
+    });
+    expect(out.detected).toEqual({
+      contextWindow: 8192,
+      contextWindowKnown: false,
+      supportsTools: false,
+      supportsImages: false,
+      supportsThinking: false,
+    });
+    expect(applyLocalModelSettings(sampleModel)).toBe(sampleModel);
+  });
+
+  it("caps max output at half the context; default formula unchanged", () => {
+    expect(toModelInfo(sampleModel, ollamaEp, { maxOutputTokens: 100_000 }).maxOutputTokens).toBe(
+      4096,
+    );
+    expect(toModelInfo(sampleModel, ollamaEp, { maxOutputTokens: 2000 }).maxOutputTokens).toBe(
+      2000,
+    );
+    expect(toModelInfo(sampleModel, ollamaEp).maxOutputTokens).toBe(2048);
+  });
+
+  it("thinking override on a non-Ollama endpoint tops out at high", () => {
+    const info = toModelInfo(
+      { ...sampleModel, endpointId: "v" },
+      { ...ollamaEp, id: "v", kind: "vllm" },
+      { supportsThinking: true },
+    );
+    expect(info.supportsThinking).toBe(true);
+    expect(info.maxThinkingLevel).toBe("high");
+  });
+
+  it("attaches request body and endpoint headers only when set", () => {
+    const info = toModelInfo(
+      sampleModel,
+      ollamaEp,
+      { temperature: 0.2 },
+      { headers: { "X-A": "b" } },
+    );
+    expect(info.requestBody).toEqual({ temperature: 0.2 });
+    expect(info.requestHeaders).toEqual({ "X-A": "b" });
+    const plain = toModelInfo(sampleModel, ollamaEp);
+    expect("requestBody" in plain).toBe(false);
+    expect("requestHeaders" in plain).toBe(false);
+  });
+});
+
+describe("localRequestBody", () => {
+  it("typed fields win over extraBody; empty is undefined", () => {
+    expect(
+      localRequestBody({ temperature: 0.2, topP: 0.9, extraBody: { temperature: 1, foo: "bar" } }),
+    ).toEqual({ temperature: 0.2, top_p: 0.9, foo: "bar" });
+    expect(localRequestBody({ contextWindow: 4096 })).toBeUndefined();
+    expect(localRequestBody(undefined)).toBeUndefined();
+  });
+});
+
+describe("discoverLocalModels with settings", () => {
+  it("applies settings on a cache hit without re-probing", async () => {
+    clearLocalDiscoveryCache();
+    const live = await endpointFor("ollama", {
+      "/v1/models": { data: [{ id: "q:1" }] },
+      "/api/show": { capabilities: ["completion"] },
+    });
+    await discoverLocalModels([live], { timeoutMs: 2000 });
+    const res = await discoverLocalModels([live], {
+      timeoutMs: 2000,
+      settings: {
+        models: { "local/ollama/q:1": { contextWindow: 32768, temperature: 0.2 } },
+        endpoints: { ollama: { headers: { "X-A": "b" } } },
+      },
+    });
+    expect(res.models[0]).toMatchObject({
+      contextWindow: 32768,
+      requestBody: { temperature: 0.2 },
+      requestHeaders: { "X-A": "b" },
+    });
+    expect(res.probes[0]!.models[0]).toMatchObject({
+      contextWindow: 32768,
+      contextWindowKnown: true,
+    });
+    expect(res.probes[0]!.models[0]!.detected?.contextWindow).toBe(FALLBACK_CONTEXT_WINDOW);
+  });
+});
+
+describe("ollama runtime settings", () => {
+  const ollama: LocalEndpoint = {
+    id: "ollama",
+    label: "Ollama",
+    baseUrl: "http://127.0.0.1:1/v1",
+    kind: "ollama",
+  };
+
+  it("validates the new model fields", () => {
+    expect(parseLocalModelSettings({ gpuLayers: 0, batchSize: 512, threads: 8 })).toEqual({
+      settings: { gpuLayers: 0, batchSize: 512, threads: 8 },
+      errors: [],
+    });
+    const bad = parseLocalModelSettings({ gpuLayers: 1000, batchSize: 0, threads: 513 });
+    expect(bad.settings).toEqual({});
+    expect(bad.errors).toHaveLength(3);
+  });
+
+  it("validates ollama server settings", () => {
+    const ok = parseLocalEndpointSettings({
+      ollama: { flashAttention: false, kvCacheType: "q8_0", contextLength: 8192, fit: true },
+    });
+    expect(ok.errors).toEqual([]);
+    expect(ok.settings.ollama).toEqual({
+      flashAttention: false,
+      kvCacheType: "q8_0",
+      contextLength: 8192,
+      fit: true,
+    });
+    const bad = parseLocalEndpointSettings({
+      ollama: {
+        kvCacheType: "q5",
+        contextLength: 10,
+        fitTargetMiB: -1,
+        cpuMoeLayers: 1000,
+        fit: 1,
+      },
+    });
+    expect(bad.settings.ollama).toBeUndefined();
+    expect(bad.errors).toHaveLength(5);
+  });
+
+  it("maps server settings to env, only those set", () => {
+    expect(ollamaServerEnv()).toEqual({});
+    expect(ollamaServerEnv({ autoStart: true })).toEqual({});
+    expect(
+      ollamaServerEnv({
+        flashAttention: false,
+        kvCacheType: "q4_0",
+        contextLength: 4096,
+        fit: false,
+        fitTargetMiB: 512,
+        cpuMoeLayers: 4,
+      }),
+    ).toEqual({
+      OLLAMA_FLASH_ATTENTION: "0",
+      OLLAMA_KV_CACHE_TYPE: "q4_0",
+      OLLAMA_CONTEXT_LENGTH: "4096",
+      LLAMA_ARG_FIT: "off",
+      LLAMA_ARG_FIT_TARGET: "512",
+      LLAMA_ARG_N_CPU_MOE: "4",
+    });
+  });
+
+  it("maps model settings to Ollama parameters", () => {
+    expect(ollamaModelParameters({ temperature: 0.2 })).toBeUndefined();
+    expect(
+      ollamaModelParameters({ contextWindow: 32768, gpuLayers: 20, batchSize: 256, threads: 6 }),
+    ).toEqual({ num_ctx: 32768, num_gpu: 20, num_batch: 256, num_thread: 6 });
+  });
+
+  it("names derived models", () => {
+    expect(ollamaDerivedName("qwen3:8b")).toBe("qwen3:8b-israelcode");
+    expect(ollamaDerivedName("qwen3")).toBe("qwen3:latest-israelcode");
+    expect(ollamaDerivedName("host:5000/lib/qwen3")).toBe("host:5000/lib/qwen3:latest-israelcode");
+    expect(isOllamaDerivedName("qwen3:8b-israelcode")).toBe(true);
+    expect(isOllamaDerivedName("qwen3:8b")).toBe(false);
+  });
+
+  it("toModelInfo sends the derived model only for Ollama with parameters", () => {
+    const model = {
+      rawId: "qwen3:8b",
+      endpointId: "ollama",
+      contextWindow: 4096,
+      contextWindowKnown: false,
+      supportsTools: true,
+      supportsImages: false,
+      supportsThinking: false,
+    };
+    expect(toModelInfo(model, ollama, { gpuLayers: 10 }).requestModel).toBe(
+      "local/ollama/qwen3:8b-israelcode",
+    );
+    expect(toModelInfo(model, ollama, { temperature: 0.1 }).requestModel).toBeUndefined();
+    expect(
+      toModelInfo(model, { ...ollama, kind: "custom" }, { gpuLayers: 10 }).requestModel,
+    ).toBeUndefined();
+  });
+
+  it("hides derived models and creates/deletes them over the API", async () => {
+    const seen: { method?: string; url?: string; body: string }[] = [];
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        seen.push({ method: req.method, url: req.url, body });
+        if (req.url === "/v1/models") {
+          res
+            .writeHead(200)
+            .end(JSON.stringify({ data: [{ id: "a:1" }, { id: "a:1-israelcode" }] }));
+        } else if (req.url === "/api/create" && body.includes('"bad:1"')) {
+          res.writeHead(500).end(JSON.stringify({ error: "boom" }));
+        } else if (req.url === "/api/delete") res.writeHead(404).end("{}");
+        else res.writeHead(200).end("{}");
+      });
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`;
+    try {
+      const endpoint = { ...ollama, baseUrl };
+      const probe = await probeEndpoint(endpoint);
+      expect(probe.models.map((m) => m.rawId)).toEqual(["a:1"]);
+      await expect(ensureOllamaDerivedModel(endpoint, "a:1", { num_gpu: 3 })).resolves.toBe(
+        "a:1-israelcode",
+      );
+      expect(JSON.parse(seen.find((s) => s.url === "/api/create")!.body)).toEqual({
+        model: "a:1-israelcode",
+        from: "a:1",
+        parameters: { num_gpu: 3 },
+        stream: false,
+      });
+      await expect(ensureOllamaDerivedModel(endpoint, "bad:1", { num_gpu: 3 })).rejects.toThrow(
+        "boom",
+      );
+      await expect(deleteOllamaDerivedModel(endpoint, "a:1")).resolves.toBeUndefined();
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
   });
 });

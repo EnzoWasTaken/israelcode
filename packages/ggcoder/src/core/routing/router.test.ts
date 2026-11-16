@@ -167,6 +167,8 @@ describe("routeTask", () => {
       expect(d.executionMode).toBe("ultracode");
       const e = await routeTask(makeRequest({ text: "x", pins: { effort: "high" } }), deps(a));
       expect(e).toMatchObject({ effort: "high", model: "claude-haiku-5-5" });
+      const u = await routeTask(makeRequest({ text: "x", pins: { effort: "ultra" } }), deps(a));
+      expect(["max", "xhigh", "high"]).toContain(u.effort);
       const m = await routeTask(
         makeRequest({ text: "x", pins: { executionMode: "standard" } }),
         deps(a),

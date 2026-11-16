@@ -95,7 +95,11 @@ import { submitPromptCommand } from "./submit-prompt-command.js";
 import { handleUiSlashCommand } from "./submit-slash-commands.js";
 import { buildLoopBreakMessage, evaluateLoopBreak } from "../core/loop-breaker.js";
 import { buildRegroundingMessage } from "../core/regrounding.js";
-import { getNextThinkingLevel, isThinkingLevelSupported } from "./thinking-level.js";
+import {
+  clampThinkingLevel,
+  getNextThinkingLevel,
+  isThinkingLevelSupported,
+} from "./thinking-level.js";
 import {
   getDoneFlushDecision,
   shouldTopSpaceAfterPrintedAgentBoundary,
@@ -623,11 +627,6 @@ export function App(props: AppProps) {
   useEffect(() => {
     onRuntimeStateChange?.({ provider: currentProvider });
   }, [currentProvider, onRuntimeStateChange]);
-  useEffect(() => {
-    if (thinkingLevel && !isThinkingLevelSupported(currentProvider, currentModel, thinkingLevel)) {
-      setThinkingLevel(getNextThinkingLevel(currentProvider, currentModel, undefined));
-    }
-  }, [currentProvider, currentModel, thinkingLevel]);
 
   useEffect(() => {
     onRuntimeStateChange?.({
@@ -686,6 +685,16 @@ export function App(props: AppProps) {
     () => ({ provider: currentProvider, accountId: activeAccountId }),
     [currentProvider, activeAccountId],
   );
+  useEffect(() => {
+    if (
+      thinkingLevel &&
+      !isThinkingLevelSupported(currentProvider, currentModel, thinkingLevel, contextWindowOptions)
+    ) {
+      setThinkingLevel(
+        clampThinkingLevel(currentProvider, currentModel, thinkingLevel, contextWindowOptions),
+      );
+    }
+  }, [currentProvider, currentModel, thinkingLevel, contextWindowOptions]);
 
   // Load git branch — re-runs whenever the displayed cwd changes.
   useEffect(() => {
@@ -2194,7 +2203,7 @@ export function App(props: AppProps) {
 
   const handleToggleThinking = useCallback(() => {
     setThinkingLevel((prev) => {
-      const next = getNextThinkingLevel(currentProvider, currentModel, prev);
+      const next = getNextThinkingLevel(currentProvider, currentModel, prev, contextWindowOptions);
       log("INFO", "thinking", next ? `Thinking ${next}` : "Thinking disabled");
       if (props.settingsFile) {
         const sm = new SettingsManager(props.settingsFile);
@@ -2205,7 +2214,7 @@ export function App(props: AppProps) {
       }
       return next;
     });
-  }, [currentProvider, currentModel, props.settingsFile]);
+  }, [currentProvider, currentModel, props.settingsFile, contextWindowOptions]);
 
   const handleModelSelect = useCallback(
     (value: string) => {

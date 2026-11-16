@@ -15,6 +15,7 @@ import {
   type RoutingTestResult,
   type ThinkingLevelName,
 } from "./agent";
+import { thinkingLabel } from "./thinking-display";
 import "./SettingsPages.css";
 
 const EFFORTS: ThinkingLevelName[] = ["low", "medium", "high", "xhigh", "max", "ultra"];
@@ -359,7 +360,7 @@ export function SettingsAutoRouting(): React.ReactElement {
                   <option value="">No limit</option>
                   {EFFORTS.map((x) => (
                     <option key={x} value={x}>
-                      {x}
+                      {thinkingLabel(x)}
                     </option>
                   ))}
                 </select>

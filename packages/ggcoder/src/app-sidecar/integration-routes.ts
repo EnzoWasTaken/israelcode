@@ -1,11 +1,28 @@
 import type http from "node:http";
 import { isValidHfRepoId } from "../hf-pull.js";
-import { parseLocalModelId } from "@kenkaiiii/gg-core";
+import {
+  deleteOllamaDerivedModel,
+  ensureOllamaDerivedModel,
+  ollamaModelParameters,
+  ollamaServerEnv,
+  parseLocalEndpointSettings,
+  parseLocalModelId,
+  parseLocalModelSettings,
+  type LocalEndpointSettings,
+  type LocalModelSettings,
+} from "@kenkaiiii/gg-core";
 import {
   LocalEndpointError,
   addCustomEndpoint,
+  listAllEndpoints,
   removeCustomEndpoint,
 } from "../core/local-endpoint-store.js";
+import {
+  loadLocalSettings,
+  removeEndpointSettings,
+  setEndpointSettings,
+  setModelSettings,
+} from "../core/local-settings-store.js";
 import { clearRuntimeModels } from "../core/model-registry.js";
 import { log } from "../core/logger.js";
 import { startServeMode } from "../modes/serve-mode.js";
@@ -85,11 +102,101 @@ export function handleIntegrationRoutes(
     return true;
   }
 
+  if (method === "POST" && (url === "/local/ollama/start" || url === "/local/ollama/stop")) {
+    const start = url === "/local/ollama/start";
+    void (async () => {
+      try {
+        if (start) {
+          const saved = await loadLocalSettings();
+          await ctx.ollamaServer.start(ollamaServerEnv(saved.endpoints["ollama"]?.ollama));
+        } else await ctx.ollamaServer.stop();
+        await ctx.scanLocalModels(true);
+        ctx.clampLocalThinking();
+        ctx.broadcast("models_change", { local: ctx.localStatePayload() });
+        json(res, 200, ctx.localStatePayload());
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        log("WARN", "app-sidecar", "ollama server control failed", { error: message });
+        json(res, 400, { error: message });
+      }
+    })();
+    return true;
+  }
+
+  if (method === "PUT" && (url === "/local/settings/model" || url === "/local/settings/endpoint")) {
+    const isModel = url === "/local/settings/model";
+    void readBody(req, res).then(async (raw) => {
+      if (raw === null) return;
+      let body: { id?: unknown; settings?: unknown };
+      try {
+        body = JSON.parse(raw) as typeof body;
+      } catch {
+        json(res, 400, { error: "invalid JSON body" });
+        return;
+      }
+      try {
+        const id = typeof body.id === "string" ? body.id : "";
+        const parsed = isModel ? parseLocalModelId(id) : null;
+        const endpointId = isModel ? parsed?.endpointId : id;
+        const endpoints = await listAllEndpoints();
+        if ((isModel && !parsed) || !endpointId || !endpoints.some((e) => e.id === endpointId)) {
+          json(res, 400, { error: `Unknown local ${isModel ? "model" : "endpoint"} "${id}".` });
+          return;
+        }
+        const { settings, errors } = isModel
+          ? parseLocalModelSettings(body.settings)
+          : parseLocalEndpointSettings(body.settings);
+        if (errors.length > 0) {
+          json(res, 400, { error: errors[0] });
+          return;
+        }
+        if (isModel && parsed) {
+          const endpoint = endpoints.find((e) => e.id === endpointId);
+          if (endpoint?.kind === "ollama") {
+            const params = ollamaModelParameters(settings as LocalModelSettings);
+            if (params) {
+              try {
+                await ensureOllamaDerivedModel(endpoint, parsed.rawId, params);
+              } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                json(res, 400, { error: `Could not apply to Ollama: ${message}` });
+                return;
+              }
+            } else {
+              await deleteOllamaDerivedModel(endpoint, parsed.rawId).catch(() => {});
+            }
+          }
+        }
+        if (isModel) await setModelSettings(id, settings as LocalModelSettings);
+        else await setEndpointSettings(id, settings as LocalEndpointSettings);
+        // Settings apply after the probe cache, so this re-registers without re-probing.
+        await ctx.scanLocalModels(false);
+        ctx.clampLocalThinking();
+        ctx.broadcast("models_change", { local: ctx.localStatePayload() });
+        json(res, 200, ctx.localStatePayload());
+      } catch (err) {
+        ctx.broadcastError("error", "save local settings failed", err);
+        json(res, 500, { error: "Could not save the settings — see the sidecar log." });
+      }
+    });
+    return true;
+  }
+
   if (method === "DELETE" && url.startsWith("/local/endpoints/")) {
     const id = decodeURIComponent(url.slice("/local/endpoints/".length));
     void (async () => {
       try {
+        const removed = (await listAllEndpoints()).find((e) => e.id === id);
+        if (removed?.kind === "ollama") {
+          const saved = await loadLocalSettings();
+          for (const modelId of Object.keys(saved.models)) {
+            const m = parseLocalModelId(modelId);
+            if (m?.endpointId === id)
+              await deleteOllamaDerivedModel(removed, m.rawId).catch(() => {});
+          }
+        }
         await removeCustomEndpoint(id);
+        await removeEndpointSettings(id);
         clearRuntimeModels(
           (m) => m.provider === "local" && parseLocalModelId(m.id)?.endpointId === id,
         );

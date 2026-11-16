@@ -13,6 +13,7 @@ export {
 } from "./model-registry.js";
 export {
   getNextThinkingLevel,
+  clampThinkingLevel,
   getSupportedThinkingLevels,
   isThinkingLevelSupported,
 } from "./thinking-level.js";

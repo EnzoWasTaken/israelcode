@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { ArrowsClockwiseIcon, XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { Modal } from "./Modal";
@@ -9,9 +9,13 @@ import {
   getLocalModels,
   removeLocalEndpoint,
   scanLocalModels,
+  setLocalEndpointSettings,
   type LocalEndpointRow,
   type LocalModelRow,
+  type LocalModelsState,
 } from "./agent";
+import { LocalModelSettingsForm } from "./LocalModelSettingsForm";
+import { OllamaServerSettings } from "./OllamaServerSettings";
 import { toast } from "./toast";
 
 interface Props {
@@ -71,6 +75,85 @@ function modelTooltip(model: LocalModelRow, endpoint: LocalEndpointRow): string 
   return lines.join("\n");
 }
 
+function isCustomised(settings: object | undefined): boolean {
+  return !!settings && Object.keys(settings).length > 0;
+}
+
+function headersToText(headers: Record<string, string> | undefined): string {
+  return Object.entries(headers ?? {})
+    .map(([name, value]) => `${name}: ${value}`)
+    .join("\n");
+}
+
+/** One `Name: value` per line; null = a line without a colon or name. */
+function parseHeaders(text: string): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const at = line.indexOf(":");
+    const name = at > 0 ? line.slice(0, at).trim() : "";
+    if (!name) return null;
+    out[name] = line.slice(at + 1).trim();
+  }
+  return out;
+}
+
+function HeadersEditor({
+  endpoint,
+  onSaved,
+}: {
+  endpoint: LocalEndpointRow;
+  onSaved: (state: LocalModelsState) => void;
+}): React.ReactElement {
+  const id = useId();
+  const [text, setText] = useState(headersToText(endpoint.settings?.headers));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function save(): Promise<void> {
+    const headers = parseHeaders(text);
+    if (!headers) {
+      setError("Write one header per line, like Name: value.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const empty = Object.keys(headers).length === 0;
+      onSaved(await setLocalEndpointSettings(endpoint.id, empty ? null : { headers }));
+      toast("Headers saved.", "success");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="local-endpoint-headers">
+      <label className="modal-label" htmlFor={id} style={{ color: theme.textMuted }}>
+        Headers for {endpoint.label}
+      </label>
+      <textarea
+        id={id}
+        className="modal-input"
+        style={{ color: theme.text, background: theme.inputBackground, width: "100%" }}
+        value={text}
+        rows={2}
+        spellCheck={false}
+        placeholder="X-Api-Version: 2"
+        onChange={(e) => setText(e.target.value)}
+      />
+      {error && (
+        <div className="login-status" role="alert" style={{ color: theme.error }}>
+          {error}
+        </div>
+      )}
+      <button type="button" className="modal-btn" disabled={busy} onClick={() => void save()}>
+        {busy ? "Saving\u2026" : "Save headers"}
+      </button>
+    </div>
+  );
+}
+
 /**
  * Local models manager. Only Ollama is found automatically; LM Studio,
  * llama.cpp, vLLM, PolyStrata, a self-hosted box or an OpenAI-compatible
@@ -95,6 +178,7 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
   const [contextLength, setContextLength] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [openSettings, setOpenSettings] = useState<string | null>(null);
 
   // Show the last scan immediately (no probing), then refresh in the background
   // so a server started since the app booted appears without a manual scan.
@@ -250,21 +334,73 @@ export function LocalModelsModal({ onClose }: Props): React.ReactElement {
                 )}
               </div>
 
+              {endpoint.reachable && (
+                <HeadersEditor
+                  key={headersToText(endpoint.settings?.headers)}
+                  endpoint={endpoint}
+                  onSaved={(state) => setEndpoints(state.endpoints)}
+                />
+              )}
+
+              {endpoint.kind === "ollama" && !endpoint.custom && (
+                <div>
+                  <button
+                    type="button"
+                    className="local-model-settings-btn"
+                    aria-expanded={openSettings === `server:${endpoint.id}`}
+                    onClick={() =>
+                      setOpenSettings(
+                        openSettings === `server:${endpoint.id}` ? null : `server:${endpoint.id}`,
+                      )
+                    }
+                  >
+                    Server settings
+                  </button>
+                  {openSettings === `server:${endpoint.id}` && (
+                    <OllamaServerSettings
+                      key={JSON.stringify(endpoint.settings?.ollama ?? {})}
+                      endpoint={endpoint}
+                      onSaved={(state) => setEndpoints(state.endpoints)}
+                    />
+                  )}
+                </div>
+              )}
+
               {endpoint.models.map((model) => (
-                // Informational row, not a control: selection happens in the
-                // footer model selector. A row is too narrow for a chip per
-                // capability (they overflowed the modal), so one quiet context
-                // figure sits inline and the full detail is in the tooltip.
-                <div
-                  key={model.id}
-                  className="local-model-row"
-                  style={{ color: model.supportsTools ? theme.text : theme.textDim }}
-                  title={modelTooltip(model, endpoint)}
-                >
-                  <span className="local-model-name">{model.rawId}</span>
-                  <span className="local-model-meta" style={{ color: theme.textDim }}>
-                    {model.supportsTools ? contextLabel(model) : "no tool calling"}
-                  </span>
+                // Selection happens in the footer model selector, not here. A
+                // row is too narrow for a chip per capability, so one quiet
+                // context figure sits inline and the detail is in the tooltip.
+                <div key={model.id}>
+                  <div
+                    className="local-model-row"
+                    style={{ color: model.supportsTools ? theme.text : theme.textDim }}
+                    title={modelTooltip(model, endpoint)}
+                  >
+                    <span className="local-model-name">{model.rawId}</span>
+                    <span className="local-model-meta" style={{ color: theme.textDim }}>
+                      {isCustomised(model.settings) && (
+                        <span className="local-model-custom">Custom </span>
+                      )}
+                      {model.supportsTools ? contextLabel(model) : "no tool calling"}
+                    </span>
+                    <button
+                      type="button"
+                      className="local-model-settings-btn"
+                      aria-expanded={openSettings === model.id}
+                      aria-label={`Settings for ${model.rawId}`}
+                      onClick={() => setOpenSettings(openSettings === model.id ? null : model.id)}
+                    >
+                      Settings
+                    </button>
+                  </div>
+                  {openSettings === model.id && (
+                    <LocalModelSettingsForm
+                      model={model}
+                      endpointKind={endpoint.kind}
+                      onSaved={(state) => setEndpoints(state.endpoints)}
+                      onClose={() => setOpenSettings(null)}
+                    />
+                  )}
                 </div>
               ))}
             </div>

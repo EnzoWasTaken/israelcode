@@ -671,6 +671,8 @@ async function runInkTUI(opts: {
     getProvider: () => activeProvider,
     getModel: () => activeModel,
     getThinkingLevel: () => activeThinkingLevel,
+    getAccountId: () =>
+      credentialsByProvider[resolvedKeyFor(activeProvider, activeModel)!]?.accountId,
     getMaxPerModel: () => opts.subagentMaxPerModel,
   });
 

@@ -1,3 +1,4 @@
+import { thinkingLabel } from "../thinking-display";
 import type { SettingsTabId } from "../settings-sections";
 
 /**
@@ -317,7 +318,7 @@ export function buildCommands(h: CommandHandlers): Command[] {
   if (h.setThinking) {
     const set = h.setThinking;
     for (const level of h.thinkingLevels ?? []) {
-      add(`thinking-${level}`, `Set thinking to ${level}`, () => set(level), {
+      add(`thinking-${level}`, `Set thinking to ${thinkingLabel(level)}`, () => set(level), {
         section: "Models",
         keywords: "reasoning effort",
         detail: level === h.thinkingLevel ? "current" : undefined,

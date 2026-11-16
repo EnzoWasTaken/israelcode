@@ -1685,11 +1685,14 @@ export function toLocalReasoningEffort(level: ThinkingLevel): "low" | "medium" |
 export function toGlmReasoningEffort(
   level: ThinkingLevel,
 ): "low" | "medium" | "high" | "xhigh" | "max" {
-  return level === "ultra" ? "max" : level;
+  // GLM documents only low/high/max; medium and xhigh are aliases, so send the real rung.
+  if (level === "medium") return "high";
+  if (level === "xhigh" || level === "ultra") return "max";
+  return level;
 }
 
 /**
- * Codex Ultra is a local delegation preset. Astra/Sol declare xhigh as their
+ * Codex Ultra is a local delegation preset. Astra/Sol/6.1-Terra declare xhigh as their
  * multi_agent_reasoning_effort; older catalogs without that override use max.
  * Source: openai/codex 4c9f42f4, models-manager/models.json and
  * protocol/src/openai_models/reasoning_effort.rs.
@@ -1699,7 +1702,9 @@ export function toCodexReasoningEffort(
   model: string,
 ): Exclude<ThinkingLevel, "ultra"> {
   if (level !== "ultra") return level;
-  return model === "gpt-6-astra" || model === "gpt-6.1-sol" ? "xhigh" : "max";
+  return model === "gpt-6-astra" || model === "gpt-6.1-sol" || model === "gpt-6.1-terra"
+    ? "xhigh"
+    : "max";
 }
 
 const DECLARED_EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"] as const;
@@ -1728,7 +1733,9 @@ export function effortForRequest(
 export function toOpenAIReasoningEffort(
   level: ThinkingLevel,
   model: string,
-): "low" | "medium" | "high" | "xhigh" {
+): "low" | "medium" | "high" | "xhigh" | "max" {
+  // gpt-6 accepts `max` on the public API; older ids top out at xhigh.
+  if (/^gpt-6[-.]/.test(model) && (level === "max" || level === "ultra")) return "max";
   const effort = level === "max" || level === "ultra" ? "xhigh" : level;
   // Sakana Fugu models reject any effort other than "high"/"xhigh", so floor a
   // lower manual selection up to "high" rather than letting the API 400.

@@ -107,6 +107,8 @@ export interface CreateToolsOptions {
   getProvider?: () => Provider;
   getModel?: () => string;
   getThinkingLevel?: () => ThinkingLevel | undefined;
+  /** Parent's ChatGPT sign-in account id (undefined for API-key sessions). */
+  getAccountId?: () => string | undefined;
   getBaseUrl?: () => string | undefined;
   /** Optional per-model subagent concurrency cap (subagentMaxPerModel). */
   getMaxPerModel?: () => number | undefined;
@@ -348,6 +350,7 @@ export async function createTools(
         opts.getCacheKey,
         planModeRef,
         opts.getThinkingLevel,
+        opts.getAccountId,
       ),
     );
     subAgentManager = new SubAgentManager({
@@ -363,6 +366,7 @@ export async function createTools(
       getProvider: () => opts.getProvider?.() ?? baseProvider,
       getModel: () => opts.getModel?.() ?? baseModel,
       getThinkingLevel: opts.getThinkingLevel,
+      getAccountId: opts.getAccountId,
       getCacheKey: opts.getCacheKey,
       getBaseUrl: opts.getBaseUrl,
       getMaxPerModel: () => opts.getMaxPerModel?.(),

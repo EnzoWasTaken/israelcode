@@ -3,6 +3,7 @@ import type { Provider, ThinkingLevel } from "@kenkaiiii/gg-ai";
 import { findProbedModel, localModelShortName, parseLocalModelId } from "@kenkaiiii/gg-core";
 import { getModel, getAllModels } from "../core/model-registry.js";
 import {
+  clampThinkingLevel,
   getNextThinkingLevel,
   getSupportedThinkingLevels,
   isThinkingLevelSupported,
@@ -31,9 +32,13 @@ export function resolveThinkingRequest(
   model: string,
   current: ThinkingLevel | undefined,
   raw: string,
+  accountId?: string,
 ): { ok: true; level: ThinkingLevel | undefined } | { ok: false; error: string } {
   if (raw.trim() === "") {
-    return { ok: true, level: getNextThinkingLevel(provider, model, current) };
+    return {
+      ok: true,
+      level: getNextThinkingLevel(provider, model, current, { provider, accountId }),
+    };
   }
   let body: unknown;
   try {
@@ -42,12 +47,17 @@ export function resolveThinkingRequest(
     return { ok: false, error: "invalid JSON body" };
   }
   if (typeof body !== "object" || body === null || !("level" in body)) {
-    return { ok: true, level: getNextThinkingLevel(provider, model, current) };
+    return {
+      ok: true,
+      level: getNextThinkingLevel(provider, model, current, { provider, accountId }),
+    };
   }
   const level = (body as { level: unknown }).level;
   if (level === null) return { ok: true, level: undefined };
   if (typeof level !== "string") return { ok: false, error: "level must be a string or null" };
-  const match = getSupportedThinkingLevels(provider, model).find((l) => l === level);
+  const match = getSupportedThinkingLevels(provider, model, { provider, accountId }).find(
+    (l) => l === level,
+  );
   if (!match) return { ok: false, error: `${model} doesn't support thinking level "${level}"` };
   return { ok: true, level: match };
 }
@@ -191,8 +201,14 @@ export function handleRunControlRoutes(
         ctx.session.setThinkingLevel(ctx.autoRoute.pins.effort ?? baseline?.thinkingLevel);
       }
       const prevLevel = ctx.session.getThinkingLevel();
-      if (prevLevel && !isThinkingLevelSupported(target.provider, target.id, prevLevel)) {
-        ctx.session.setThinkingLevel(getNextThinkingLevel(target.provider, target.id, undefined));
+      const levelOpts = { provider: target.provider, accountId: ctx.session.getState().accountId };
+      if (
+        prevLevel &&
+        !isThinkingLevelSupported(target.provider, target.id, prevLevel, levelOpts)
+      ) {
+        ctx.session.setThinkingLevel(
+          clampThinkingLevel(target.provider, target.id, prevLevel, levelOpts),
+        );
       }
       // Persist per-project so THIS window/project restores its own model on
       // restart (not the single global slot every window shares). Keep the
@@ -218,7 +234,7 @@ export function handleRunControlRoutes(
       }
       const payload = {
         thinkingLevel: ctx.session.getThinkingLevel() ?? null,
-        supportedThinkingLevels: getSupportedThinkingLevels(target.provider, target.id),
+        supportedThinkingLevels: getSupportedThinkingLevels(target.provider, target.id, levelOpts),
       };
       // model_change is emitted by switchModel; follow with thinking_change so
       // the footer toggle reflects the new model's supported levels.
@@ -406,6 +422,7 @@ export function handleRunControlRoutes(
         st.model,
         ctx.session.getThinkingLevel(),
         raw,
+        st.accountId,
       );
       if (!resolved.ok) {
         json(res, 400, { error: resolved.error });
@@ -435,7 +452,10 @@ export function handleRunControlRoutes(
       }).then(() => persistThinkingLevel(ctx.paths.settingsFile, next));
       const payload = {
         thinkingLevel: next ?? null,
-        supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model),
+        supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model, {
+          provider: st.provider,
+          accountId: st.accountId,
+        }),
       };
       ctx.broadcast("thinking_change", payload);
       json(res, 200, payload);
