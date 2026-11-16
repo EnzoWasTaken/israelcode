@@ -132,6 +132,8 @@ export const FALLBACK_CONTEXT_WINDOW = 4096;
 export const LOCAL_API_KEY_PLACEHOLDER = LOCAL_NO_API_KEY;
 
 const DEFAULT_PROBE_TIMEOUT_MS = 1200;
+// Ollama can take seconds to list a large or busy model store; refused connections still fail at once.
+const DEFAULT_LIST_TIMEOUT_MS = 10_000;
 /** Capability lookups are per-model; cap the fan-out so 40 Ollama models don't stampede. */
 const ENRICH_CONCURRENCY = 6;
 const CACHE_TTL_MS = 30_000;
@@ -311,12 +313,15 @@ export interface ProbeOptions {
  */
 export async function probeEndpoint(
   endpoint: LocalEndpoint,
-  { timeoutMs = DEFAULT_PROBE_TIMEOUT_MS, signal }: ProbeOptions = {},
+  { timeoutMs, signal }: ProbeOptions = {},
 ): Promise<LocalEndpointProbe> {
   const listUrl = `${endpoint.baseUrl.replace(/\/+$/, "")}/models`;
   let list: OpenAIModelList;
   try {
-    list = await fetchJsonOrThrow<OpenAIModelList>(listUrl, endpoint, { timeoutMs, signal });
+    list = await fetchJsonOrThrow<OpenAIModelList>(listUrl, endpoint, {
+      timeoutMs: timeoutMs ?? DEFAULT_LIST_TIMEOUT_MS,
+      signal,
+    });
   } catch (err) {
     return { endpoint, reachable: false, reason: unreachableReason(endpoint, err), models: [] };
   }
@@ -329,7 +334,10 @@ export async function probeEndpoint(
       !(endpoint.kind === "ollama" && isOllamaDerivedName(entry.id)),
   );
 
-  const enriched = await enrich(endpoint, entries, { timeoutMs, signal });
+  const enriched = await enrich(endpoint, entries, {
+    timeoutMs: timeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS,
+    signal,
+  });
   const pinned = contextLength(endpoint.contextLength);
   const models =
     pinned === undefined

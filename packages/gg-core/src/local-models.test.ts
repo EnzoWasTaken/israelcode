@@ -98,6 +98,34 @@ describe("model id round-trip", () => {
 });
 
 describe("probeEndpoint — Ollama", () => {
+  it("waits for a model list that takes longer than the per-model lookups", async () => {
+    const server = http.createServer((req, res) => {
+      const path = (req.url ?? "").split("?")[0]!;
+      const send = (body: unknown) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(body));
+      };
+      if (path === "/v1/models") setTimeout(() => send({ data: [{ id: "llama3.2:3b" }] }), 1600);
+      else if (path === "/api/ps") send({ models: [] });
+      else if (path === "/api/show") send({ capabilities: ["completion", "tools"] });
+      else res.writeHead(404).end("{}");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    cleanups.push(() => new Promise<void>((resolve) => server.close(() => resolve())));
+    const { port } = server.address() as AddressInfo;
+    const endpoint: LocalEndpoint = {
+      id: "ollama",
+      label: "ollama",
+      baseUrl: `http://127.0.0.1:${port}/v1`,
+      kind: "ollama",
+    };
+
+    const probe = await probeEndpoint(endpoint);
+
+    expect(probe.reachable).toBe(true);
+    expect(probe.models.map((m) => m.rawId)).toEqual(["llama3.2:3b"]);
+  });
+
   it("reads capabilities but uses the running allocation, not the architecture maximum", async () => {
     const endpoint = await endpointFor("ollama", {
       "/v1/models": { data: [{ id: "qwen3-coder:30b" }, { id: "nomic-embed-text" }] },
