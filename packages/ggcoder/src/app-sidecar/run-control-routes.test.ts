@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { clampThinkingLevel, getSupportedThinkingLevels } from "../core/thinking-level.js";
 import { resolveThinkingRequest } from "./run-control-routes.js";
 
 // Claude Sonnet 5.5 cycles low → medium → high → xhigh → off.
@@ -34,5 +35,34 @@ describe("resolveThinkingRequest", () => {
 
   it("refuses malformed JSON", () => {
     expect(resolveThinkingRequest(PROVIDER, MODEL, "low", "{nope").ok).toBe(false);
+  });
+});
+
+describe("resolveThinkingRequest ultra", () => {
+  it("API-key OpenAI refuses ultra; clamp keeps the nearest rung", () => {
+    const r = resolveThinkingRequest("openai", "gpt-6-astra", "high", '{"level":"ultra"}');
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("model switch thinking clamp", () => {
+  it("xhigh moving to a model without xhigh keeps the nearest rung, not off or the first", () => {
+    const supported = getSupportedThinkingLevels("anthropic", "claude-sonnet-5", {
+      provider: "anthropic",
+    });
+    expect(supported).not.toContain("xhigh");
+    expect(
+      clampThinkingLevel("anthropic", "claude-sonnet-5", "xhigh", { provider: "anthropic" }),
+    ).toBe("high");
+  });
+
+  it("ChatGPT sign-in (accountId) keeps ultra for gpt-6-astra; an API key does not", () => {
+    const chatgpt = getSupportedThinkingLevels("openai", "gpt-6-astra", {
+      provider: "openai",
+      accountId: "acct_1",
+    });
+    const apiKey = getSupportedThinkingLevels("openai", "gpt-6-astra", { provider: "openai" });
+    expect(chatgpt).toContain("ultra");
+    expect(apiKey).not.toContain("ultra");
   });
 });

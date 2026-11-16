@@ -1414,9 +1414,13 @@ export async function compact(
     options.signal?.addEventListener("abort", forwardAbort, { once: true });
 
     try {
+      // Local models carry the user's request body/headers and the wire model
+      // (an Ollama derived model), same as the main loop.
+      const localInfo = options.provider === "local" ? getModel(request.modelId) : undefined;
       const result = stream({
         provider: options.provider,
-        model: request.modelId,
+        model: localInfo?.requestModel ?? request.modelId,
+        ...(localInfo?.requestBody ? { providerOptions: localInfo.requestBody } : {}),
         messages: request.summaryMessages,
         maxTokens: request.outputTokens,
         apiKey: options.apiKey,
@@ -1426,7 +1430,7 @@ export async function compact(
         defaultHeaders:
           options.provider === "moonshot" && isKimiCodingEndpoint(options.baseUrl)
             ? kimiCodingHeaders()
-            : undefined,
+            : localInfo?.requestHeaders,
         signal: attemptController.signal,
       });
 

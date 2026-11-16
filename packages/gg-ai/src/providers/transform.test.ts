@@ -1044,11 +1044,14 @@ describe("toAnthropicThinking", () => {
 });
 
 describe("toCodexReasoningEffort", () => {
-  it.each(["gpt-6-astra", "gpt-6.1-sol"])("resolves %s Ultra without changing Max", (model) => {
-    expect(toCodexReasoningEffort("ultra", model)).toBe("xhigh");
-    expect(toCodexReasoningEffort("max", model)).toBe("max");
-    expect(toCodexReasoningEffort("low", model)).toBe("low");
-  });
+  it.each(["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra"])(
+    "resolves %s Ultra without changing Max",
+    (model) => {
+      expect(toCodexReasoningEffort("ultra", model)).toBe("xhigh");
+      expect(toCodexReasoningEffort("max", model)).toBe("max");
+      expect(toCodexReasoningEffort("low", model)).toBe("low");
+    },
+  );
 
   it("keeps the max fallback for catalogs without a multi-agent effort override", () => {
     expect(toCodexReasoningEffort("ultra", "gpt-6-sol")).toBe("max");
@@ -1059,7 +1062,9 @@ describe("toCodexReasoningEffort", () => {
 describe("toOpenAIReasoningEffort", () => {
   it("clamps client-only max and ultra levels to OpenAI's xhigh effort", () => {
     expect(toOpenAIReasoningEffort("max", "gpt-5.5")).toBe("xhigh");
-    expect(toOpenAIReasoningEffort("ultra", "gpt-6.1-sol")).toBe("xhigh");
+    expect(toOpenAIReasoningEffort("ultra", "gpt-6.1-sol")).toBe("max");
+    expect(toOpenAIReasoningEffort("max", "gpt-6-astra")).toBe("max");
+    expect(toOpenAIReasoningEffort("xhigh", "gpt-6-luna-fast")).toBe("xhigh");
   });
 });
 
@@ -1089,7 +1094,8 @@ describe("toGlmReasoningEffort", () => {
     // Only `ultra` has no GLM counterpart; everything else is server-declared
     // (`none, minimal, low, medium, high, xhigh, max`) and passes through.
     expect(toGlmReasoningEffort("ultra")).toBe("max");
-    expect(toGlmReasoningEffort("xhigh")).toBe("xhigh");
+    expect(toGlmReasoningEffort("xhigh")).toBe("max");
+    expect(toGlmReasoningEffort("medium")).toBe("high");
     expect(toGlmReasoningEffort("low")).toBe("low");
   });
 });

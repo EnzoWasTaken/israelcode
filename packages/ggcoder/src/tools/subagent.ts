@@ -81,6 +81,7 @@ export function createSubAgentTool(
   getParentCacheKey?: () => string | undefined,
   planModeRef?: { current: boolean },
   getParentThinkingLevel?: () => ThinkingLevel | undefined,
+  getParentAccountId?: () => string | undefined,
 ): AgentTool<typeof SubAgentParams> {
   return {
     name: "subagent",
@@ -108,12 +109,14 @@ export function createSubAgentTool(
       const useProvider = getParentProvider() as Provider;
       const parentModel = getParentModel();
       const parentThinkingLevel = getParentThinkingLevel?.();
+      const parentAccountId = getParentAccountId?.();
       const selection = selectSubAgent(
         agents,
         args.agent,
         useProvider,
         parentModel,
         parentThinkingLevel,
+        parentAccountId,
       );
       const agentDef = selection.agentDef;
       if (args.agent && !agentDef) {
@@ -150,7 +153,12 @@ export function createSubAgentTool(
         }
         // Re-resolve from the original parent selection on a model retry,
         // rather than carrying the pinned model's ceiling into the fallback.
-        const thinkingLevel = subAgentThinkingLevel(useProvider, model, parentThinkingLevel);
+        const thinkingLevel = subAgentThinkingLevel(
+          useProvider,
+          model,
+          parentThinkingLevel,
+          parentAccountId,
+        );
         if (thinkingLevel) {
           cliArgs.push("--thinking", thinkingLevel);
         }

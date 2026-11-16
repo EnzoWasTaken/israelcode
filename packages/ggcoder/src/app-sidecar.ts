@@ -58,6 +58,8 @@ import { pruneDiagnosticsRecords } from "./core/internal-diagnostics.js";
 import { pruneCheckpointSessions } from "./core/checkpoint-store.js";
 import {
   dualAuthProvider,
+  applyLocalModelSettings,
+  clampThinkingLevel,
   discoverLocalModels,
   findProbedModel,
   isLocalModelId,
@@ -65,15 +67,26 @@ import {
   parseLocalModelId,
   probeEndpoint,
   ollamaServedContext,
+  endpointRoot,
+  ensureOllamaDerivedModel,
+  ollamaDerivedName,
+  ollamaModelParameters,
+  ollamaServerEnv,
   toModelInfo as localModelInfo,
   type LocalEndpoint,
   type LocalEndpointProbe,
+  type LocalEndpointSettings,
+  type LocalModel,
+  type LocalModelSettings,
+  type LocalSettings,
 } from "@kenkaiiii/gg-core";
 import {
   listAllEndpoints,
   listCustomEndpoints,
   syncEndpointCredentials,
 } from "./core/local-endpoint-store.js";
+import { loadLocalSettings } from "./core/local-settings-store.js";
+import { createOllamaServerManager, type OllamaServerManager } from "./core/ollama-server.js";
 import { loadOpenRouterCatalog } from "./core/openrouter-catalog-store.js";
 import type { OAuthLoginCallbacks } from "./core/oauth/types.js";
 import {
@@ -438,6 +451,8 @@ async function main(): Promise<void> {
   // Providers currently mid-OAuth in some window. Daemon-level so two windows
   // cannot race two browser flows for the same provider into one auth file.
   const oauthInFlightProviders = new Set<string>();
+  // One managed Ollama for the whole daemon, shared by every window's session.
+  const ollamaServer = createOllamaServerManager();
 
   const memoryStore = new MemoryStore({
     onChange: ({ memories }) => {
@@ -614,6 +629,7 @@ async function main(): Promise<void> {
               jiwaStore,
               broadcastAll,
               oauthInFlightProviders,
+              ollamaServer,
               repoPolls,
               sessionIdsAt,
               busyAt,
@@ -851,6 +867,8 @@ async function main(): Promise<void> {
       // Radio playback is app-wide (one stream across all windows), so it stops
       // at the daemon level, not per session.
       stopRadio();
+      // Our own `ollama serve` child must not outlive the daemon.
+      await ollamaServer.stop().catch(() => {});
       // Drop the idle-sleep assertion first: session teardown may hang.
       keepAwake.dispose();
       // Close the ~/.israelcode progress fs.watch handle (baseline #8 leak fix).
@@ -908,6 +926,8 @@ async function createSession(
      * because a login writes the shared auth file — see `/auth/oauth/start`.
      */
     oauthInFlightProviders: Set<string>;
+    /** The daemon's one managed `ollama serve` (stopped on shutdown). */
+    ollamaServer: OllamaServerManager;
     /** Daemon-wide repo pollers shared by windows on the same repo. */
     repoPolls: RepoPolls;
     /** Ids of every live window session whose cwd is `cwd` (resolved). */
@@ -1004,10 +1024,22 @@ async function createSession(
   // Kimi K3 on the OAuth coding endpoint starts at its declared default (high),
   // matching the official kimi-code CLI's plan-usage profile.
   const thinkEnabled = projectPrefs?.thinkingEnabled ?? saved.thinkingEnabled;
+  const savedThinkingLevel = projectPrefs?.thinkingLevel ?? saved.thinkingLevel;
+  // A saved level may name a rung this model lacks; local models are validated
+  // after their probe (clampLocalThinking).
+  const bootAccountId =
+    thinkEnabled && savedThinkingLevel && provider !== "local"
+      ? (await auth.getCredentials(provider))?.accountId
+      : undefined;
   const thinkingLevel: ThinkingLevel | undefined = thinkEnabled
-    ? (projectPrefs?.thinkingLevel ??
-      saved.thinkingLevel ??
-      getDefaultThinkingLevel(model, { baseUrl: auth.getStoredBaseUrl(provider) }))
+    ? savedThinkingLevel
+      ? provider === "local"
+        ? savedThinkingLevel
+        : clampThinkingLevel(provider, model, savedThinkingLevel, {
+            provider,
+            accountId: bootAccountId,
+          })
+      : getDefaultThinkingLevel(model, { baseUrl: auth.getStoredBaseUrl(provider) })
     : undefined;
 
   // ── SSE fan-out (declared before the session so plan callbacks can use it) ─
@@ -1522,16 +1554,54 @@ async function createSession(
   // ("<endpointId>/<rawId>"). A model Ollama has since unloaded keeps its size.
   const servedContexts = new Map<string, number>();
 
+  // User overrides (`localSettings` in gg-app.json), reloaded on every scan.
+  let localSettings: LocalSettings = { models: {}, endpoints: {} };
+  const { ollamaServer } = deps;
+  // findBinary is async; the sync state payload reads the last answer.
+  let ollamaBinaryFound = false;
+
+  /** Served context fills only what the server didn't state: an override sets contextWindowKnown, so it stays. */
+  function withServedContext(m: LocalModel, served: number): LocalModel {
+    const learnEffective = !m.contextWindowKnown;
+    const learnDetected = m.detected !== undefined && !m.detected.contextWindowKnown;
+    if (!learnEffective && !learnDetected) return m;
+    return {
+      ...m,
+      ...(learnEffective ? { contextWindow: served, contextWindowKnown: true } : {}),
+      ...(m.detected && learnDetected
+        ? { detected: { ...m.detected, contextWindow: served, contextWindowKnown: true } }
+        : {}),
+    };
+  }
+
   function withServedContexts(probe: LocalEndpointProbe): LocalEndpointProbe {
     if (probe.endpoint.kind !== "ollama") return probe;
     return {
       ...probe,
       models: probe.models.map((m) => {
         const served = servedContexts.get(`${m.endpointId}/${m.rawId}`);
-        return served === undefined || m.contextWindowKnown
-          ? m
-          : { ...m, contextWindow: served, contextWindowKnown: true };
+        return served === undefined ? m : withServedContext(m, served);
       }),
+    };
+  }
+
+  /** Registry entry for a probed model with the user's settings (and its endpoint's headers). */
+  function registryModel(model: LocalModel, endpoint: LocalEndpoint) {
+    return localModelInfo(
+      model,
+      endpoint,
+      localSettings.models[formatLocalModelId(model.endpointId, model.rawId)],
+      localSettings.endpoints[endpoint.id],
+    );
+  }
+
+  /** Apply the saved overrides to a freshly probed (raw) endpoint. */
+  function withLocalSettings(probe: LocalEndpointProbe): LocalEndpointProbe {
+    return {
+      ...probe,
+      models: probe.models.map((m) =>
+        applyLocalModelSettings(m, localSettings.models[formatLocalModelId(m.endpointId, m.rawId)]),
+      ),
     };
   }
 
@@ -1544,10 +1614,39 @@ async function createSession(
     const parsed = parseLocalModelId(modelId);
     const probe = localProbes.find((p) => p.endpoint.id === parsed?.endpointId);
     if (!parsed || !probe || probe.endpoint.kind !== "ollama") return;
-    const served = await ollamaServedContext(probe.endpoint, parsed.rawId, { load });
+    // Settings that need num_ctx & co. run on the derived model; ask Ollama about that one.
+    const servedId = ollamaModelParameters(localSettings.models[modelId])
+      ? ollamaDerivedName(parsed.rawId)
+      : parsed.rawId;
+    if (servedId !== parsed.rawId) {
+      // Derived models are only created on save; re-create one Ollama lost.
+      const root = endpointRoot(probe.endpoint.baseUrl);
+      const missing = await fetch(`${root}/api/show`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: servedId }),
+        signal: AbortSignal.timeout(5000),
+      })
+        .then((r) => r.status === 404)
+        .catch(() => false);
+      if (missing) {
+        const params = ollamaModelParameters(localSettings.models[modelId]);
+        try {
+          if (params) await ensureOllamaDerivedModel(probe.endpoint, parsed.rawId, params);
+        } catch (err) {
+          log("WARN", "app-sidecar", "could not re-create derived Ollama model", {
+            model: modelId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      }
+    }
+    const served = await ollamaServedContext(probe.endpoint, servedId, { load });
     if (served === undefined) return;
     const known = probe.models.find((m) => m.rawId === parsed.rawId);
-    if (known?.contextWindowKnown && known.contextWindow === served) return;
+    const seen = known?.detected ?? known;
+    if (seen?.contextWindowKnown && seen.contextWindow === served) return;
     servedContexts.set(`${parsed.endpointId}/${parsed.rawId}`, served);
     localProbes = localProbes.map((p) =>
       p.endpoint.id !== parsed.endpointId
@@ -1555,14 +1654,12 @@ async function createSession(
         : {
             ...p,
             models: p.models.map((m) =>
-              m.rawId === parsed.rawId
-                ? { ...m, contextWindow: served, contextWindowKnown: true }
-                : m,
+              m.rawId === parsed.rawId ? withServedContext(m, served) : m,
             ),
           },
     );
     const updated = findProbedModel(localProbes, modelId);
-    if (updated) registerRuntimeModels([localModelInfo(updated.model, updated.endpoint)]);
+    if (updated) registerRuntimeModels([registryModel(updated.model, updated.endpoint)]);
     log("INFO", "app-sidecar", "learned served context", {
       model: modelId,
       contextWindow: String(served),
@@ -1573,10 +1670,12 @@ async function createSession(
 
   async function scanLocalModels(force: boolean): Promise<LocalEndpointProbe[]> {
     const endpoints = await listAllEndpoints();
-    const discovered = await discoverLocalModels(endpoints, { force });
+    localSettings = await loadLocalSettings();
+    ollamaBinaryFound = (await ollamaServer.findBinary().catch(() => undefined)) !== undefined;
+    const discovered = await discoverLocalModels(endpoints, { force, settings: localSettings });
     const probes = discovered.probes.map(withServedContexts);
     const models = probes.flatMap((probe) =>
-      probe.models.map((model) => localModelInfo(model, probe.endpoint)),
+      probe.models.map((model) => registryModel(model, probe.endpoint)),
     );
     localProbes = probes;
     // Only endpoints that answered get a credential: writing one for a server
@@ -1593,6 +1692,9 @@ async function createSession(
     return probes;
   }
 
+  const sortKeys = (env: Record<string, string>) =>
+    Object.fromEntries(Object.entries(env).sort(([a], [b]) => a.localeCompare(b)));
+
   /** Endpoint rows + models, in the shape the Local models UI renders. */
   function localStatePayload(): {
     endpoints: {
@@ -1604,6 +1706,8 @@ async function createSession(
       contextLength?: number;
       reachable: boolean;
       reason?: string;
+      settings: LocalEndpointSettings;
+      server?: { managed: boolean; running: boolean; canStart: boolean; restartNeeded: boolean };
       models: {
         id: string;
         rawId: string;
@@ -1612,10 +1716,25 @@ async function createSession(
         supportsTools: boolean;
         supportsImages: boolean;
         supportsThinking: boolean;
+        maxOutputTokens: number;
+        detected: NonNullable<LocalModel["detected"]>;
+        settings: LocalModelSettings;
         loaded?: boolean;
       }[];
     }[];
   } {
+    const serverRow = (probe: LocalEndpointProbe) => {
+      const status = ollamaServer.status();
+      const saved = ollamaServerEnv(localSettings.endpoints[probe.endpoint.id]?.ollama);
+      return {
+        managed: status.managed,
+        running: probe.reachable,
+        canStart: ollamaBinaryFound && !probe.reachable,
+        restartNeeded:
+          status.managed &&
+          JSON.stringify(sortKeys(saved)) !== JSON.stringify(sortKeys(status.env)),
+      };
+    };
     return {
       endpoints: localProbes.map((probe) => ({
         id: probe.endpoint.id,
@@ -1626,16 +1745,32 @@ async function createSession(
         ...(probe.endpoint.contextLength ? { contextLength: probe.endpoint.contextLength } : {}),
         reachable: probe.reachable,
         ...(probe.reason ? { reason: probe.reason } : {}),
-        models: probe.models.map((m) => ({
-          id: formatLocalModelId(probe.endpoint.id, m.rawId),
-          rawId: m.rawId,
-          contextWindow: m.contextWindow,
-          contextWindowKnown: m.contextWindowKnown,
-          supportsTools: m.supportsTools,
-          supportsImages: m.supportsImages,
-          supportsThinking: m.supportsThinking,
-          ...(m.loaded === undefined ? {} : { loaded: m.loaded }),
-        })),
+        settings: localSettings.endpoints[probe.endpoint.id] ?? {},
+        ...(probe.endpoint.id === "ollama" && !probe.endpoint.custom
+          ? { server: serverRow(probe) }
+          : {}),
+        models: probe.models.map((m) => {
+          const id = formatLocalModelId(probe.endpoint.id, m.rawId);
+          return {
+            id,
+            rawId: m.rawId,
+            contextWindow: m.contextWindow,
+            contextWindowKnown: m.contextWindowKnown,
+            supportsTools: m.supportsTools,
+            supportsImages: m.supportsImages,
+            supportsThinking: m.supportsThinking,
+            maxOutputTokens: registryModel(m, probe.endpoint).maxOutputTokens,
+            detected: m.detected ?? {
+              contextWindow: m.contextWindow,
+              contextWindowKnown: m.contextWindowKnown,
+              supportsTools: m.supportsTools,
+              supportsImages: m.supportsImages,
+              supportsThinking: m.supportsThinking,
+            },
+            settings: localSettings.models[id] ?? {},
+            ...(m.loaded === undefined ? {} : { loaded: m.loaded }),
+          };
+        }),
       })),
     };
   }
@@ -1664,7 +1799,7 @@ async function createSession(
     if (!endpoint)
       return `Unknown local endpoint "${parsed.endpointId}" — re-scan for local models.`;
 
-    const probe = withServedContexts(await probeEndpoint(endpoint));
+    const probe = withLocalSettings(withServedContexts(await probeEndpoint(endpoint)));
     // Keep the cached view honest: this probe is fresher than the last scan.
     localProbes = localProbes.map((p) => (p.endpoint.id === endpoint.id ? probe : p));
     if (!probe.reachable) {
@@ -1677,7 +1812,7 @@ async function createSession(
     if (!model.supportsTools) {
       return `${parsed.rawId} has no tool calling, so it can't run the agent. Pick a tool-capable model.`;
     }
-    registerRuntimeModels(probe.models.map((m) => localModelInfo(m, endpoint)));
+    registerRuntimeModels(probe.models.map((m) => registryModel(m, endpoint)));
     return undefined;
   }
 
@@ -1691,11 +1826,12 @@ async function createSession(
     const st = session.getState();
     const level = session.getThinkingLevel();
     if (!level || st.provider !== "local") return;
-    if (isThinkingLevelSupported(st.provider, st.model, level)) return;
+    const options = { provider: st.provider, accountId: st.accountId };
+    if (isThinkingLevelSupported(st.provider, st.model, level, options)) return;
     session.setThinkingLevel(undefined);
     broadcast("thinking_change", {
       thinkingLevel: null,
-      supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model),
+      supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model, options),
     });
   }
 
@@ -1802,6 +1938,18 @@ async function createSession(
 
   const initialLocalScan = scanLocalModels(false)
     .then(async () => {
+      const ollamaRow = localProbes.find((p) => p.endpoint.id === "ollama");
+      const server = localSettings.endpoints["ollama"]?.ollama;
+      if (server?.autoStart && ollamaRow && !ollamaRow.reachable && ollamaBinaryFound) {
+        try {
+          await ollamaServer.start(ollamaServerEnv(server));
+          await scanLocalModels(true);
+        } catch (err) {
+          log("WARN", "app-sidecar", "ollama auto-start failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
       await restoreSavedLocalModel();
       clampLocalThinking();
       broadcast("extras", footerExtras());
@@ -3336,6 +3484,8 @@ async function createSession(
     elicitations,
     localStatePayload,
     scanLocalModels,
+    clampLocalThinking,
+    ollamaServer,
     get hfPull() {
       return hf.hfPull;
     },

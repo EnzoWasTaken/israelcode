@@ -188,7 +188,10 @@ export async function routeTask(req: RouteRequest, deps: RouterDeps): Promise<Ro
           : d.effort;
       }
     }
-    if (pins.effort) out.effort = pins.effort;
+    if (pins.effort) {
+      const pinCap = registry.find((c) => c.provider === out.provider && c.model === out.model);
+      out.effort = pinCap ? clampEffort(pins.effort, pinCap.thinkingLevels) : pins.effort;
+    }
     if (pins.executionMode) out.executionMode = pins.executionMode;
 
     const pinnedCap = registry.find((c) => c.provider === out.provider && c.model === out.model);

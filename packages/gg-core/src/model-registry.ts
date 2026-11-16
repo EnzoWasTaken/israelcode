@@ -51,12 +51,18 @@ export interface ModelInfo {
    *     Haiku 5.5: `max` (the Fable / Mythos line uses always-on adaptive
    *     thinking, low→max)
    *   - Kimi K3: `max` (always-on reasoning; currently the only API effort)
-   *   - xAI Grok 4.6: `xhigh` (new top rung; 4.5 caps at `high`)
-   *   - GLM / Kimi K2.x / Xiaomi / MiniMax / Qwen: `high` — binary-thinking
+   *   - xAI Grok 4.7: `xhigh`
+   *   - GLM 5.3 / DeepSeek V4 / Kimi K3: `max` (GLM offers low/high/max, DeepSeek low/high/max)
+   *   - Gemini / Kimi K2.x / Xiaomi / Qwen / most HF models: `high`; binary-thinking
    *     providers ignore the level on the wire, so the value is cosmetic
-   *   - DeepSeek V4: `xhigh` (DeepSeek maps `xhigh` → its internal `max`)
    */
   maxThinkingLevel: ThinkingLevel;
+  /** Extra body fields sent with every request to this model (local models: user settings). */
+  requestBody?: Record<string, unknown>;
+  /** Extra HTTP headers sent with every request to this model (local endpoints: user settings). */
+  requestHeaders?: Record<string, string>;
+  /** Registry-format id sent on the wire instead of this model's own id. */
+  requestModel?: string;
   /**
    * Effort rungs the endpoint itself declared (a synced gateway catalog's
    * `reasoning.supported_efforts`). When set, the picker offers exactly these

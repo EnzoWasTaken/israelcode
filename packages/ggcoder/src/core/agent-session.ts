@@ -252,6 +252,27 @@ import { VerificationTracker } from "./agent-session/verification-tracker.js";
 import { McpToolRegistry } from "./agent-session/mcp-tools.js";
 import { TranscriptMarkers } from "./agent-session/transcript-markers.js";
 
+// ── Local request overrides ────────────────────────────────
+
+/** Body fields and headers a user set for a local model/endpoint; nothing for other providers. */
+export function localRequestOverrides(
+  provider: Provider,
+  model: string,
+): {
+  providerOptions?: Record<string, unknown>;
+  headers?: Record<string, string>;
+  model?: string;
+} {
+  if (provider !== "local") return {};
+  const info = getModel(model);
+  return {
+    // Ollama derived model: carries the user's num_ctx / num_gpu / ... settings.
+    ...(info?.requestModel ? { model: info.requestModel } : {}),
+    ...(info?.requestBody ? { providerOptions: info.requestBody } : {}),
+    ...(info?.requestHeaders ? { headers: info.requestHeaders } : {}),
+  };
+}
+
 // ── Output cap ─────────────────────────────────────────────
 
 /**
@@ -1027,7 +1048,8 @@ export class AgentSession {
     return outputCapForRequest({
       provider: this.provider,
       model: this.model,
-      maxTokens: this.maxTokens,
+      // A local model's output cap is a live user setting; re-read it per request.
+      maxTokens: this.provider === "local" ? this.resolveMaxTokens(this.model) : this.maxTokens,
       threshold: this.compactThreshold(),
       accountId,
     });
@@ -1182,6 +1204,7 @@ export class AgentSession {
       getProvider: () => this.provider,
       getModel: () => this.model,
       getThinkingLevel: () => this.thinkingLevel,
+      getAccountId: () => this.lastAccountId,
       getBaseUrl: () => this.baseUrl,
       getCacheKey: () => this.getPromptCacheKey(),
       getMaxPerModel: () => this.settingsManager.get("subagentMaxPerModel"),
@@ -2621,11 +2644,12 @@ export class AgentSession {
     const runAgentLoop = async (apiKey: string, accountId?: string, projectId?: string) => {
       lastResolvedAccessToken = apiKey;
       const modelInfo = getModel(this.model);
+      const localOverrides = localRequestOverrides(this.provider, this.model);
       const effectiveBaseUrl = this.baseUrl ?? creds.baseUrl;
       const generator = agentLoop(loopMessages, {
         ...(streamRules.length > 0 ? { streamRules: { rules: streamRules } } : {}),
         provider: this.provider,
-        model: this.model,
+        model: localOverrides.model ?? this.model,
         tools: options.disableTools ? [] : this.tools,
         ...(options.disableTools ? {} : { deferredTools: this.deferredToolCatalog }),
         webSearch: options.disableTools ? false : () => this.nativeWebSearchOn(),
@@ -2670,7 +2694,10 @@ export class AgentSession {
         defaultHeaders:
           this.provider === "moonshot" && isKimiCodingEndpoint(effectiveBaseUrl)
             ? kimiCodingHeaders()
-            : undefined,
+            : localOverrides.headers,
+        ...(localOverrides.providerOptions
+          ? { providerOptions: localOverrides.providerOptions }
+          : {}),
         // speedProfile "optimized": 1-h cache TTL (survives turns >5 min apart)
         // + pre-warm before the first turn. "baseline": current 5-min default.
         cacheRetention: this.isSpeedOptimized() ? "long" : "short",
@@ -5452,9 +5479,10 @@ export class AgentSession {
         return { ok: false, reason: "aborted" };
       }
       const modelInfo = getModel(this.model);
+      const prewarmOverrides = localRequestOverrides(this.provider, this.model);
       const result = stream({
         provider: this.provider,
-        model: this.model,
+        model: prewarmOverrides.model ?? this.model,
         messages,
         tools: this.tools,
         deferredTools: this.deferredToolCatalog,
@@ -5472,6 +5500,10 @@ export class AgentSession {
         promptCacheKey: this.getPromptCacheKey(),
         supportsImages: modelInfo?.supportsImages,
         supportsVideo: modelInfo?.supportsVideo,
+        ...(prewarmOverrides.providerOptions
+          ? { providerOptions: prewarmOverrides.providerOptions }
+          : {}),
+        ...(prewarmOverrides.headers ? { defaultHeaders: prewarmOverrides.headers } : {}),
         userAgent: await getClaudeCliUserAgent(),
         prewarm: true,
         signal: controller.signal,

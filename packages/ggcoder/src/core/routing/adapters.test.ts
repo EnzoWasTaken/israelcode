@@ -232,7 +232,7 @@ describe("Claude Fable 5.2 in the routing registry", () => {
     expect(info).toBeTruthy();
     const [cap] = buildCapabilityRegistry({ models: [info!], isAvailable: () => true });
     expect(cap!.strengths).toContain("reasoning");
-    expect(cap!.thinkingLevels).toEqual(["low", "medium", "high", "max"]);
+    expect(cap!.thinkingLevels).toEqual(["low", "medium", "high", "xhigh", "max"]);
     expect(effortForDifficulty("trivial", cap!.thinkingLevels)).toBe("low");
     expect(effortForDifficulty("moderate", cap!.thinkingLevels)).toBe("medium");
     expect(effortForDifficulty("hard", cap!.thinkingLevels)).toBe("high");

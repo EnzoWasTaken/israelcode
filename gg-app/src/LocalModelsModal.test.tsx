@@ -6,6 +6,8 @@ import {
   getLocalModels,
   removeLocalEndpoint,
   scanLocalModels,
+  setLocalEndpointSettings,
+  setLocalModelSettings,
   switchModel,
   type LocalModelsState,
 } from "./agent";
@@ -16,6 +18,8 @@ vi.mock("./agent", () => ({
   getLocalModels: vi.fn(),
   removeLocalEndpoint: vi.fn(),
   scanLocalModels: vi.fn(),
+  setLocalEndpointSettings: vi.fn(),
+  setLocalModelSettings: vi.fn(),
   switchModel: vi.fn(),
 }));
 
@@ -147,9 +151,9 @@ describe("LocalModelsModal", () => {
     render(<LocalModelsModal onClose={vi.fn()} />);
 
     const row = (await screen.findByText("gemma3:4b")).closest(".local-model-row")!;
-    // Informational row, not a control — selection lives in the footer picker.
+    // Selection lives in the footer picker; the only control is Settings.
     expect(row.tagName).toBe("DIV");
-    expect(row.querySelector("button")).toBeNull();
+    expect(row.querySelectorAll("button")).toHaveLength(1);
     expect(row.getAttribute("title")).toContain("no tool calling");
     expect(screen.getByText("no tool calling")).toBeTruthy();
   });
@@ -277,5 +281,77 @@ describe("LocalModelsModal", () => {
     expect(screen.getByText("Add endpoint")).toBeTruthy();
     expect(screen.getByText("Close")).toBeTruthy();
     expect(screen.getByText("Scan")).toBeTruthy();
+  });
+
+  it("marks a customised model and opens one settings form at a time", async () => {
+    const ollama = STATE.endpoints[0]!;
+    const custom = {
+      endpoints: [
+        {
+          ...ollama,
+          models: [
+            { ...ollama.models[0]!, settings: { temperature: 0.2 } },
+            { ...ollama.models[1]!, settings: {} },
+          ],
+        },
+      ],
+    };
+    getLocalModelsMock.mockResolvedValue(custom);
+    scanLocalModelsMock.mockResolvedValue(custom);
+    render(<LocalModelsModal onClose={vi.fn()} />);
+    await screen.findByText("Ollama");
+
+    expect(screen.getAllByText(/Custom/)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Settings for qwen3-coder:30b" }));
+    expect(screen.getByRole("form", { name: "Settings for qwen3-coder:30b" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Settings for gemma3:4b" }));
+    expect(screen.queryByRole("form", { name: "Settings for qwen3-coder:30b" })).toBeNull();
+    expect(screen.getByRole("form", { name: "Settings for gemma3:4b" })).toBeTruthy();
+  });
+
+  it("offers Server settings for the built-in Ollama row even when unreachable and without a server object", async () => {
+    const down = {
+      endpoints: [{ ...STATE.endpoints[0]!, reachable: false, models: [] }, STATE.endpoints[1]!],
+    };
+    getLocalModelsMock.mockResolvedValue(down);
+    scanLocalModelsMock.mockResolvedValue(down);
+    render(<LocalModelsModal onClose={vi.fn()} />);
+    await screen.findByText("Ollama");
+    fireEvent.click(screen.getByRole("button", { name: "Server settings" }));
+    expect(screen.getByRole("form", { name: "Ollama server settings" })).toBeTruthy();
+    expect(screen.getByText("Ollama is not installed.")).toBeTruthy();
+  });
+
+  it("does not offer Server settings for a custom endpoint", async () => {
+    const custom = {
+      endpoints: [{ ...STATE.endpoints[0]!, id: "ollama-custom", custom: true }],
+    };
+    getLocalModelsMock.mockResolvedValue(custom);
+    scanLocalModelsMock.mockResolvedValue(custom);
+    render(<LocalModelsModal onClose={vi.fn()} />);
+    await screen.findByText("Ollama");
+    expect(screen.queryByRole("button", { name: "Server settings" })).toBeNull();
+  });
+
+  it("saves endpoint headers one Name: value per line", async () => {
+    const lm = { ...STATE.endpoints[1]!, reachable: true, reason: undefined };
+    const state = { endpoints: [lm] };
+    getLocalModelsMock.mockResolvedValue(state);
+    scanLocalModelsMock.mockResolvedValue(state);
+    vi.mocked(setLocalEndpointSettings).mockResolvedValue(state);
+    render(<LocalModelsModal onClose={vi.fn()} />);
+    await screen.findByText("LM Studio");
+
+    fireEvent.change(screen.getByLabelText("Headers for LM Studio"), {
+      target: { value: "X-Org: acme\nX-Team: a:b" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save headers" }));
+
+    await waitFor(() =>
+      expect(setLocalEndpointSettings).toHaveBeenCalledWith("lmstudio-custom", {
+        headers: { "X-Org": "acme", "X-Team": "a:b" },
+      }),
+    );
+    void setLocalModelSettings;
   });
 });

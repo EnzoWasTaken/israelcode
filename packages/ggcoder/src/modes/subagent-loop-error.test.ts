@@ -379,6 +379,7 @@ describe("spawn_agent worker", () => {
       fallbackModel: "gpt-6.1-sol",
       thinkingLevel: "max",
       parentThinkingLevel: "ultra",
+      parentAccountId: "acct-1",
     });
 
     expect(done).toMatchObject({ status: "completed", output: "Final report." });

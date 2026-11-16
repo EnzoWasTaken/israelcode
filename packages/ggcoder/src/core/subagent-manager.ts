@@ -124,6 +124,7 @@ export interface SubAgentManagerOptions {
    */
   getChildModel?: () => ChildModelPick | undefined;
   getThinkingLevel?: () => ThinkingLevel | undefined;
+  getAccountId?: () => string | undefined;
   getCacheKey?: () => string | undefined;
   getBaseUrl?: () => string | undefined;
   /** Optional per-model concurrency cap (subagentMaxPerModel setting). Counted
@@ -489,12 +490,14 @@ export class SubAgentManager {
     const provider = pick?.provider ?? parentProvider;
     const parentModel = this.options.getModel();
     const parentThinkingLevel = this.options.getThinkingLevel?.();
+    const parentAccountId = this.options.getAccountId?.();
     const base = selectSubAgent(
       this.options.agents,
       agentName,
       provider,
       pick?.model ?? parentModel,
       parentThinkingLevel,
+      parentAccountId,
     );
     // Same rule as selectSubAgent: a harness override can't put a worker on a paid tier.
     const model = withoutPaidTier(overrides?.model ?? base.model);
@@ -504,7 +507,7 @@ export class SubAgentManager {
       parentModel: base.parentModel,
       model,
       // Resolve against the actual child model, including harness overrides.
-      thinkingLevel: subAgentThinkingLevel(provider, model, parentThinkingLevel),
+      thinkingLevel: subAgentThinkingLevel(provider, model, parentThinkingLevel, parentAccountId),
       tools: overrides?.tools ?? base.agentDef?.tools ?? [],
     };
     if (agentName && !selection.agentDef) {
@@ -578,6 +581,7 @@ export class SubAgentManager {
           agentContext: selection.agentDef?.context,
           thinkingLevel: selection.thinkingLevel,
           parentThinkingLevel,
+          parentAccountId,
           allowedTools: selection.tools.length ? [...selection.tools] : undefined,
           // Without this, an allow-listed child connects NO MCP servers — even
           // when its `tools:` frontmatter names `mcp__<server>__<tool>`.
@@ -984,6 +988,7 @@ export class SubAgentManager {
     const model = snapshot.model ?? this.options.getModel();
     const parentModel = this.options.getModel();
     const parentThinkingLevel = this.options.getThinkingLevel?.();
+    const parentAccountId = this.options.getAccountId?.();
     this.assertModelCapacity(model);
     const childSessionPath = this.assertChildSessionPath(snapshot.child_session_path);
     // Wake it where it was working; re-checked, since the workspace may have
@@ -1022,8 +1027,14 @@ export class SubAgentManager {
           baseUrl: this.options.getBaseUrl?.(),
           agentPrompt: agentDef?.systemPrompt,
           agentContext: agentDef?.context,
-          thinkingLevel: subAgentThinkingLevel(provider, model, parentThinkingLevel),
+          thinkingLevel: subAgentThinkingLevel(
+            provider,
+            model,
+            parentThinkingLevel,
+            parentAccountId,
+          ),
           parentThinkingLevel,
+          parentAccountId,
           allowedTools: agentDef?.tools.length ? agentDef.tools : undefined,
           allowedMcpServers: agentDef?.tools.length
             ? mcpServersForAgent(agentDef.tools)

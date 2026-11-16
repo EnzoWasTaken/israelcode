@@ -158,6 +158,8 @@ export interface SubagentWorkerInitialize {
   thinkingLevel?: ThinkingLevel;
   /** Original selection before a pinned child model's ceiling was applied. */
   parentThinkingLevel?: ThinkingLevel;
+  /** Parent's ChatGPT sign-in account id; keeps Ultra on a fallback resolve. */
+  parentAccountId?: string;
   allowedTools?: string[];
   /** MCP servers this agent may connect, derived from its `tools:` frontmatter. */
   allowedMcpServers?: string[];
@@ -392,6 +394,7 @@ export async function runSubagentWorkerMode(): Promise<void> {
               turnOptions.provider,
               fallbackModel,
               turnOptions.parentThinkingLevel,
+              turnOptions.parentAccountId,
             ),
           };
           turnSession = await createSession(initializeOptions);

@@ -817,3 +817,77 @@ pub(crate) fn urlencoding(s: &str) -> String {
     }
     out
 }
+
+/// Proxy: set or clear (null) one local model's settings.
+#[tauri::command]
+pub(crate) async fn agent_local_model_settings_set(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    id: String,
+    settings: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .put(format!("{}/local/settings/model", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "id": id, "settings": settings }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
+/// Proxy: set or clear (null) one local endpoint's settings (headers).
+#[tauri::command]
+pub(crate) async fn agent_local_endpoint_settings_set(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+    id: String,
+    settings: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .put(format!("{}/local/settings/endpoint", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .json(&serde_json::json!({ "id": id, "settings": settings }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
+/// Proxy: start (or restart) Ollama with the saved server settings.
+#[tauri::command]
+pub(crate) async fn agent_local_ollama_start(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/local/ollama/start", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}
+
+/// Proxy: stop the Ollama server this app started.
+#[tauri::command]
+pub(crate) async fn agent_local_ollama_stop(
+    webview: WebviewWindow,
+    client: State<'_, reqwest::Client>,
+) -> Result<serde_json::Value, String> {
+    let port = port_for(&webview).ok_or("daemon not ready")?;
+    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let res = client
+        .post(format!("{}/local/ollama/stop", sidecar_base(port)))
+        .header("x-gg-session", &gg_sid)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    sidecar_json(res).await
+}

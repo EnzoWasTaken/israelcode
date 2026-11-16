@@ -114,9 +114,9 @@ describe("selectSubAgent", () => {
       ];
       for (const model of ["gpt-6-astra", "gpt-6.1-sol"]) {
         for (const name of ["worker", "owl", undefined]) {
-          expect(selectSubAgent(agents, name, "openai", model, thinkingLevel).thinkingLevel).toBe(
-            thinkingLevel,
-          );
+          expect(
+            selectSubAgent(agents, name, "openai", model, thinkingLevel, "acct-1").thinkingLevel,
+          ).toBe(thinkingLevel);
         }
       }
     },
@@ -124,7 +124,9 @@ describe("selectSubAgent", () => {
 
   it("caps inherited Ultra for a pinned OpenAI model without Ultra", () => {
     const pinned = agent({ name: "pinned", model: "gpt-6-luna" });
-    expect(selectSubAgent([pinned], "pinned", "openai", "gpt-6.1-sol", "ultra")).toMatchObject({
+    expect(
+      selectSubAgent([pinned], "pinned", "openai", "gpt-6.1-sol", "ultra", "acct-1"),
+    ).toMatchObject({
       model: "gpt-6-luna",
       thinkingLevel: "max",
     });

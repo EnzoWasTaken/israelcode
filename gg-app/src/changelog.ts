@@ -22,6 +22,17 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.112.0",
+    date: "2026-11-16",
+    items: [
+      "Local models get real settings. Open `Local models`, press `Settings` on any model and set its `Context window`, `Max output tokens`, `Temperature`, `Top P`, `Top K`, `Repeat penalty` and `Seed`, switch `Tools`, `Images` and `Reasoning` on or off when detection got it wrong, and add extra request fields or endpoint headers. Clear a field and the detected value comes back.",
+      "Ollama loads the model your way. `GPU layers`, `Batch size`, `CPU threads` and the context window are saved into a copy of the model named `-israelcode`, so Ollama keeps them on every request instead of falling back to its defaults.",
+      "Run Ollama from the app with your server settings. `Server settings` on the Ollama row holds `Flash attention`, `KV cache quantization`, `Default context length`, `Automatic memory fitting` and `CPU MoE offload layers`, with `Start`, `Restart` and `Stop` buttons. An Ollama you started yourself is never touched.",
+      "Every model shows only the effort levels it has. Claude Fable 5 gains `xhigh`, GPT `Ultra` appears only with a ChatGPT sign-in, Gemini offers `low`, `medium` and `high`, GLM offers `low`, `high` and `max`, and models that cannot reason offer none.",
+      "Switching models keeps your effort. A level the new model lacks moves to the nearest one it has, for model switches, Auto routing and sub-agents, instead of dropping to the lowest or turning thinking off.",
+    ],
+  },
+  {
     version: "0.111.0",
     date: "2026-11-13",
     items: [

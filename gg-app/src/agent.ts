@@ -2786,6 +2786,51 @@ export interface LocalModelRow {
   supportsThinking: boolean;
   /** LM Studio only: whether the model is currently loaded in memory. */
   loaded?: boolean;
+  /** Effective output cap (older sidecars omit it). */
+  maxOutputTokens?: number;
+  /** Probed values before the user's overrides (older sidecars omit it). */
+  detected?: {
+    contextWindow: number;
+    contextWindowKnown: boolean;
+    supportsTools: boolean;
+    supportsImages: boolean;
+    supportsThinking: boolean;
+  };
+  /** The user's overrides; `{}` when none. */
+  settings?: LocalModelSettings;
+}
+
+export interface LocalModelSettings {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  repeatPenalty?: number;
+  seed?: number;
+  supportsTools?: boolean;
+  supportsImages?: boolean;
+  supportsThinking?: boolean;
+  extraBody?: Record<string, unknown>;
+  /** Ollama only. */
+  gpuLayers?: number;
+  batchSize?: number;
+  threads?: number;
+}
+
+export interface OllamaServerSettings {
+  flashAttention?: boolean;
+  kvCacheType?: "f16" | "q8_0" | "q4_0";
+  contextLength?: number;
+  fit?: boolean;
+  fitTargetMiB?: number;
+  cpuMoeLayers?: number;
+  autoStart?: boolean;
+}
+
+export interface LocalEndpointSettings {
+  headers?: Record<string, string>;
+  ollama?: OllamaServerSettings;
 }
 
 export interface LocalEndpointRow {
@@ -2801,6 +2846,9 @@ export interface LocalEndpointRow {
   /** Why it's unreachable, e.g. "Not running at http://127.0.0.1:11434/v1". */
   reason?: string;
   models: LocalModelRow[];
+  settings?: LocalEndpointSettings;
+  /** Built-in Ollama row only (older sidecars omit it). */
+  server?: { managed: boolean; running: boolean; canStart: boolean; restartNeeded: boolean };
 }
 
 export interface LocalModelsState {
@@ -2857,6 +2905,43 @@ export async function addLocalEndpoint(
 export async function removeLocalEndpoint(id: string): Promise<LocalModelsState> {
   await waitForReady();
   const res = await invoke<LocalModelsState>("agent_local_endpoint_remove", { id });
+  return unwrapLocalState(res);
+}
+
+/** Save one model's settings; `null` clears them. Throws the route's message when invalid. */
+export async function setLocalModelSettings(
+  id: string,
+  settings: LocalModelSettings | null,
+): Promise<LocalModelsState> {
+  await waitForReady();
+  const res = await invoke<LocalModelsState>("agent_local_model_settings_set", { id, settings });
+  return unwrapLocalState(res);
+}
+
+/** Save one endpoint's settings (headers); `null` clears them. */
+export async function setLocalEndpointSettings(
+  id: string,
+  settings: LocalEndpointSettings | null,
+): Promise<LocalModelsState> {
+  await waitForReady();
+  const res = await invoke<LocalModelsState>("agent_local_endpoint_settings_set", {
+    id,
+    settings,
+  });
+  return unwrapLocalState(res);
+}
+
+/** Start (or restart) Ollama with the saved server settings. */
+export async function startOllamaServer(): Promise<LocalModelsState> {
+  await waitForReady();
+  const res = await invoke<LocalModelsState>("agent_local_ollama_start");
+  return unwrapLocalState(res);
+}
+
+/** Stop the Ollama server this app started. */
+export async function stopOllamaServer(): Promise<LocalModelsState> {
+  await waitForReady();
+  const res = await invoke<LocalModelsState>("agent_local_ollama_stop");
   return unwrapLocalState(res);
 }
 

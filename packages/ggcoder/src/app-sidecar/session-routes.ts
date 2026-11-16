@@ -67,7 +67,10 @@ export function handleSessionRoutes(
       runState: ctx.runLifecycle.state,
       ready: true,
       thinkingLevel: ctx.session.getThinkingLevel() ?? null,
-      supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model),
+      supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model, {
+        provider: st.provider,
+        accountId: st.accountId,
+      }),
       supportsVideo: getModel(st.model)?.supportsVideo ?? false,
       autopilot: ctx.autopilot,
       ultracode: ctx.session.isUltracode(),
@@ -186,7 +189,10 @@ export function handleSessionRoutes(
           pendingPlan: ctx.pendingPlanForHuman(-1),
           runState: ctx.runLifecycle.state,
           thinkingLevel: ctx.session.getThinkingLevel() ?? null,
-          supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model),
+          supportedThinkingLevels: getSupportedThinkingLevels(st.provider, st.model, {
+            provider: st.provider,
+            accountId: st.accountId,
+          }),
           supportsVideo: getModel(st.model)?.supportsVideo ?? false,
           autopilot: ctx.autopilot,
           ultracode: ctx.session.isUltracode(),

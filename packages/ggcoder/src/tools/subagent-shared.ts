@@ -64,6 +64,7 @@ export function selectSubAgent(
   provider: Provider,
   parentModel: string,
   parentThinkingLevel?: ThinkingLevel,
+  accountId?: string,
 ): SubAgentSelection {
   const agentDef = resolveAgentDefinition(agents, requestedName);
   // Children never run on a paid tier: one opted-in parent would otherwise
@@ -74,7 +75,7 @@ export function selectSubAgent(
     provider,
     parentModel,
     model,
-    thinkingLevel: subAgentThinkingLevel(provider, model, parentThinkingLevel),
+    thinkingLevel: subAgentThinkingLevel(provider, model, parentThinkingLevel, accountId),
   };
 }
 
@@ -105,10 +106,11 @@ export function subAgentThinkingLevel(
   provider: Provider,
   model: string,
   parentThinkingLevel?: ThinkingLevel,
+  accountId?: string,
 ): ThinkingLevel | undefined {
   if (provider !== "openai") return getLowestThinkingLevel(provider, model);
   if (!parentThinkingLevel) return undefined;
-  const levels = getSupportedThinkingLevels(provider, model);
+  const levels = getSupportedThinkingLevels(provider, model, { provider, accountId });
   if (levels.includes(parentThinkingLevel)) return parentThinkingLevel;
   // Older OpenAI models start at medium; never turn inherited low into xhigh.
   return parentThinkingLevel === "low" ? levels[0] : levels.at(-1);

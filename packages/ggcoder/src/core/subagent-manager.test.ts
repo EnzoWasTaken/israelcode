@@ -55,6 +55,7 @@ function manager(
     provider?: Provider;
     model?: string;
     getThinkingLevel?: () => ThinkingLevel | undefined;
+    getAccountId?: () => string | undefined;
     workspaceRoots?: string[];
     shareWorkspaceRoots?: boolean;
     defaultAgent?: string;
@@ -72,6 +73,7 @@ function manager(
     getProvider: () => options.provider ?? "openai",
     getModel: () => options.model ?? "gpt-6.1-sol",
     getThinkingLevel: options.getThinkingLevel,
+    getAccountId: options.getAccountId,
     getCacheKey: () => "parent-cache",
     getMaxPerModel: () => options.maxPerModel,
     getActiveLimit: options.activeLimit ? () => options.activeLimit! : undefined,
@@ -288,6 +290,8 @@ describe("SubAgentManager", () => {
     const instance = manager({
       agentDefs: [...agents, inheriting],
       getThinkingLevel: () => "ultra",
+      // Ultra on OpenAI exists only for ChatGPT sign-in sessions.
+      getAccountId: () => "acct-1",
     });
     const requestSpy = vi.spyOn(
       instance as unknown as {
@@ -306,7 +310,7 @@ describe("SubAgentManager", () => {
 
   it("reads current parent reasoning on each spawn and retains it for fallback", async () => {
     let thinking: ThinkingLevel | undefined = "ultra";
-    const instance = manager({ getThinkingLevel: () => thinking });
+    const instance = manager({ getThinkingLevel: () => thinking, getAccountId: () => "acct-1" });
     const requestSpy = vi.spyOn(
       instance as unknown as { request: (...args: unknown[]) => Promise<unknown> },
       "request",
@@ -649,6 +653,8 @@ describe("SubAgentManager", () => {
     const instance = manager({
       idleTimeoutMs: 5,
       getThinkingLevel: () => "ultra",
+      // Ultra on OpenAI exists only for ChatGPT sign-in sessions.
+      getAccountId: () => "acct-1",
       cwd,
       sessionRootDir,
       store: new SubAgentStore(path.join(root, "state")),

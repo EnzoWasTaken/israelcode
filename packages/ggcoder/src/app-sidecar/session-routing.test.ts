@@ -38,7 +38,10 @@ function adapterPicking(match: string): DecisionAdapter {
     id: "stub",
     label: "stub",
     async decide(input): Promise<RawRouteChoice> {
-      const pick = input.candidates.find((c) => c.id.includes(match)) ?? input.candidates[0]!;
+      const pick =
+        input.candidates.find((c) => c.id === match) ??
+        input.candidates.find((c) => c.id.includes(match)) ??
+        input.candidates[0]!;
       return {
         model: pick.id,
         effort: null,
@@ -57,7 +60,7 @@ function makeCtx(opts: {
   throwing?: boolean;
   pins?: SessionRouteContext["autoRoute"]["pins"];
   mode?: "code" | "chat" | "motion";
-  thinking?: "low" | "high";
+  thinking?: "low" | "high" | "ultra";
   slash?: boolean;
   buildAdapter?: () => Promise<unknown>;
 }) {
@@ -106,7 +109,7 @@ function makeCtx(opts: {
       getThinkingLevel: () => flags.thinking,
       getContextUsage: () => ({ used: 100, size: 200000 }),
       switchModel,
-      setThinkingLevel: vi.fn((l: "low" | "high" | undefined) => {
+      setThinkingLevel: vi.fn((l: "low" | "high" | "ultra" | undefined) => {
         flags.thinking = l;
       }),
       isUltracode: () => flags.ultracode,
@@ -186,6 +189,20 @@ describe("routeUserPrompt", () => {
       const cap = registry.find((c) => c.model === call[1]);
       expect(cap?.vision).toBe(true);
     }
+  });
+});
+
+describe("routing thinking clamp", () => {
+  it("clamps a level the routed model lacks to the nearest rung instead of turning thinking off", async () => {
+    // No accountId in this session: API-key OpenAI has no ultra rung.
+    const t = makeCtx({
+      thinking: "ultra",
+      pins: { effort: "ultra" },
+      adapter: adapterPicking("gpt-6-astra"),
+    });
+    await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
+    expect(t.switchModel.mock.calls[0]![1]).toBe("gpt-6-astra");
+    expect(t.flags.thinking).toBe("max");
   });
 });
 
