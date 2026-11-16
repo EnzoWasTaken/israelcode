@@ -29,7 +29,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # Windows only: this fork ships and is used on Windows alone.
+        os: [windows-latest]
         node: [22.x]
     steps:
       - uses: actions/checkout@v7
@@ -104,9 +105,7 @@ jobs:
           node .github/ci/startup-gate.mjs
           node .github/ci/sidecar-startup-gate.mjs
 
-      # Lint and formatting are OS-independent, so one leg is enough.
       - name: Lint + format check
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           pnpm lint
@@ -192,7 +191,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # Windows only: this fork ships and is used on Windows alone.
+        os: [windows-latest]
     steps:
       - uses: actions/checkout@v7
 
@@ -262,7 +262,6 @@ jobs:
         run: pnpm --filter gg-app test
 
       - name: Rust format check
-        if: runner.os == 'Linux'
         working-directory: gg-app/src-tauri
         shell: bash
         run: cargo fmt --check
