@@ -22,6 +22,13 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.112.1",
+    date: "2026-11-16",
+    items: [
+      "Ollama connects even when it is slow to answer. A big or busy model store can take a few seconds to list its models, and `Local models` used to give up after about a second with `No response`. It now waits up to `10` seconds for the list, and a server that is not running still shows as offline straight away.",
+    ],
+  },
+  {
     version: "0.112.0",
     date: "2026-11-16",
     items: [
