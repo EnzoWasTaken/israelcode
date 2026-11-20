@@ -22,6 +22,13 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.113.0",
+    date: "2026-11-20",
+    items: [
+      "GPT-6.2 is here. Pick `GPT-6.2 Astra` or `GPT-6.2 Sol`, including their `Fast` variants, from the model list. Sol is the new OpenAI default, with a `500K` context window when you sign in with ChatGPT. The superseded Astra and Sol entries leave the list; `GPT-6 Luna` stays available.",
+    ],
+  },
+  {
     version: "0.112.1",
     date: "2026-11-16",
     items: [

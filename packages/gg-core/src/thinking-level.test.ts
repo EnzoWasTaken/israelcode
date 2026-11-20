@@ -13,7 +13,7 @@ import type { ThinkingLevel } from "@kenkaiiii/gg-ai";
 describe("getLowestThinkingLevel", () => {
   it.each([
     ["anthropic", "claude-opus-5-5"],
-    ["openai", "gpt-6.1-sol"],
+    ["openai", "gpt-6.2-sol"],
     ["gemini", "gemini-3.8-flash"],
     ["glm", "glm-5.3"],
     ["deepseek", "deepseek-v4-pro"],
@@ -32,9 +32,9 @@ describe("getLowestThinkingLevel", () => {
 });
 
 describe("thinking-level helpers", () => {
-  it("cycles GPT-6 Astra through the full six-rung ladder up to ultra on Codex", () => {
+  it("cycles GPT-6.2 Astra through the full six-rung ladder up to ultra on Codex", () => {
     const codex = { provider: "openai" as const, accountId: "acct" };
-    expect(getSupportedThinkingLevels("openai", "gpt-6-astra", codex)).toEqual([
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-astra", codex)).toEqual([
       "low",
       "medium",
       "high",
@@ -42,9 +42,9 @@ describe("thinking-level helpers", () => {
       "max",
       "ultra",
     ]);
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", undefined, codex)).toBe("low");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "max", codex)).toBe("ultra");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "ultra", codex)).toBeUndefined();
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", undefined, codex)).toBe("low");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "max", codex)).toBe("ultra");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "ultra", codex)).toBeUndefined();
   });
 
   it("keeps the legacy medium/high ladder for unregistered custom GPT ids", () => {
@@ -55,13 +55,13 @@ describe("thinking-level helpers", () => {
   it("exposes Ultra only for GPT-6 models that support proactive delegation", () => {
     const baseLevels = ["low", "medium", "high", "xhigh", "max"];
     const codex = { provider: "openai" as const, accountId: "acct" };
-    expect(getSupportedThinkingLevels("openai", "gpt-6.1-sol", codex)).toEqual([
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-sol", codex)).toEqual([
       ...baseLevels,
       "ultra",
     ]);
     expect(getSupportedThinkingLevels("openai", "gpt-6-luna", codex)).toEqual(baseLevels);
-    expect(getNextThinkingLevel("openai", "gpt-6.1-sol", "max", codex)).toBe("ultra");
-    expect(getNextThinkingLevel("openai", "gpt-6.1-sol", "ultra", codex)).toBeUndefined();
+    expect(getNextThinkingLevel("openai", "gpt-6.2-sol", "max", codex)).toBe("ultra");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-sol", "ultra", codex)).toBeUndefined();
   });
 
   it("cycles Anthropic adaptive Opus models through max, including xhigh", () => {
@@ -202,20 +202,20 @@ describe("thinking-level helpers", () => {
   it("drops ultra on an OpenAI API key but keeps it on the Codex transport", () => {
     const codex = { provider: "openai" as const, accountId: "acct" };
     const apiKey = ["low", "medium", "high", "xhigh", "max"];
-    expect(getSupportedThinkingLevels("openai", "gpt-6-astra")).toEqual(apiKey);
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-astra")).toEqual(apiKey);
     expect(
-      getSupportedThinkingLevels("openai", "gpt-6.1-sol-fast", { provider: "openai" }),
+      getSupportedThinkingLevels("openai", "gpt-6.2-sol-fast", { provider: "openai" }),
     ).toEqual(apiKey);
-    expect(getSupportedThinkingLevels("openai", "gpt-6-astra", codex)).toEqual([
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-astra", codex)).toEqual([
       ...apiKey,
       "ultra",
     ]);
     expect(getSupportedThinkingLevels("openai", "gpt-6-luna", codex)).toEqual(apiKey);
-    expect(isThinkingLevelSupported("openai", "gpt-6-astra", "ultra")).toBe(false);
-    expect(isThinkingLevelSupported("openai", "gpt-6-astra", "ultra", codex)).toBe(true);
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "max")).toBeUndefined();
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "max", codex)).toBe("ultra");
-    expect(getLowestThinkingLevel("openai", "gpt-6-astra", codex)).toBe("low");
+    expect(isThinkingLevelSupported("openai", "gpt-6.2-astra", "ultra")).toBe(false);
+    expect(isThinkingLevelSupported("openai", "gpt-6.2-astra", "ultra", codex)).toBe(true);
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "max")).toBeUndefined();
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "max", codex)).toBe("ultra");
+    expect(getLowestThinkingLevel("openai", "gpt-6.2-astra", codex)).toBe("low");
   });
 
   it("keeps non-cycling providers at their model's sole supported effort", () => {
@@ -383,7 +383,7 @@ describe("clampThinkingLevel", () => {
   });
 
   it("moves to the nearest supported rung", () => {
-    expect(clampThinkingLevel("openai", "gpt-6-astra", "ultra")).toBe("max");
+    expect(clampThinkingLevel("openai", "gpt-6.2-astra", "ultra")).toBe("max");
     expect(clampThinkingLevel("gemini", "gemini-3.8-flash", "max")).toBe("high");
     expect(clampThinkingLevel("glm", "glm-5.3", "xhigh")).toBe("high");
   });
