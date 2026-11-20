@@ -9,16 +9,16 @@ import {
 const chatgpt = { provider: "openai", accountId: "acct-1" } as const;
 
 describe("getNextThinkingLevel", () => {
-  it("cycles GPT-6 Astra through low, medium, high, xhigh, max, ultra, then off", () => {
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", undefined, chatgpt)).toBe("low");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "low", chatgpt)).toBe("medium");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "high", chatgpt)).toBe("xhigh");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "max", chatgpt)).toBe("ultra");
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "ultra", chatgpt)).toBeUndefined();
+  it("cycles GPT-6.2 Astra through low, medium, high, xhigh, max, ultra, then off", () => {
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", undefined, chatgpt)).toBe("low");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "low", chatgpt)).toBe("medium");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "high", chatgpt)).toBe("xhigh");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "max", chatgpt)).toBe("ultra");
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "ultra", chatgpt)).toBeUndefined();
   });
 
   it("recognizes every OpenAI GPT cycle level as supported", () => {
-    expect(getSupportedThinkingLevels("openai", "gpt-6-astra", chatgpt)).toEqual([
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-astra", chatgpt)).toEqual([
       "low",
       "medium",
       "high",
@@ -26,9 +26,9 @@ describe("getNextThinkingLevel", () => {
       "max",
       "ultra",
     ]);
-    expect(isThinkingLevelSupported("openai", "gpt-6-astra", "medium", chatgpt)).toBe(true);
-    expect(isThinkingLevelSupported("openai", "gpt-6-astra", "xhigh", chatgpt)).toBe(true);
-    expect(isThinkingLevelSupported("openai", "gpt-6-astra", "ultra", chatgpt)).toBe(true);
+    expect(isThinkingLevelSupported("openai", "gpt-6.2-astra", "medium", chatgpt)).toBe(true);
+    expect(isThinkingLevelSupported("openai", "gpt-6.2-astra", "xhigh", chatgpt)).toBe(true);
+    expect(isThinkingLevelSupported("openai", "gpt-6.2-astra", "ultra", chatgpt)).toBe(true);
   });
 
   it("cycles Anthropic adaptive models through low, medium, high, xhigh, max, then off", () => {
@@ -67,13 +67,13 @@ describe("getNextThinkingLevel", () => {
 describe("OpenAI API-key sessions", () => {
   it("never offer Ultra and cap an inherited Ultra at max", () => {
     const apiKey = { provider: "openai", accountId: undefined } as const;
-    expect(getSupportedThinkingLevels("openai", "gpt-6-astra", apiKey)).toEqual([
+    expect(getSupportedThinkingLevels("openai", "gpt-6.2-astra", apiKey)).toEqual([
       "low",
       "medium",
       "high",
       "xhigh",
       "max",
     ]);
-    expect(getNextThinkingLevel("openai", "gpt-6-astra", "max", apiKey)).toBeUndefined();
+    expect(getNextThinkingLevel("openai", "gpt-6.2-astra", "max", apiKey)).toBeUndefined();
   });
 });

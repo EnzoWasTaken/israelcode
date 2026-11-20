@@ -198,10 +198,10 @@ describe("routing thinking clamp", () => {
     const t = makeCtx({
       thinking: "ultra",
       pins: { effort: "ultra" },
-      adapter: adapterPicking("gpt-6-astra"),
+      adapter: adapterPicking("gpt-6.2-astra"),
     });
     await routeUserPrompt(t.ctx, { text: "rename a variable", attachments: [] });
-    expect(t.switchModel.mock.calls[0]![1]).toBe("gpt-6-astra");
+    expect(t.switchModel.mock.calls[0]![1]).toBe("gpt-6.2-astra");
     expect(t.flags.thinking).toBe("max");
   });
 });

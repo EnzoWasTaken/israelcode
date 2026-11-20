@@ -71,7 +71,7 @@ function manager(
     getChildModel: () => options.childModel,
     agents: options.agentDefs ?? agents,
     getProvider: () => options.provider ?? "openai",
-    getModel: () => options.model ?? "gpt-6.1-sol",
+    getModel: () => options.model ?? "gpt-6.2-sol",
     getThinkingLevel: options.getThinkingLevel,
     getAccountId: options.getAccountId,
     getCacheKey: () => "parent-cache",
@@ -106,7 +106,7 @@ describe("SubAgentManager", () => {
   it("runs children on the goal's critter model, even on another provider", async () => {
     const instance = manager({
       provider: "openai",
-      model: "gpt-6.1-sol",
+      model: "gpt-6.2-sol",
       childModel: { provider: "anthropic", model: "claude-sonnet-5-5" },
     });
     const requestSpy = vi.spyOn(
@@ -237,7 +237,7 @@ describe("SubAgentManager", () => {
     // agent-definition routing is bypassed —
     // and its own shorter time limit, which the worker enforces.
     await instance.spawn("reviewer", "review the work", undefined, {
-      model: "gpt-6.1-sol",
+      model: "gpt-6.2-sol",
       tools: ["read", "grep", "find", "ls"],
       turnTimeoutMs: 120_000,
     });
@@ -245,9 +245,9 @@ describe("SubAgentManager", () => {
     const initializeCall = requestSpy.mock.calls.find(([, command]) => command === "initialize");
     expect(initializeCall?.[2]).toMatchObject({
       options: {
-        model: "gpt-6.1-sol",
+        model: "gpt-6.2-sol",
         allowedTools: ["read", "grep", "find", "ls"],
-        promptCacheKey: expect.stringMatching(/^parent-cache:subagent:gpt-6\.1-sol:default:.+$/),
+        promptCacheKey: expect.stringMatching(/^parent-cache:subagent:gpt-6\.2-sol:default:.+$/),
         turnTimeoutMs: 120_000,
       },
     });
@@ -267,8 +267,8 @@ describe("SubAgentManager", () => {
     const initializeCall = requestSpy.mock.calls.find(([, command]) => command === "initialize");
     expect(initializeCall?.[2]).toMatchObject({
       options: {
-        model: "gpt-6.1-sol",
-        promptCacheKey: expect.stringMatching(/^parent-cache:subagent:gpt-6\.1-sol:fake:.+$/),
+        model: "gpt-6.2-sol",
+        promptCacheKey: expect.stringMatching(/^parent-cache:subagent:gpt-6\.2-sol:fake:.+$/),
       },
     });
   });
@@ -304,7 +304,7 @@ describe("SubAgentManager", () => {
 
     const initializeCall = requestSpy.mock.calls.find(([, command]) => command === "initialize");
     expect(initializeCall?.[2]).toMatchObject({
-      options: { model: "gpt-6.1-sol", fallbackModel: undefined, thinkingLevel: "ultra" },
+      options: { model: "gpt-6.2-sol", fallbackModel: undefined, thinkingLevel: "ultra" },
     });
   });
 
@@ -322,7 +322,7 @@ describe("SubAgentManager", () => {
     await instance.spawn("off", "fast");
     const initializeCalls = requestSpy.mock.calls.filter(([, command]) => command === "initialize");
     expect(initializeCalls[0]?.[2]).toMatchObject({
-      options: { thinkingLevel: "max", parentThinkingLevel: "ultra", fallbackModel: "gpt-6.1-sol" },
+      options: { thinkingLevel: "max", parentThinkingLevel: "ultra", fallbackModel: "gpt-6.2-sol" },
     });
     expect(initializeCalls[1]?.[2]).toMatchObject({
       options: { thinkingLevel: "high", parentThinkingLevel: "high" },
@@ -520,7 +520,7 @@ describe("SubAgentManager", () => {
 
   it("enforces the per-model cap against the resolved child model", async () => {
     // The "pinned" agent declares its own model id (gpt-6-luna); an agent with
-    // no model policy inherits the parent model (gpt-6.1-sol).
+    // no model policy inherits the parent model (gpt-6.2-sol).
     const pinnedAgent: AgentDefinition = {
       name: "pinned",
       description: "Pinned to its own model",
@@ -548,7 +548,7 @@ describe("SubAgentManager", () => {
 
     // A different resolved model is unaffected by the luna cap.
     const other = await instance.spawn("parent-model", "slow", "sheller");
-    expect(other.model).toBe("gpt-6.1-sol");
+    expect(other.model).toBe("gpt-6.2-sol");
   });
 
   it("asks the parent before a child's gated call and returns the answer", async () => {
@@ -725,7 +725,7 @@ describe("SubAgentManager", () => {
       token_usage: { input: 2, output: 3 },
       agent_name: "fake",
       provider: "openai",
-      model: "gpt-6.1-sol",
+      model: "gpt-6.2-sol",
       child_session_id: "child-session",
       child_session_path: path.join(sessionRootDir, "project", "child.jsonl"),
       collected: false,
@@ -1064,7 +1064,7 @@ describe("SubAgentManager worktree isolation", () => {
       cwd: repo,
       agents,
       getProvider: () => "openai",
-      getModel: () => "gpt-6.1-sol",
+      getModel: () => "gpt-6.2-sol",
       subAgentDepth: 0,
       workerEntry,
       getWorktreePolicy: () => ({ enabled: true, repoRoot: repo, managedRoot }),

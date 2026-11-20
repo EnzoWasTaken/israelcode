@@ -40,7 +40,7 @@ describe("resolveThinkingRequest", () => {
 
 describe("resolveThinkingRequest ultra", () => {
   it("API-key OpenAI refuses ultra; clamp keeps the nearest rung", () => {
-    const r = resolveThinkingRequest("openai", "gpt-6-astra", "high", '{"level":"ultra"}');
+    const r = resolveThinkingRequest("openai", "gpt-6.2-astra", "high", '{"level":"ultra"}');
     expect(r.ok).toBe(false);
   });
 });
@@ -56,12 +56,12 @@ describe("model switch thinking clamp", () => {
     ).toBe("high");
   });
 
-  it("ChatGPT sign-in (accountId) keeps ultra for gpt-6-astra; an API key does not", () => {
-    const chatgpt = getSupportedThinkingLevels("openai", "gpt-6-astra", {
+  it("ChatGPT sign-in (accountId) keeps ultra for gpt-6.2-astra; an API key does not", () => {
+    const chatgpt = getSupportedThinkingLevels("openai", "gpt-6.2-astra", {
       provider: "openai",
       accountId: "acct_1",
     });
-    const apiKey = getSupportedThinkingLevels("openai", "gpt-6-astra", { provider: "openai" });
+    const apiKey = getSupportedThinkingLevels("openai", "gpt-6.2-astra", { provider: "openai" });
     expect(chatgpt).toContain("ultra");
     expect(apiKey).not.toContain("ultra");
   });
