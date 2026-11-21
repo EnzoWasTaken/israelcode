@@ -82,8 +82,8 @@ pub(crate) struct ProviderMeta {
 /// Providers left out of the app's provider list (and so its login and
 /// settings screens). Their rows stay below so logout and stored keys still
 /// resolve. Mirrors gg-core's `HIDDEN_PROVIDERS` (hidden-providers.ts) — keep
-/// in sync. Gemini: Google no longer serves personal accounts over sign-in.
-pub(crate) const HIDDEN_PROVIDERS: &[&str] = &["gemini"];
+/// in sync.
+pub(crate) const HIDDEN_PROVIDERS: &[&str] = &[];
 
 /// Providers whose API key may point at a compatible gateway instead of the
 /// vendor endpoint, with the default the transport uses (gg-ai's
@@ -149,25 +149,16 @@ pub(crate) const AUTH_PROVIDERS: &[ProviderMeta] = &[
         label: "Gemini",
         description:
             "Gemini 3.8 Flash, 3.5 Flash Lite, 3.1 Flash Lite, 3.5 Flash, 3.1 Pro (Preview)",
-        // Google sign-in (Code Assist, stored under `gemini`) or an AI Studio
-        // key stored under its own `gemini-api` key — mirrors gg-core's
-        // AUTH_PROVIDERS. Not a dual-auth provider: the API key is used first.
-        methods: &["oauth", "apikey"],
+        // Keep the AI Studio key separate from legacy Code Assist credentials.
+        methods: &["apikey"],
         oauth_key: None,
         oauth_label: None,
         method_details: &[
             MethodDetail {
-                method: "oauth",
-                label: "Sign in with Google",
-                billing: "Gemini Code Assist Standard or Enterprise licence.",
-                when: "Personal Google accounts are no longer served here (Google ended it on June 18, 2026).",
-                requires: None,
-            },
-            MethodDetail {
                 method: "apikey",
                 label: "Gemini API key",
                 billing: "Pay-per-token from a Google AI Studio key.",
-                when: "Used first whenever it is set.",
+                when: "Create a key in Google AI Studio.",
                 requires: None,
             },
         ],
@@ -443,11 +434,7 @@ pub(crate) fn auth_status_snapshot(creds: Option<&serde_json::Value>) -> serde_j
                 }
                 _ => None,
             };
-            // Gemini resolves its API key first (gg-core model registry
-            // authStorageKeys); every other provider prefers OAuth.
-            let active_method = if p.value == "gemini" && api_key {
-                Some("apikey")
-            } else if oauth {
+            let active_method = if oauth {
                 if sidelined_until.is_some() {
                     Some("apikey")
                 } else {
@@ -494,12 +481,8 @@ pub(crate) fn auth_status_snapshot(creds: Option<&serde_json::Value>) -> serde_j
             }
             // Only a provider with two methods has a priority to explain. Keep the
             // wording in sync with gg-core's DUAL_AUTH_PROVIDERS resolution order
-            // (and authPriorityNote, which words Gemini's key-first order).
-            if p.value == "gemini" {
-                obj["priorityNote"] = serde_json::json!(
-                    "Uses the Gemini API key first when one is set; otherwise the Google sign-in."
-                );
-            } else if let (Some(oauth_label), Some(key_label)) = (p.oauth_label, p.api_key_label) {
+            // (see authPriorityNote).
+            if let (Some(oauth_label), Some(key_label)) = (p.oauth_label, p.api_key_label) {
                 obj["priorityNote"] = serde_json::json!(format!(
                     "Uses {oauth_label} first; the {key_label} API key takes over when it runs out, then switches back."
                 ));
@@ -679,7 +662,7 @@ pub(crate) fn apply_logout(
     let mut root = parse_auth_object(existing)?;
     let meta = AUTH_PROVIDERS.iter().find(|p| p.value == provider);
     if let Some(map) = root.as_object_mut() {
-        if method != Some("apikey") {
+        if method != Some("apikey") && (provider != "gemini" || method == Some("oauth")) {
             // A dual-auth provider's OAuth credential lives under its own key;
             // every other provider's lives under the provider id.
             match meta.and_then(|m| m.oauth_key) {
@@ -693,13 +676,11 @@ pub(crate) fn apply_logout(
         }
         if method != Some("oauth") {
             // Covers single-credential providers and a dual provider's API key,
-            // plus every variant key (Xiaomi's two, Gemini's one). A provider
-            // that also signs in with OAuth under its own id (Gemini) keeps
-            // that key when only the API key is removed.
+            // plus variant keys. Gemini disconnect must preserve legacy OAuth.
             let oauth_under_provider_id = meta
                 .map(|m| m.methods.contains(&"oauth") && m.oauth_key.is_none())
                 .unwrap_or(false);
-            if !(oauth_under_provider_id && method == Some("apikey")) {
+            if provider != "gemini" && !(oauth_under_provider_id && method == Some("apikey")) {
                 map.remove(provider);
             }
             if let Some(meta) = meta {
@@ -903,6 +884,25 @@ mod tests {
         for hidden in HIDDEN_PROVIDERS {
             assert!(!values.contains(hidden), "{hidden} is still listed");
         }
+    }
+
+    #[test]
+    fn gemini_status_only_accepts_an_ai_studio_key() {
+        let legacy = serde_json::json!({ "gemini": { "accessToken": "old" } });
+        let status = auth_status_snapshot(Some(&legacy));
+        let gemini = status["providers"].as_array().unwrap().iter()
+            .find(|p| p["value"] == "gemini").expect("Gemini is listed");
+        assert_eq!(gemini["methods"], serde_json::json!(["apikey"]));
+        assert_eq!(gemini["connected"], false);
+
+        let (target, base_url) = resolve_apikey_target("gemini", None).unwrap();
+        let saved = apply_apikey(Some(&legacy.to_string()), &target, base_url, 0, "test-key").unwrap();
+        let saved: serde_json::Value = serde_json::from_str(&saved).unwrap();
+        let status = auth_status_snapshot(Some(&saved));
+        let gemini = status["providers"].as_array().unwrap().iter()
+            .find(|p| p["value"] == "gemini").unwrap();
+        assert_eq!(gemini["connectedMethods"], serde_json::json!(["apikey"]));
+        assert_eq!(saved["gemini"], legacy["gemini"]);
     }
 
     #[test]
@@ -1194,7 +1194,7 @@ mod tests {
 
         let both = apply_logout(Some(existing), "gemini", None).unwrap();
         let v: serde_json::Value = serde_json::from_str(&both).unwrap();
-        assert!(v.get("gemini").is_none());
+        assert!(v.get("gemini").is_some());
         assert!(v.get("gemini-api").is_none());
     }
 

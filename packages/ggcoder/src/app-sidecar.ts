@@ -213,7 +213,7 @@ import {
   goalCritterPick,
   loadGoalBriefExtras,
 } from "./goals-agent/goals-agent.js";
-import { handleWorkspaceRoutes } from "./app-sidecar/workspace-routes.js";
+import { handleDiscoveryRoutes, handleWorkspaceRoutes } from "./app-sidecar/workspace-routes.js";
 import { handleHistoryRoutes } from "./app-sidecar/history-routes.js";
 import { handlePromptRoutes } from "./app-sidecar/prompt-routes.js";
 import { handleTaskRoutes } from "./app-sidecar/task-routes.js";
@@ -548,6 +548,8 @@ async function main(): Promise<void> {
       daemonJson(res, 401, { error: "unauthorized" });
       return;
     }
+
+    if (handleDiscoveryRoutes(paths, res, url, method)) return;
 
     // ── Daemon-level routes (session lifecycle) ──────────────────────────
     // Create a session for a window: { mode?, cwd, sessionPath? } → { sessionId }.
@@ -3006,8 +3008,7 @@ async function createSession(
           ? (await Promise.all(apiKeyKeys.map((k) => auth.hasCredentials(k)))).some(Boolean)
           : false;
         const connectedMethods: AuthMethod[] = [];
-        // OAuth-only providers (Anthropic/OpenAI/Gemini) store under the provider
-        // id itself, so `hasProviderAuth` is what proves their OAuth connection.
+        // OAuth-only providers store credentials under the provider id.
         if (
           p.methods.includes("oauth") &&
           (hasOAuth || (!dual && (await auth.hasCredentials(p.value))))
@@ -3022,15 +3023,7 @@ async function createSession(
           ? ((await auth.getCredentials(oauthKey))?.usageExhaustedUntil ?? 0)
           : 0;
         const oauthSidelined = hasOAuth && Date.now() < exhaustedUntil && hasApiKey;
-        // Gemini resolves the API key first (model registry authStorageKeys).
-        const keyFirst = p.value === "gemini" && hasApiKey;
-        const activeMethod = keyFirst
-          ? ("apikey" as const)
-          : connectedMethods.includes("oauth")
-            ? oauthSidelined
-              ? ("apikey" as const)
-              : ("oauth" as const)
-            : connectedMethods[0];
+        const activeMethod = oauthSidelined ? ("apikey" as const) : connectedMethods[0];
 
         // `methodDetails` is the server-side lookup table behind
         // `methodGuidance` — shipping both would duplicate every string on the

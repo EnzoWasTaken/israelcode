@@ -15,7 +15,7 @@ import { stream, StreamResult, type StreamEvent, type StreamResponse } from "@ke
 import { getModel } from "./model-registry.js";
 import { outputCapForRequest } from "./agent-session.js";
 import { AuthStorage } from "./auth-storage.js";
-import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
+import { APP_DIR_NAME, GEMINI_API_KEY, GEMINI_API_KEY_BASE_URL } from "@kenkaiiii/gg-core";
 
 vi.mock("@kenkaiiii/gg-ai", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -73,11 +73,11 @@ beforeEach(async () => {
   await fs.writeFile(
     path.join(tempHome, APP_DIR_NAME, "auth.json"),
     JSON.stringify({
-      gemini: {
-        accessToken: "test-gemini-token",
-        refreshToken: "test-gemini-refresh",
+      [GEMINI_API_KEY]: {
+        accessToken: "test-gemini-key",
+        refreshToken: "",
         expiresAt: Date.now() + 3_600_000,
-        projectId: "test-google-project",
+        baseUrl: GEMINI_API_KEY_BASE_URL,
       },
       anthropic: { accessToken: "t", refreshToken: "t", expiresAt: Date.now() + 3_600_000 },
       openai: { accessToken: "t", refreshToken: "t", expiresAt: Date.now() + 3_600_000 },
@@ -153,7 +153,9 @@ describe("AgentSession model switch", () => {
           expect(request.userAgent).toMatch(/^claude-cli\//);
         }
         if (provider === "gemini") {
-          expect(request.projectId).toBe("test-google-project");
+          expect(request.apiKey).toBe("test-gemini-key");
+          expect(request.baseUrl).toBe(GEMINI_API_KEY_BASE_URL);
+          expect(request.projectId).toBeUndefined();
         }
       }
     } finally {

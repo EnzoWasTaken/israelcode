@@ -10,7 +10,7 @@ import { MODELS } from "./model-registry.js";
 import { estimateConversationTokens } from "./compaction/token-estimator.js";
 import type * as McpModule from "./mcp/index.js";
 import { useFakeHome } from "../test-support/fake-home.js";
-import { APP_DIR_NAME } from "@kenkaiiii/gg-core";
+import { APP_DIR_NAME, GEMINI_API_KEY, GEMINI_API_KEY_BASE_URL } from "@kenkaiiii/gg-core";
 
 const shouldCompactMock = vi.hoisted(() => vi.fn());
 const compactMock = vi.hoisted(() => vi.fn());
@@ -107,10 +107,11 @@ beforeEach(async () => {
     path.join(tmpHome, APP_DIR_NAME, "auth.json"),
     Object.fromEntries(
       authProviders.map((provider) => [
-        provider,
+        provider === "gemini" ? GEMINI_API_KEY : provider,
         {
           accessToken: `test-${provider}-token`,
-          refreshToken: `test-${provider}-refresh`,
+          refreshToken: provider === "gemini" ? "" : `test-${provider}-refresh`,
+          ...(provider === "gemini" ? { baseUrl: GEMINI_API_KEY_BASE_URL } : {}),
           expiresAt: Date.now() + 3_600_000,
           ...(provider === "openai" ? { accountId: "chatgpt-account" } : {}),
         },

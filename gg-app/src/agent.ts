@@ -1683,8 +1683,8 @@ export async function listHistory(): Promise<HistoryEntry[]> {
     const res = await invoke<{ history: HistoryEntry[] }>("agent_history");
     return res.history ?? [];
   } catch (e) {
-    await logError(`agent_history failed: ${String(e)}`);
-    return [];
+    void logError(`agent_history failed: ${String(e)}`).catch(() => {});
+    throw e;
   }
 }
 
@@ -2403,7 +2403,6 @@ export async function createProject(name: string): Promise<string> {
  */
 export async function listProjects(): Promise<DiscoveredProject[]> {
   try {
-    await waitForReady();
     const res = await invoke<{ projects: DiscoveredProject[] }>("agent_projects");
     return res.projects ?? [];
   } catch (e) {

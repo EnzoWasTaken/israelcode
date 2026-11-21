@@ -306,6 +306,14 @@ async function main() {
     const { text, leafId } = sessionLines(header, await screenshot());
     writeFileSync(sessionPath, text.replace(/"leafId":null/, `"leafId":"${leafId}"`));
     results.sessionFileBytes = Buffer.byteLength(text);
+    // Use separate short sessions so the list scan exercises many files rather
+    // than measuring the same large transcript repeatedly.
+    const short = text.split("\n").slice(0, 8).join("\n") + "\n";
+    for (let i = 0; i < 200; i++) {
+      const id = `bench-list-${i}`;
+      writeFileSync(join(dirname(sessionPath), `${id}.jsonl`), short.replaceAll(header.id, id));
+    }
+    results.discovery = [];
 
     for (let i = 0; i < opts.runs; i++) {
       const t0 = performance.now();
@@ -333,6 +341,14 @@ async function main() {
         historyRows: rows,
       });
       console.error(`run ${i + 1}/${opts.runs}: ${JSON.stringify(results.runs.at(-1))}`);
+      const discovery = {};
+      for (const [key, url] of Object.entries({ projects: "/projects", sessions: `/sessions?cwd=${encodeURIComponent(project)}` })) {
+        const start = performance.now();
+        const reply = await call("GET", url, { session: id });
+        if (reply.status !== 200) throw new Error(`${url}: ${reply.status}`);
+        discovery[key] = { ms: round(performance.now() - start), rows: JSON.parse(reply.text)[key].length };
+      }
+      results.discovery.push(discovery);
       await call("DELETE", `/session/${id}`);
     }
     if (inspector) results.hotspots = await inspector.stop();

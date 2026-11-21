@@ -96,6 +96,15 @@ export function handleWorkspaceRoutes(
     return true;
   }
 
+  return handleSessionWorkspaceReads(ctx, req, res, url, method);
+}
+
+export function handleDiscoveryRoutes(
+  paths: { agentDir: string; sessionsDir: string },
+  res: http.ServerResponse,
+  url: string,
+  method: string,
+): boolean {
   if (method === "GET" && url === "/projects") {
     // Session stores (ggcoder + Claude Code + Codex) for projects with
     // history, plus a filesystem scan of the configured projects folder so
@@ -108,7 +117,7 @@ export function handleWorkspaceRoutes(
           hiddenPaths: hiddenProjects,
           // Goal workspaces have their own list; they are not coding projects.
           // GG-made worktrees are listed under their project, not as projects.
-          excludeRoots: [goalsRoot(ctx.paths.agentDir), path.join(ctx.paths.agentDir, "worktrees")],
+          excludeRoots: [goalsRoot(paths.agentDir), path.join(paths.agentDir, "worktrees")],
         }),
       )
       .then((projects) => json(res, 200, { projects }))
@@ -116,18 +125,19 @@ export function handleWorkspaceRoutes(
         log("ERROR", "app-sidecar", "discoverProjects failed", {
           message: err instanceof Error ? err.message : String(err),
         });
-        json(res, 200, { projects: [] });
+        json(res, 500, { error: "Could not discover projects" });
       });
     return true;
   }
 
-  if (method === "GET" && url.startsWith("/sessions")) {
-    const target = new URL(url, `http://${ctx.host}`).searchParams.get("cwd");
+  if (method === "GET" && (url === "/sessions" || url.startsWith("/sessions?"))) {
+    const params = new URLSearchParams(url.split("?", 2)[1]);
+    const target = params.get("cwd");
     if (!target) {
       json(res, 400, { error: "missing cwd query param" });
       return true;
     }
-    const requestedAgent = new URL(url, `http://${ctx.host}`).searchParams.get("chatAgent");
+    const requestedAgent = params.get("chatAgent");
     // An omitted chatAgent means coding history; chat callers identify one
     // agent or request the combined, recency-sorted "all" listing; the
     // reserved value "motion" lists Motion sessions.
@@ -135,18 +145,32 @@ export function handleWorkspaceRoutes(
     // conversations (moved there from the branch picker) are listed here.
     const worktrees = requestedAgent
       ? Promise.resolve([])
-      : listWorktrees(target, path.join(ctx.paths.agentDir, "worktrees"))
-          .then((list) => (list?.worktrees ?? []).filter((w) => w.managed).map((w) => w.path))
-          .catch(() => []);
+      : listWorktrees(target, path.join(paths.agentDir, "worktrees")).then((list) =>
+          (list?.worktrees ?? []).filter((w) => w.managed).map((w) => w.path),
+        );
     void worktrees
       .then((cwds) =>
-        listSidecarSessions(target, requestedAgent, ctx.paths.sessionsDir, undefined, cwds),
+        listSidecarSessions(target, requestedAgent, paths.sessionsDir, undefined, cwds),
       )
       .then((sessions) => json(res, 200, { sessions }))
-      .catch(() => json(res, 200, { sessions: [] }));
+      .catch((err) => {
+        log("ERROR", "app-sidecar", "listSidecarSessions failed", {
+          message: err instanceof Error ? err.message : String(err),
+        });
+        json(res, 500, { error: "Could not list sessions" });
+      });
     return true;
   }
+  return false;
+}
 
+function handleSessionWorkspaceReads(
+  ctx: SessionRouteContext,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: string,
+  method: string,
+): boolean {
   if (method === "GET" && url.startsWith("/files")) {
     const q = new URL(url, `http://${ctx.host}`).searchParams.get("q") ?? "";
     void searchProjectFiles(ctx.cwd, q)

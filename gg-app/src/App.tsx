@@ -329,6 +329,7 @@ function App(): React.ReactElement {
   // Hydration couldn't reach the agent. Shown in place of the endless
   // "connecting to agent…" line, with a way to try again.
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [commands, setCommands] = useState<SlashCommand[]>([]);
   // `/schedule` runtime. Fires each due prompt through the normal send path,
   // skipping any occurrence that comes due mid-run rather than stacking agents.
@@ -651,17 +652,21 @@ function App(): React.ReactElement {
   // sidecar (its port changes, so we re-wait for readiness).
   const hydrate = useCallback(async (): Promise<void> => {
     const generation = ++hydrateGenerationRef.current;
+    const isStale = (): boolean => hydrateGenerationRef.current !== generation;
     let sessionReady = false;
     readyRef.current = false;
     setHydrated(false);
     setLiveFromId(Number.POSITIVE_INFINITY);
     setStatus("connecting to agent\u2026");
     setConnectError(null);
+    setHistoryError(null);
     setModelsFailed(false);
     try {
       await waitForReady();
+      if (isStale()) return;
       readyRef.current = true;
       const st = await getState().catch(() => null);
+      if (isStale()) return;
       if (st) {
         setState(st);
         for (const message of takeNewBlockedSkillMessages(st.blockedSkills, localStorage)) {
@@ -672,7 +677,6 @@ function App(): React.ReactElement {
         }
         setRunning(st.running);
         setStatus(st.runState === "cancelling" ? "cancelling..." : "ready");
-        sessionReady = true;
       } else {
         setConnectError("Couldn't read this session from the agent.");
       }
@@ -684,27 +688,26 @@ function App(): React.ReactElement {
       // fills itself in when an answer arrives, unless this hydrate has since
       // been superseded (project switch) — then the old sidecar's answer is
       // dropped rather than overwriting the new project's picker.
-      void loadModelsInto(
-        listModels,
-        setModels,
-        () => hydrateGenerationRef.current !== generation,
-      ).then((ok) => {
-        if (!ok && hydrateGenerationRef.current === generation) setModelsFailed(true);
+      void loadModelsInto(listModels, setModels, isStale).then((ok) => {
+        if (!ok && !isStale()) setModelsFailed(true);
       });
-      // Ask for the commands, tasks and history together: each is a sidecar
-      // round trip, and a long chat's history is the slow one. Awaited in the
-      // same order as before, so state lands the same way.
-      const commandsCall = listCommands();
-      const tasksCall = listTasks();
-      const historyCall = listHistory();
-      for (const call of [commandsCall, tasksCall]) call.catch(() => undefined);
-      const cmds = await commandsCall;
-      if (cmds.length > 0) setCommands(cmds);
-      // Project task list for the Tasks modal + nav button.
-      setProjectTasks(await tasksCall);
-      // Hydrate the transcript when resuming an existing session — the webview
-      // only sees live SSE events, so past messages must be fetched explicitly.
-      const history = await historyCall;
+      // The transcript must not wait for auxiliary workspace data.
+      void listCommands()
+        .then((cmds) => {
+          if (!isStale() && cmds.length > 0) setCommands(cmds);
+        })
+        .catch(() => {});
+      void listTasks()
+        .then((tasks) => {
+          if (!isStale()) setProjectTasks(tasks);
+        })
+        .catch(() => {});
+      const history = await listHistory().catch((error: unknown) => {
+        if (!isStale()) setHistoryError(error instanceof Error ? error.message : String(error));
+        return null;
+      });
+      if (isStale() || history === null) return;
+      sessionReady = st !== null;
       const pendingShellRuns = Array.isArray(st?.pendingShellRuns) ? st.pendingShellRuns : [];
       void refreshShellTrust();
       if (history.length > 0) {
@@ -749,16 +752,18 @@ function App(): React.ReactElement {
         );
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setStatus(`agent failed to start: ${message}`);
-      setConnectError(message);
+      if (!isStale()) {
+        const message = err instanceof Error ? err.message : String(err);
+        setStatus(`agent failed to start: ${message}`);
+        setConnectError(message);
+      }
     } finally {
-      // Reveal the footer + chrome now that everything we know about the
-      // session is in hand — one fade-in, no staggered reflow.
-      setLiveFromId(lastIssuedId() + 1);
-      setHydrated(true);
-      // Home's quick start may be waiting on this session (first-prompt.ts).
-      if (hydrateGenerationRef.current === generation) setHydrateSettled({ ok: sessionReady });
+      if (!isStale()) {
+        setLiveFromId(lastIssuedId() + 1);
+        setHydrated(true);
+        // Home's quick start may be waiting on this session (first-prompt.ts).
+        setHydrateSettled({ ok: sessionReady });
+      }
     }
   }, [stickToBottomRef, refreshShellTrust, startWarmMount]);
 
@@ -802,13 +807,19 @@ function App(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const invalidateHydration = useCallback(() => {
+    hydrateGenerationRef.current++;
+  }, []);
+
   useEffect(() => {
     // Only the main window auto-connects to its default project. Secondary
     // (project-*) windows show the picker first and connect on selection.
     // hydrateNonce forces a re-run when re-selecting a session in an already-
     // connected window (needsProject stays false there).
-    if (!needsProject) void hydrate();
-  }, [needsProject, hydrate, hydrateNonce]);
+    if (needsProject) return;
+    void hydrate();
+    return invalidateHydration;
+  }, [needsProject, hydrate, hydrateNonce, invalidateHydration]);
 
   // Open Tasks in the deck, refreshing the list from the sidecar first so it
   // reflects any tasks the agent just added.
@@ -1402,6 +1413,7 @@ function App(): React.ReactElement {
     });
   }
   function resetForChosenProject(): void {
+    invalidateHydration();
     // Leaving a task mid-run: it carries on in the daemon. Say so, once.
     if (running) noteBackgroundHandoff();
     checklistFetchRef.current++;
@@ -1823,6 +1835,7 @@ function App(): React.ReactElement {
             hydrated={hydrated}
             items={items}
             connectError={connectError}
+            historyError={historyError}
             onRetried={() => setHydrateNonce((n) => n + 1)}
             status={status}
             state={state}

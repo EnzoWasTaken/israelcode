@@ -20,7 +20,6 @@ import {
   listProjects,
   selectProject,
   selectWorkspace,
-  waitForReady,
   type BackgroundSessionRow,
   type DiscoveredProject,
 } from "./agent";
@@ -143,10 +142,7 @@ export function HomeLaunchpad({
   const ids = { menu: useId(), list: useId(), heading: useId(), error: useId() };
 
   // Shares ProjectPicker's kept copy, so either screen fills the other at once.
-  const projectList = useCachedList<DiscoveredProject>("projects", async () => {
-    await waitForReady();
-    return listProjects();
-  });
+  const projectList = useCachedList<DiscoveredProject>("projects", listProjects);
   const recents = useCachedList<HomeRecent>("home-recents", () => loadHomeRecents());
   const rows = recents.items;
   const projects = projectList.items;

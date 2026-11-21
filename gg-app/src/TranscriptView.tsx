@@ -36,6 +36,7 @@ export function TranscriptView({
   hydrated,
   items,
   connectError,
+  historyError,
   onRetried,
   status,
   state,
@@ -65,6 +66,7 @@ export function TranscriptView({
   hydrated: boolean;
   items: Item[];
   connectError: string | null;
+  historyError: string | null;
   onRetried: () => void;
   status: string;
   state: AgentState | null;
@@ -114,41 +116,48 @@ export function TranscriptView({
           <TranscriptSkeleton />
         ) : (
           <>
-            {items.length === 0 &&
-              (connectError !== null ? (
-                <div className="picker-empty transcript-reveal" role="alert">
-                  <span>Couldn't connect to the agent.</span>
-                  <span style={{ color: theme.textDim }}>{connectError}</span>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => {
-                      // Restart the failed start first so the re-hydrate
-                      // waits on a fresh attempt, not the recorded failure.
-                      void retryWindowSession()
-                        .catch((e: unknown) =>
-                          toast(
-                            `Couldn't restart the agent: ${e instanceof Error ? e.message : String(e)}`,
-                            "error",
-                          ),
-                        )
-                        .finally(onRetried);
-                    }}
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : status === "ready" ? (
-                <WakeScreen
-                  chat={workspaceMode === "chat"}
-                  motion={workspaceMode === "motion"}
-                  goals={Boolean(state?.goal)}
-                />
-              ) : emptyTranscriptStatus(status) ? (
-                <div className="line transcript-reveal" style={{ color: theme.textDim }}>
-                  {`\u273b ${emptyTranscriptStatus(status)}`}
-                </div>
-              ) : null)}
+            {historyError !== null || (items.length === 0 && connectError !== null) ? (
+              <div className="picker-empty transcript-reveal" role="alert">
+                <span>
+                  {historyError !== null
+                    ? "Couldn't load the transcript."
+                    : "Couldn't connect to the agent."}
+                </span>
+                <span style={{ color: theme.textDim }}>{historyError ?? connectError}</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    if (historyError !== null && connectError === null) {
+                      onRetried();
+                      return;
+                    }
+                    // Restart the failed start first so the re-hydrate
+                    // waits on a fresh attempt, not the recorded failure.
+                    void retryWindowSession()
+                      .catch((e: unknown) =>
+                        toast(
+                          `Couldn't restart the agent: ${e instanceof Error ? e.message : String(e)}`,
+                          "error",
+                        ),
+                      )
+                      .finally(onRetried);
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : items.length === 0 && status === "ready" ? (
+              <WakeScreen
+                chat={workspaceMode === "chat"}
+                motion={workspaceMode === "motion"}
+                goals={Boolean(state?.goal)}
+              />
+            ) : items.length === 0 && emptyTranscriptStatus(status) ? (
+              <div className="line transcript-reveal" style={{ color: theme.textDim }}>
+                {`\u273b ${emptyTranscriptStatus(status)}`}
+              </div>
+            ) : null}
             <PromptSendProvider value={sendKenRecommendedPrompt}>
               {/* Markdown loads lazily (LazyMarkdown.tsx); on the rare first
                   render before it lands, show the skeleton, not raw text. */}

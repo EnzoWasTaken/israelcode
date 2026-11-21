@@ -7,6 +7,7 @@ import type * as ConfigModule from "../config.js";
 import { encodeCwd } from "./encode-cwd.js";
 import { discoverProjects, isAbsoluteCwd, listRecentSessions } from "./project-discovery.js";
 import { SessionManager } from "./session-manager.js";
+import * as sessionStorage from "./session-storage.js";
 import { archiveColdSession, archiveSessionPath } from "./session-storage.js";
 
 // Holder the hoisted mock reads at call time (vi.mock is hoisted above imports,
@@ -125,6 +126,17 @@ describe("discoverProjects (ggcoder store)", () => {
     expect(projects.some((p) => p.path === path.join(tmp, "projects", "my", "app"))).toBe(false);
   });
 
+  it("walks a native project store only once for its cwd and activity", async () => {
+    const cwd = path.join(tmp, "projects", "single_scan");
+    const store = path.join(state.sessionsDir, encodeCwd(cwd));
+    await fs.mkdir(cwd, { recursive: true });
+    await writeSession(store, cwd);
+    const readdir = vi.spyOn(fs, "readdir");
+
+    expect(await discoverProjects()).toContainEqual(expect.objectContaining({ path: cwd }));
+    expect(readdir.mock.calls.filter(([dir]) => dir === store)).toHaveLength(1);
+  });
+
   it("lists folders in the configured projects root that have no sessions yet", async () => {
     const root = path.join(tmp, "gg-projects");
     await fs.mkdir(path.join(root, "never-opened"), { recursive: true });
@@ -141,14 +153,15 @@ describe("discoverProjects (ggcoder store)", () => {
     expect(projects.some((p) => p.path.endsWith(".hidden"))).toBe(false);
   });
 
-  it("follows a symlinked project folder (readdir reports it as neither file nor dir)", async () => {
+  it("follows a linked project folder (readdir reports it as neither file nor dir)", async () => {
     const root = path.join(tmp, "gg-projects");
     await fs.mkdir(root, { recursive: true });
     const real = path.join(tmp, "elsewhere", "linked-project");
     await fs.mkdir(real, { recursive: true });
-    await fs.symlink(real, path.join(root, "linked-project"), "dir");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    await fs.symlink(real, path.join(root, "linked-project"), linkType);
     // A dangling link must not become a phantom row.
-    await fs.symlink(path.join(tmp, "gone"), path.join(root, "dangling"), "dir");
+    await fs.symlink(path.join(tmp, "gone"), path.join(root, "dangling"), linkType);
 
     const projects = await discoverProjects({ projectsRoot: root });
 
@@ -284,7 +297,7 @@ describe("discoverProjects (ggcoder store)", () => {
     const transientRoot = path.join(tmp, "transient-real");
     const tempAlias = path.join(tmp, "transient-alias");
     await fs.mkdir(transientRoot, { recursive: true });
-    await fs.symlink(transientRoot, tempAlias, "dir");
+    await fs.symlink(transientRoot, tempAlias, process.platform === "win32" ? "junction" : "dir");
     vi.spyOn(os, "tmpdir").mockReturnValue(tempAlias);
 
     for (const name of ["one", "two", "three"]) {
@@ -457,6 +470,39 @@ describe("discoverProjects (ggcoder store)", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0]?.path).toBe(newestPath);
     expect(sessions[0]?.preview).toBe("Legacy session title");
+  });
+
+  it("reads native summaries concurrently without changing worktree and checkpoint ordering", async () => {
+    const cwd = path.join(tmp, "project");
+    const worktree = path.join(tmp, "worktree");
+    const rows = [
+      [cwd, "ordinary", "other", "2026-01-01T00:00:00Z"],
+      [cwd, "old", "checkpoint", "2026-01-02T00:00:00Z"],
+      [worktree, "new", "checkpoint", "2026-01-03T00:00:00Z"],
+    ] as const;
+    for (const [dir, id, conversationId, timestamp] of rows) {
+      await writeSessionRecords(dir, `${id}.jsonl`, {
+        id,
+        conversationId,
+        timestamp,
+        records: [{ type: "message", timestamp, message: { role: "user", content: id } }],
+      });
+    }
+    const open = sessionStorage.openSessionReadStream;
+    let active = 0;
+    let peak = 0;
+    vi.spyOn(sessionStorage, "openSessionReadStream").mockImplementation(async (file) => {
+      peak = Math.max(peak, ++active);
+      try {
+        return await open(file);
+      } finally {
+        active--;
+      }
+    });
+
+    const sessions = await listRecentSessions(cwd, 2, state.sessionsDir, [worktree]);
+    expect(sessions.map(({ id }) => id)).toEqual(["new", "ordinary"]);
+    expect(peak).toBeGreaterThan(1);
   });
 
   it("uses a checkpoint header preview when compacted messages contain only internal prompts", async () => {

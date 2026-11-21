@@ -7,7 +7,6 @@ import { initLogger, log, closeLogger } from "../core/logger.js";
 import { AuthStorage } from "../core/auth-storage.js";
 import { loginAnthropic } from "../core/oauth/anthropic.js";
 import { loginOpenAI } from "../core/oauth/openai.js";
-import { loginGemini } from "../core/oauth/gemini.js";
 import { loginKimi } from "../core/oauth/kimi.js";
 import { loginXai } from "../core/oauth/xai.js";
 import {
@@ -105,25 +104,6 @@ export async function runLogin(): Promise<void> {
       useOAuth = choice === "" || choice === "1";
     }
 
-    // Gemini: a Google AI Studio API key (default — Code Assist sign-in now
-    // refuses personal accounts) or the Code Assist Google sign-in. They are
-    // stored under different keys, so connecting both is fine.
-    let geminiOAuth = false;
-    if (provider === "gemini") {
-      for (const detail of describeAuthMethods(provider).reverse()) {
-        const n = detail.method === "apikey" ? "1" : "2";
-        console.log(chalk.hex("#a78bfa")(`  (${n}) ${detail.label}`));
-        console.log(chalk.hex("#6b7280")(`      ${detail.billing}`));
-        if (detail.when) console.log(chalk.hex("#6b7280")(`      ${detail.when}`));
-      }
-      const choice = (
-        await rl.question(
-          chalk.hex("#60a5fa")("Use (1) a Gemini API key [default] or (2) Sign in with Google? "),
-        )
-      ).trim();
-      geminiOAuth = choice === "2";
-    }
-
     // Xiaomi splits API-key auth across two distinct endpoints: the Token Plan
     // (default, current behavior) and API Credits (required for models like
     // mimo-v2.6-pro-ultraspeed that aren't served over the Token Plan).
@@ -144,8 +124,6 @@ export async function runLogin(): Promise<void> {
     if (dual && useOAuth) {
       creds = provider === "moonshot" ? await loginKimi(callbacks) : await loginXai(callbacks);
       storageKey = dual.oauthKey;
-    } else if (provider === "gemini" && geminiOAuth) {
-      creds = await loginGemini(callbacks);
     } else if (getAuthProvider(provider)?.methods.includes("apikey")) {
       // Key label comes from AUTH_PROVIDERS so the CLI and the desktop app can
       // never drift on what a provider's key is called.
@@ -174,11 +152,7 @@ export async function runLogin(): Promise<void> {
       if (provider === "gemini") storageKey = GEMINI_API_KEY;
     } else {
       creds =
-        provider === "anthropic"
-          ? await loginAnthropic(callbacks)
-          : provider === "gemini"
-            ? await loginGemini(callbacks)
-            : await loginOpenAI(callbacks);
+        provider === "anthropic" ? await loginAnthropic(callbacks) : await loginOpenAI(callbacks);
     }
 
     await authStorage.setCredentials(storageKey, creds);

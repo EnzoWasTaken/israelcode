@@ -4,7 +4,7 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { Webview } from "@tauri-apps/api/webview";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentState, SidecarEvent, DroppedPathInfo, Attachment } from "./agent";
+import type { AgentState, SidecarEvent, DroppedPathInfo, Attachment, HistoryEntry } from "./agent";
 import type { PendingAttachment } from "./attachments";
 
 mockWindows("main");
@@ -53,11 +53,20 @@ interface SetupOptions {
   promptFails?: boolean;
   /** How many `agent_state` calls reject before it starts answering. */
   stateFailures?: number;
+  readHistory?: () => { history: HistoryEntry[] } | Promise<{ history: HistoryEntry[] }>;
+  delayAuxiliary?: boolean;
+  waitForHydration?: boolean;
 }
 
 async function setup(
   running = false,
-  { promptFails = false, stateFailures = 0 }: SetupOptions = {},
+  {
+    promptFails = false,
+    stateFailures = 0,
+    readHistory,
+    delayAuxiliary = false,
+    waitForHydration = true,
+  }: SetupOptions = {},
 ): Promise<{
   input: HTMLTextAreaElement;
   sends: ReturnType<typeof vi.fn>;
@@ -96,11 +105,27 @@ async function setup(
       case "agent_models":
         return { models: [{ id: state.model, provider: state.provider }] };
       case "agent_commands":
-        return { commands: [] };
+        return delayAuxiliary ? new Promise(() => {}) : { commands: [] };
       case "agent_tasks":
-        return { tasks: [] };
+        return delayAuxiliary ? new Promise(() => {}) : { tasks: [] };
       case "agent_history":
-        return { history: [] };
+        return readHistory ? readHistory() : { history: [] };
+      case "agent_projects":
+        return { projects: [{ name: "attachments", path: state.cwd, sources: ["folder"] }] };
+      case "agent_sessions":
+        return {
+          sessions: [
+            {
+              id: "next",
+              path: "/sessions/next.jsonl",
+              preview: "Next conversation",
+              lastActiveDisplay: "now",
+              messageCount: 1,
+            },
+          ],
+        };
+      case "select_project":
+        return null;
       case "agent_prompt":
         sends(payload);
         if (promptFails) return Promise.reject(new Error("connection refused"));
@@ -116,7 +141,7 @@ async function setup(
   });
   render(<App />);
   const input = await screen.findByRole<HTMLTextAreaElement>("textbox");
-  if (stateFailures === 0) {
+  if (waitForHydration && stateFailures === 0) {
     await waitFor(() => expect(document.querySelector(".footer-skeleton")).toBeNull());
   }
   return {
@@ -379,6 +404,59 @@ describe("composer attachments", () => {
     await waitFor(() => expect(input.value).toBe("Refactor the parser"));
     // ...and the transcript no longer shows a message the agent never got.
     expect(document.querySelector(".transcript")?.textContent).not.toContain("Refactor the parser");
+  });
+
+  it("shows the saved transcript while commands and tasks are still loading", async () => {
+    await setup(false, {
+      delayAuxiliary: true,
+      waitForHydration: false,
+      readHistory: () => ({ history: [{ role: "user", text: "Saved prompt" }] }),
+    });
+
+    expect(await screen.findByText("Saved prompt")).toBeTruthy();
+    expect(document.querySelector(".footer-skeleton")).toBeNull();
+  });
+
+  it("offers a retry on failed history IPC and restores the saved transcript", async () => {
+    let fail = true;
+    const { retries } = await setup(false, {
+      readHistory: () =>
+        fail
+          ? Promise.reject(new Error("saved history unavailable"))
+          : { history: [{ role: "user", text: "Saved after retry" }] },
+    });
+
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    expect(retry.closest('[role="alert"]')?.textContent).toContain("saved history unavailable");
+    fail = false;
+    fireEvent.click(retry);
+    expect(await screen.findByText("Saved after retry")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(retries()).toBe(0);
+  });
+
+  it("ignores a late history response after switching sessions", async () => {
+    const oldHistory = deferred<{ history: HistoryEntry[] }>();
+    let first = true;
+    await setup(false, {
+      waitForHydration: false,
+      readHistory: () => {
+        if (!first) return { history: [{ role: "user", text: "Current session prompt" }] };
+        first = false;
+        return oldHistory.promise;
+      },
+    });
+    await waitFor(() => expect(first).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Back to this project's sessions" }));
+    await screen.findByText("Next conversation");
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Search sessions" }), { key: "Enter" });
+    expect(await screen.findByText("Current session prompt")).toBeTruthy();
+
+    await act(async () =>
+      oldHistory.resolve({ history: [{ role: "user", text: "Stale session prompt" }] }),
+    );
+    expect(screen.queryByText("Stale session prompt")).toBeNull();
+    expect(screen.getByText("Current session prompt")).toBeTruthy();
   });
 
   it("offers a retry when the agent can't be reached at startup", async () => {

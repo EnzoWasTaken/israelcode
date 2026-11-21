@@ -1,7 +1,6 @@
 import type http from "node:http";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SessionRouteContext } from "./route-context.js";
 
 const discoverProjects = vi.fn(async (_options: Record<string, unknown>) => []);
 vi.mock("../core/project-discovery.js", () => ({
@@ -16,7 +15,7 @@ vi.mock("./app-settings.js", async (importOriginal) => ({
   })),
 }));
 
-const { handleWorkspaceRoutes } = await import("./workspace-routes.js");
+const { handleDiscoveryRoutes } = await import("./workspace-routes.js");
 
 function get(url: string, agentDir: string): Promise<{ status: number; body: unknown }> {
   return new Promise((resolve) => {
@@ -31,10 +30,8 @@ function get(url: string, agentDir: string): Promise<{ status: number; body: unk
         resolve({ status, body: JSON.parse(payload) as unknown });
       },
     };
-    const ctx = { paths: { agentDir } } as unknown as SessionRouteContext;
-    handleWorkspaceRoutes(
-      ctx,
-      {} as http.IncomingMessage,
+    handleDiscoveryRoutes(
+      { agentDir, sessionsDir: path.join(agentDir, "sessions") },
       res as unknown as http.ServerResponse,
       url,
       "GET",
@@ -56,4 +53,10 @@ describe("GET /projects", () => {
       excludeRoots: [path.join("/home/u/.gg", "goals"), path.join("/home/u/.gg", "worktrees")],
     });
   });
+});
+
+it("reports a failed discovery without replacing a successful retry with empty rows", async () => {
+  discoverProjects.mockRejectedValueOnce(new Error("scan failed"));
+  expect((await get("/projects", "/home/u/.gg")).status).toBe(500);
+  expect((await get("/projects", "/home/u/.gg")).status).toBe(200);
 });
