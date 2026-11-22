@@ -22,6 +22,15 @@ export interface ChangelogEntry {
 /** Newest first. Prepended by the `/release` flow. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.113.1",
+    date: "2026-11-21",
+    items: [
+      "Connect Gemini with a Google AI Studio API key from provider settings.",
+      "Browse projects before a session starts, and retry if discovery fails.",
+      "Reopened chats show the saved transcript without waiting for commands and tasks to load.",
+    ],
+  },
+  {
     version: "0.113.0",
     date: "2026-11-20",
     items: [
