@@ -890,17 +890,26 @@ mod tests {
     fn gemini_status_only_accepts_an_ai_studio_key() {
         let legacy = serde_json::json!({ "gemini": { "accessToken": "old" } });
         let status = auth_status_snapshot(Some(&legacy));
-        let gemini = status["providers"].as_array().unwrap().iter()
-            .find(|p| p["value"] == "gemini").expect("Gemini is listed");
+        let gemini = status["providers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["value"] == "gemini")
+            .expect("Gemini is listed");
         assert_eq!(gemini["methods"], serde_json::json!(["apikey"]));
         assert_eq!(gemini["connected"], false);
 
         let (target, base_url) = resolve_apikey_target("gemini", None).unwrap();
-        let saved = apply_apikey(Some(&legacy.to_string()), &target, base_url, 0, "test-key").unwrap();
+        let saved =
+            apply_apikey(Some(&legacy.to_string()), &target, base_url, 0, "test-key").unwrap();
         let saved: serde_json::Value = serde_json::from_str(&saved).unwrap();
         let status = auth_status_snapshot(Some(&saved));
-        let gemini = status["providers"].as_array().unwrap().iter()
-            .find(|p| p["value"] == "gemini").unwrap();
+        let gemini = status["providers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["value"] == "gemini")
+            .unwrap();
         assert_eq!(gemini["connectedMethods"], serde_json::json!(["apikey"]));
         assert_eq!(saved["gemini"], legacy["gemini"]);
     }
