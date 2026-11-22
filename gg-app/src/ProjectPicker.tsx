@@ -4,7 +4,6 @@ import { XIcon } from "./phosphor-icons";
 import { theme } from "./theme";
 import { ProjectWorktrees } from "./ProjectWorktrees";
 import {
-  waitForReady,
   listProjects,
   setProjectHidden,
   listSessions,
@@ -85,11 +84,7 @@ export function ProjectPicker({
   // Both lists are shown at once on a return visit and refreshed quietly
   // (see useCachedList). Discovery failing shows "Couldn't load" instead of
   // "No projects yet", but only when there's no earlier list to show.
-  const projectList = useCachedList<DiscoveredProject>("projects", async () => {
-    // The window's sidecar serves project discovery; wait for it before asking.
-    await waitForReady();
-    return listProjects();
-  });
+  const projectList = useCachedList<DiscoveredProject>("projects", listProjects);
   const { items: projects, loading } = projectList;
   const loadError = projectList.error !== null;
   // Deep-linked from an open project, the picker starts in that project's

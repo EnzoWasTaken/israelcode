@@ -81,9 +81,7 @@ export interface ModelInfo {
    *     every MiMo model, so a Credits-only user still reaches these).
    *   - `mimo-v2.6-pro-ultraspeed`: `[XIAOMI_CREDITS_KEY]` only — not served
    *     over the Token Plan endpoint, so there's no fallback to it.
-   *   - every Gemini model: `[GEMINI_API_KEY, "gemini"]` — an AI Studio API key
-   *     first (the user chose to pay per token, and Code Assist OAuth now
-   *     refuses personal accounts), then the Code Assist OAuth login.
+   *   - every Gemini model: `[GEMINI_API_KEY]` — an AI Studio API key.
    * Falls back to `[provider]` — the normal single-credential case — when
    * unset. Read via `getAuthStorageKeys()` / `getAuthStorageKey()`.
    */
@@ -142,7 +140,7 @@ const CODEX_FAST_BILLING: ModelBilling = {
 // Provider display order — mirrors `PROVIDERS` in ui/login.tsx so the
 // /model selector and login selector sort models identically.
 /** Gemini credential order: an AI Studio API key first, then Code Assist OAuth. */
-const GEMINI_AUTH_KEYS = [GEMINI_API_KEY, "gemini"];
+const GEMINI_AUTH_KEYS = [GEMINI_API_KEY];
 
 export const MODELS: ModelInfo[] = [
   // ── Anthropic ──────────────────────────────────────────

@@ -245,7 +245,7 @@ describe("ProjectPicker returning from a session", () => {
   it("opens straight on the project's sessions, never flashing the project list", async () => {
     getSettingsMock.mockResolvedValue({ projectsRoot: "/Users/dev", configured: true });
     // Discovery hasn't answered yet: the first paint is all there is.
-    waitForReadyMock.mockReturnValue(new Promise(() => {}));
+    listProjectsMock.mockReturnValue(new Promise(() => {}));
     render(<ProjectPicker onChosen={vi.fn()} initialProjectPath={PROJECT.path} />);
     expect(screen.getByText("ui-test")).toBeTruthy();
     expect(screen.getByRole("button", { name: "+ New session" })).toBeTruthy();

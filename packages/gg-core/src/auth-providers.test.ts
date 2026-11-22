@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Provider } from "@kenkaiiii/gg-ai";
-import { getListedModels, getModelsForProvider, isHiddenProvider } from "./model-registry.js";
+import { getAuthStorageKeys, getListedModels, getModelsForProvider } from "./model-registry.js";
 import { AUTH_PROVIDERS } from "./auth-providers.js";
 
 /**
@@ -52,14 +52,16 @@ describe("AUTH_PROVIDERS descriptions match the model registry", () => {
   });
 });
 
-describe("hidden providers", () => {
-  it("are left out of the login list and the unfiltered model lists", () => {
-    // Gemini is hidden until a sign-in path works for personal accounts.
-    expect(isHiddenProvider("gemini")).toBe(true);
-    expect(AUTH_PROVIDERS.map((p) => p.value)).not.toContain("gemini");
-    expect(getListedModels().some((m) => m.provider === "gemini")).toBe(false);
-    // The registry itself keeps the models, so un-hiding is a one-line change.
-    expect(getModelsForProvider("gemini").length).toBeGreaterThan(0);
-    expect(AUTH_PROVIDERS.map((p) => p.value)).toContain("anthropic");
+describe("Gemini setup", () => {
+  it("offers only an API key on the login screen", () => {
+    expect(AUTH_PROVIDERS.find((p) => p.value === "gemini")?.methods).toEqual(["apikey"]);
+  });
+
+  it("lists Gemini models and selects only the AI Studio key for them", () => {
+    const models = getListedModels().filter((m) => m.provider === "gemini");
+    expect(models.length).toBeGreaterThan(0);
+    for (const model of models) {
+      expect(getAuthStorageKeys("gemini", model.id)).toEqual(["gemini-api"]);
+    }
   });
 });

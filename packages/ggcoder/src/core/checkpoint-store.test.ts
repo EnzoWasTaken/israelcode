@@ -154,7 +154,11 @@ describe("pruneCheckpointSessions", () => {
     const outsideFile = nodePath.join(outside, "keep.txt");
     await fsp.writeFile(outsideFile, "keep");
     await fsp.utimes(outsideFile, old, old);
-    await fsp.symlink(outside, nodePath.join(base, "link-session"));
+    await fsp.symlink(
+      outside,
+      nodePath.join(base, "link-session"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
     const res = await pruneCheckpointSessions({ baseDir: base, maxAgeDays: 30 });
     expect(res.removed).toBe(1);
     const left = (await fsp.readdir(base)).sort();

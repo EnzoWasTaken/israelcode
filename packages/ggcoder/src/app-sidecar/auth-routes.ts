@@ -2,7 +2,6 @@ import type http from "node:http";
 import { GEMINI_API_KEY, XIAOMI_CREDITS_KEY, dualAuthProvider } from "@kenkaiiii/gg-core";
 import { loginAnthropic } from "../core/oauth/anthropic.js";
 import { loginOpenAI } from "../core/oauth/openai.js";
-import { loginGemini } from "../core/oauth/gemini.js";
 import { loginKimi } from "../core/oauth/kimi.js";
 import { loginXai } from "../core/oauth/xai.js";
 import type { OAuthCredentials } from "../core/oauth/types.js";
@@ -158,7 +157,6 @@ export function handleAuthRoutes(
           let storageKey = provider;
           if (provider === "anthropic") creds = await loginAnthropic(cb);
           else if (provider === "openai") creds = await loginOpenAI(cb);
-          else if (provider === "gemini") creds = await loginGemini(cb);
           else if (provider === "moonshot" || provider === "xai") {
             // Subscription OAuth (Kimi plan / SuperGrok-X Premium) stores under
             // a distinct key so it can coexist with the provider's API key.
@@ -318,7 +316,7 @@ export function handleAuthRoutes(
       // a spent API key should not sign the user out of their subscription, and
       // vice versa. Omitting `method` still clears everything (the plain
       // "Disconnect" action).
-      if (logoutMethod !== "apikey") {
+      if (logoutMethod !== "apikey" && (provider !== "gemini" || logoutMethod === "oauth")) {
         await ctx.auth.clearCredentials(dual ? dual.oauthKey : provider);
       }
       if (logoutMethod !== "oauth") {

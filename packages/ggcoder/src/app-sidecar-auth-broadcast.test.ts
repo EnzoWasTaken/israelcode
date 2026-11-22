@@ -234,6 +234,16 @@ describe("loopback daemon auth", () => {
   });
 });
 
+describe("daemon-ready discovery", () => {
+  it("lists projects and sessions before any window session exists", async () => {
+    expect(await request("GET", "/projects")).toEqual({ status: 200, json: { projects: [] } });
+    expect(await request("GET", `/sessions?cwd=${encodeURIComponent(tmpProject)}`)).toEqual({
+      status: 200,
+      json: { sessions: [] },
+    });
+  });
+});
+
 describe("a goal window reconnecting", () => {
   it("keeps the goal in the ready frame, as in GET /state", async () => {
     // Live bug: after a daemon restart the app swaps its state for the events
@@ -871,27 +881,45 @@ describe("dual-auth providers (OAuth + API key)", () => {
     expect(after.connected).toBe(true);
   }, 90_000);
 
-  // Gemini is hidden (gg-core hidden-providers.ts): Google no longer serves
-  // personal accounts over sign-in. Restore the dual-method test from git
-  // history ("adds a Gemini API key beside the Google sign-in") when un-hiding.
-  it("hides Gemini from the provider list and the model picker, even with a login on disk", async () => {
+  it("connects Gemini only through AI Studio and preserves legacy OAuth on disconnect", async () => {
     const session = await createSession();
     await fs.writeFile(
       path.join(tmpHome, APP_DIR_NAME, "auth.json"),
       JSON.stringify({
         gemini: { accessToken: "oauth", refreshToken: "r", expiresAt: Date.now() + 1_000_000 },
-        "gemini-api": { accessToken: "k", refreshToken: "", expiresAt: Date.now() + 1_000_000 },
       }),
     );
-    const status = await request("GET", "/auth/status", { session });
-    expect(status.status).toBe(200);
-    const values = (status.json.providers as { value: string }[]).map((p) => p.value);
-    expect(values).not.toContain("gemini");
-    expect(values).toContain("xai");
-
+    expect(await providerStatus(session, "gemini")).toMatchObject({
+      methods: ["apikey"],
+      connected: false,
+    });
+    const oauth = await request("POST", "/auth/oauth/start", {
+      session,
+      body: { provider: "gemini" },
+    });
+    expect(oauth.status).toBe(400);
+    const saved = await request("POST", "/auth/apikey", {
+      session,
+      body: { provider: "gemini", key: "test-key" },
+    });
+    expect(saved.status).toBe(200);
+    expect(await providerStatus(session, "gemini")).toMatchObject({
+      connectedMethods: ["apikey"],
+      connected: true,
+    });
     const models = await request("GET", "/models", { session });
-    const providers = (models.json.models as { provider: string }[]).map((m) => m.provider);
-    expect(providers).not.toContain("gemini");
+    expect(
+      (models.json.models as { provider: string }[]).some((m) => m.provider === "gemini"),
+    ).toBe(true);
+    expect(
+      (await request("POST", "/auth/logout", { session, body: { provider: "gemini" } })).status,
+    ).toBe(200);
+    expect(await providerStatus(session, "gemini")).toMatchObject({ connected: false });
+    const stored = JSON.parse(
+      await fs.readFile(path.join(tmpHome, APP_DIR_NAME, "auth.json"), "utf8"),
+    );
+    expect(stored.gemini.accessToken).toBe("oauth");
+    expect(stored["gemini-api"]).toBeUndefined();
   }, 90_000);
 
   it("counts a stale Ollama credential only while Ollama serves models", async () => {

@@ -520,11 +520,10 @@ pub(crate) async fn agent_projects(
     webview: WebviewWindow,
     client: State<'_, reqwest::Client>,
 ) -> Result<serde_json::Value, String> {
-    let port = port_for(&webview).ok_or("daemon not ready")?;
-    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let port = await_daemon_port(webview.app_handle()).await?;
     let res = client
         .get(format!("{}/projects", sidecar_base(port)))
-        .header("x-gg-session", &gg_sid)
+        .timeout(std::time::Duration::from_secs(15))
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -767,8 +766,7 @@ pub(crate) async fn agent_sessions(
     cwd: String,
     chat_agent: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let port = port_for(&webview).ok_or("daemon not ready")?;
-    let gg_sid = session_for(&webview).ok_or("session not ready")?;
+    let port = await_daemon_port(webview.app_handle()).await?;
     let encoded = urlencoding(&cwd);
     let mut url = format!("{}/sessions?cwd={}", sidecar_base(port), encoded);
     if let Some(agent) = chat_agent {
@@ -777,7 +775,7 @@ pub(crate) async fn agent_sessions(
     }
     let res = client
         .get(url)
-        .header("x-gg-session", &gg_sid)
+        .timeout(std::time::Duration::from_secs(15))
         .send()
         .await
         .map_err(|e| e.to_string())?;

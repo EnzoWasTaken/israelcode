@@ -316,7 +316,7 @@ export class AuthStorage {
       return Boolean(this.data["xiaomi"] || this.data[XIAOMI_CREDITS_KEY]);
     }
     if (provider === "gemini") {
-      return Boolean(this.data["gemini"] || this.data[GEMINI_API_KEY]);
+      return Boolean(this.data[GEMINI_API_KEY]);
     }
     // `local` has no single credential — any configured endpoint counts.
     if (provider === "local") {
@@ -640,6 +640,10 @@ export class AuthStorage {
     // A failed refresh removes the credential from this session's cache. If
     // the user then re-logs in through another app session, recover that new
     // on-disk credential instead of remaining "not logged in" until restart.
+    opts =
+      provider === "gemini" && !opts?.storageKeys
+        ? { ...opts, storageKeys: [GEMINI_API_KEY] }
+        : opts;
     const directStorageKeys =
       opts?.storageKeys && !(opts.storageKeys.length === 1 && opts.storageKeys[0] === provider)
         ? opts.storageKeys
@@ -672,6 +676,7 @@ export class AuthStorage {
         // credential — resolve it through the normal path so it refreshes.
         if (key === provider) {
           return await this.resolveCredentials(provider, {
+            storageKeys: [provider],
             ...(opts.forceRefresh ? { forceRefresh: true } : {}),
             ...(opts.rejectedToken !== undefined ? { rejectedToken: opts.rejectedToken } : {}),
           });

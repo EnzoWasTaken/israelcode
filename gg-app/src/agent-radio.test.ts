@@ -58,6 +58,16 @@ describe("getRadioState", () => {
   });
 });
 
+it("requests project discovery without waiting for a window session", async () => {
+  invoke.mockReset();
+  invoke.mockImplementation((name: string) =>
+    name === "agent_projects"
+      ? Promise.resolve({ projects: [] })
+      : Promise.reject(new Error(`unexpected ${name}`)),
+  );
+  await expect(listProjects()).resolves.toEqual([]);
+});
+
 describe("mount-time session calls", () => {
   beforeEach(() => {
     invoke.mockReset();
@@ -66,7 +76,6 @@ describe("mount-time session calls", () => {
   });
 
   it.each([
-    ["agent_projects", () => listProjects(), { projects: [] }],
     ["agent_steroids_status", () => getSteroidsStatus(), { installed: true, connected: true }],
   ] as const)("%s waits for the window session first", async (command, call, reply) => {
     let port: number | null = null;

@@ -61,7 +61,7 @@ describe("ChatPicker", () => {
     render(<ChatPicker onChosen={onChosen} />);
 
     expect(await screen.findByText("Plan my week")).toBeDefined();
-    expect(waitForReadyMock).toHaveBeenCalledOnce();
+    expect(waitForReadyMock).not.toHaveBeenCalled();
     expect(listSessionsMock).toHaveBeenCalledWith("/workspaces", "all");
 
     fireEvent.click(screen.getByText("Plan my week"));

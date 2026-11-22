@@ -144,11 +144,24 @@ async function discoverGgcoderProjects(): Promise<DiscoveredProject[]> {
   // had dozens of session stores.
   const results = await mapConcurrent(entries, async (entry): Promise<DiscoveredProject | null> => {
     const dir = path.join(sessionsDir, entry);
-    const mtime = await lastUsedGgcoderSessionMtime(dir);
-    if (mtime === null) return null;
+    const files = await collectGgcoderSessionFiles(dir, 2);
+    files.sort((a, b) => b.mtime - a.mtime);
+    // Header-only sessions don't count as activity, but may carry the newest cwd.
+    let mtime: number | undefined;
+    for (const file of files) {
+      if (await readFirstFromGgcoderFile(file.path, ggcoderMessageExtractor)) {
+        mtime = file.mtime;
+        break;
+      }
+    }
+    if (mtime === undefined) return null;
 
-    const rawCwd =
-      (await readFirstFromGgcoderDir(dir, ggcoderCwdExtractor)) ?? fallbackUnderscoreDecode(entry);
+    let rawCwd: string | null = null;
+    for (const file of files) {
+      rawCwd = await readFirstFromGgcoderFile(file.path, ggcoderCwdExtractor);
+      if (rawCwd) break;
+    }
+    rawCwd ??= fallbackUnderscoreDecode(entry);
     if (!rawCwd) return null;
     // Normalize traversal segments (e.g. an agent launched with cwd
     // `.../src-tauri/../..`) so the basename isn't a stray "..", and drop any
@@ -466,24 +479,6 @@ async function maxJsonlMtime(dir: string): Promise<number | null> {
 }
 
 /**
- * Last activity in a ggcoder session store, counting only sessions that
- * recorded a message. A session writes its header as soon as it starts, so a
- * header-only file means the project was opened, not worked in; the same rule
- * `listRecentSessions` applies. Compaction checkpoints re-save their messages,
- * so compacted conversations still count.
- */
-async function lastUsedGgcoderSessionMtime(dir: string): Promise<number | null> {
-  if (!(await isDirectory(dir))) return null;
-  const files = await collectGgcoderSessionFiles(dir, 2);
-  // Newest first: the first used file is also the latest real activity.
-  files.sort((a, b) => b.mtime - a.mtime);
-  for (const file of files) {
-    if (await readFirstFromGgcoderFile(file.path, ggcoderMessageExtractor)) return file.mtime;
-  }
-  return null;
-}
-
-/**
  * Walk `dir` up to `maxDepth` levels deep collecting every .jsonl file. Used
  * for both Claude Code (top-level + `<uuid>/subagents/`) and Codex
  * (`YYYY/MM/DD/`) layouts.
@@ -627,19 +622,6 @@ async function readFirstFromJsonlDir(
   return null;
 }
 
-async function readFirstFromGgcoderDir(
-  dir: string,
-  extractor: LineExtractor,
-): Promise<string | null> {
-  const files = await collectGgcoderSessionFiles(dir, 2);
-  files.sort((a, b) => b.mtime - a.mtime);
-  for (const file of files) {
-    const value = await readFirstFromGgcoderFile(file.path, extractor);
-    if (value) return value;
-  }
-  return null;
-}
-
 /**
  * Stream one ggcoder session file, plain or archived, and return the first
  * non-null extractor result. Line-capped like {@link readFirstFromFile}.
@@ -778,15 +760,23 @@ export async function listRecentSessions(
 
   const out: RecentSession[] = [];
   const seenConversationIds = new Set<string>();
-  for (const f of files) {
-    if (out.length >= limit) break;
-    const parsed = await readSessionSummary(f.path);
-    if (!parsed || parsed.messageCount === 0) continue;
-    if (seenConversationIds.has(parsed.conversationId)) continue;
-    seenConversationIds.add(parsed.conversationId);
-    const { conversationId: _conversationId, ...session } = parsed;
-    // A file with no timestamped entries falls back to its modified time.
-    out.push(session.lastActiveMs > 0 ? session : { ...session, lastActiveMs: f.mtime });
+  for (let start = 0; start < files.length && out.length < limit;) {
+    const batch = files.slice(start, start + Math.min(8, Math.ceil(limit - out.length)));
+    start += batch.length;
+    const summaries = await Promise.all(
+      batch.map(async (file) => {
+        const summary = await readSessionSummary(file.path);
+        return { summary, mtime: file.mtime };
+      }),
+    );
+    // Consume in mtime order so older checkpoints can't win a faster read.
+    for (const { summary, mtime } of summaries) {
+      if (!summary || summary.messageCount === 0) continue;
+      if (seenConversationIds.has(summary.conversationId)) continue;
+      seenConversationIds.add(summary.conversationId);
+      const { conversationId: _conversationId, ...session } = summary;
+      out.push(session.lastActiveMs > 0 ? session : { ...session, lastActiveMs: mtime });
+    }
   }
   return out;
 }

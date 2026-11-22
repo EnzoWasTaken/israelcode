@@ -7,7 +7,6 @@ import {
   listSessions,
   newWindow,
   selectWorkspace,
-  waitForReady,
   type ChatAgentId,
   type RecentSession,
 } from "./agent";
@@ -76,7 +75,6 @@ export function ChatPicker({
   // Shown at once on a return visit, refreshed quietly (see useCachedList).
   const sessionList = useCachedList<RecentSession>(`sessions:${mode}`, async () => {
     const root = await rootFor();
-    await waitForReady();
     return listSessions(root, mode === "motion" ? "motion" : "all");
   });
   const { items: sessions, loading, error } = sessionList;
